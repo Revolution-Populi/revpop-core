@@ -1,6 +1,6 @@
 ---
 name: Build Error
-about: Create a detailed report about an error encountered during the BitShares Core build process.
+about: Create a detailed report about an error encountered during the RevPop Core build process.
 
 ---
 

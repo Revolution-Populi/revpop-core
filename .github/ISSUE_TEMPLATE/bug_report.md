@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Create a detailed report about a deficiency in the BitShares Core implementation.
+about: Create a detailed report about a deficiency in the RevPop Core implementation.
 
 ---
 
@@ -20,7 +20,7 @@ Finally, press the 'Submit new issue' button. The Core Team will evaluate and pr
 A clear and concise description of what the bug is.
 
 **Impacts**
-Describe which portion(s) of BitShares Core may be impacted by this bug. Please tick at least one box.
+Describe which portion(s) of RevPop Core may be impacted by this bug. Please tick at least one box.
 - [ ] API (the application programming interface)
 - [ ] Build (the build process or something prior to compiled code)
 - [ ] CLI (the command line wallet)
@@ -50,7 +50,7 @@ If applicable, add screenshots to help explain process flow and behavior.
 Please provide details about the host environment. Much of this information can be found running: `witness_node --version`. 
  - Host OS:             [e.g. Ubuntu 18.04 LTS]
  - Host Physical RAM    [e.g. 4GB]
- - BitShares Version:   [e.g. 2.0.180425]
+ - RevPop Core Version:   [e.g. 1.0.0]
  - OpenSSL Version:     [e.g. 1.1.0g]
  - Boost Version:       [e.g. 1.65.1]
  

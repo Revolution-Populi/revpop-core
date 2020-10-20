@@ -21,7 +21,7 @@ We recommend building on Ubuntu 16.04 LTS (64-bit)
 **Build Dependencies:**
 
     sudo apt-get update
-    sudo apt-get install autoconf cmake make automake libtool git libboost-all-dev libssl-dev g++ libcurl4-openssl-dev
+    sudo apt-get install autoconf cmake make automake libtool git libboost-all-dev libssl-dev g++ libcurl4-openssl-dev doxygen
 
 **Build Script:**
 
@@ -29,7 +29,9 @@ We recommend building on Ubuntu 16.04 LTS (64-bit)
     cd revpop-core
     git checkout master # may substitute "master" with current release tag
     git submodule update --init --recursive
-    cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .
+    mkdir build
+    cd build
+    cmake -DCMAKE_BUILD_TYPE=Release ..
     make
 
 **Upgrade Script:** (prepend to the Build Script above if you built a prior release):
@@ -46,7 +48,7 @@ We recommend building on Ubuntu 16.04 LTS (64-bit)
 have not been tested. If your system came pre-installed with a version of Boost that you do not wish to use, you may
 manually build your preferred version and use it with BitShares by specifying it on the CMake command line.
 
-Example: ``cmake -DBOOST_ROOT=/path/to/boost .``
+  Example: `cmake -DBOOST_ROOT=/path/to/boost ..`
 
 **NOTE:** RevPop requires a 64-bit operating system to build, and will not build on a 32-bit OS.
 

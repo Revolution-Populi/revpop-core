@@ -139,6 +139,15 @@
 
 #define GRAPHENE_FBA_STEALTH_DESIGNATED_ASSET (asset_id_type(743))
 
+/// Maximum duration before a custom authority can expire (1 month)
+#define GRAPHENE_DEFAULT_MAX_CUSTOM_AUTHORITY_LIFETIME_SECONDS (60*60*24*30)
+/// Maximum number of custom authorities a particular account can set
+#define GRAPHENE_DEFAULT_MAX_CUSTOM_AUTHORITIES_PER_ACCOUNT 10
+/// Maximum number of custom authorities a particular account can set for a particular operation
+#define GRAPHENE_DEFAULT_MAX_CUSTOM_AUTHORITIES_PER_ACCOUNT_OP 3
+/// Maximum number of restrictions a custom authority can contain
+#define GRAPHENE_DEFAULT_MAX_CUSTOM_AUTHORITY_RESTRICTIONS 10
+
 #define REVPOP_VOTE_MIXTURE 3
 #define REVPOP_WITNESSES_TOP_MAX 63
 #define REVPOP_WITNESSES_ACTIVE_MAX 21

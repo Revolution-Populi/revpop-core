@@ -30,9 +30,11 @@
 #include <graphene/protocol/custom.hpp>
 #include <graphene/protocol/committee_member.hpp>
 #include <graphene/protocol/confidential.hpp>
+#include <graphene/protocol/custom_authority.hpp>
 #include <graphene/protocol/fba.hpp>
 #include <graphene/protocol/market.hpp>
 #include <graphene/protocol/proposal.hpp>
+#include <graphene/protocol/ticket.hpp>
 #include <graphene/protocol/transfer.hpp>
 #include <graphene/protocol/vesting.hpp>
 #include <graphene/protocol/withdraw_permission.hpp>
@@ -107,18 +109,23 @@ namespace graphene { namespace protocol {
             htlc_redeemed_operation,         // VIRTUAL
             htlc_extend_operation,
             htlc_refund_operation,           // VIRTUAL
-            personal_data_create_operation,
-            personal_data_remove_operation,
-            content_card_create_operation,
-            content_card_update_operation,
-            content_card_remove_operation,
-            permission_create_operation,
-            permission_remove_operation,
-            content_vote_create_operation,
-            content_vote_remove_operation,
-            vote_counter_update_operation,
-            commit_create_operation,
-            reveal_create_operation
+            custom_authority_create_operation,
+            custom_authority_update_operation,
+            custom_authority_delete_operation,
+            ticket_create_operation,
+            ticket_update_operation,
+            personal_data_create_operation,  // VIRTUAL
+            personal_data_remove_operation,  // VIRTUAL
+            content_card_create_operation,   // VIRTUAL
+            content_card_update_operation,   // VIRTUAL
+            content_card_remove_operation,   // VIRTUAL
+            permission_create_operation,     // VIRTUAL
+            permission_remove_operation,     // VIRTUAL
+            content_vote_create_operation,   // VIRTUAL
+            content_vote_remove_operation,   // VIRTUAL
+            vote_counter_update_operation,   // VIRTUAL
+            commit_create_operation,         // VIRTUAL
+            reveal_create_operation          // VIRTUAL
          > operation;
 
    /// @} // operations group
@@ -129,10 +136,11 @@ namespace graphene { namespace protocol {
     *
     *  @return a set of required authorities for @ref op
     */
-   void operation_get_required_authorities( const operation& op, 
+   void operation_get_required_authorities( const operation& op,
                                             flat_set<account_id_type>& active,
                                             flat_set<account_id_type>& owner,
-                                            vector<authority>&  other );
+                                            vector<authority>& other,
+                                            bool ignore_custom_operation_required_auths );
 
    void operation_validate( const operation& op );
 

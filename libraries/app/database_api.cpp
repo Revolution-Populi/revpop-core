@@ -318,6 +318,16 @@ dynamic_global_property_object database_api_impl::get_dynamic_global_properties(
    return _db.get(dynamic_global_property_id_type());
 }
 
+witness_schedule_object database_api::get_witness_schedule()const
+{
+   return my->get_witness_schedule();
+}
+
+witness_schedule_object database_api_impl::get_witness_schedule()const
+{
+   return _db.get_witness_schedule_object();
+}
+
 //////////////////////////////////////////////////////////////////////
 //                                                                  //
 // Keys                                                             //

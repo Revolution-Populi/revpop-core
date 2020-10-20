@@ -42,6 +42,7 @@
 #include <graphene/chain/content_vote_object.hpp>
 #include <graphene/chain/vote_master_summary_object.hpp>
 #include <graphene/chain/commit_reveal_object.hpp>
+#include <graphene/chain/witness_schedule_object.hpp>
 
 #include <fc/api.hpp>
 #include <fc/variant_object.hpp>
@@ -222,6 +223,11 @@ class database_api
        * @brief Retrieve the current @ref graphene::chain::dynamic_global_property_object
        */
       dynamic_global_property_object get_dynamic_global_properties()const;
+
+      /**
+       * @brief Retrieve the current @ref graphene::chain::witness_schedule_object
+       */
+      witness_schedule_object get_witness_schedule()const;
 
       //////////
       // Keys //
@@ -1027,6 +1033,7 @@ FC_API(graphene::app::database_api,
    (get_config)
    (get_chain_id)
    (get_dynamic_global_properties)
+   (get_witness_schedule)
 
    // Keys
    (get_key_references)

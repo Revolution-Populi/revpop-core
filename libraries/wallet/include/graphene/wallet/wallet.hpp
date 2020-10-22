@@ -1988,10 +1988,10 @@ class wallet_api
 
       /** Create personal data with permission.
        *
-       * @param subject_account.
-       * @param operator_account.
-       * @param url.
-       * @param hash.
+       * @param subject_account the owner of personal data.
+       * @param operator_account an account who is permitted to use personal data.
+       * @param url a url to the content storage.
+       * @param hash a hash of a personal data.
        * @param broadcast true if you wish to broadcast the transaction.
        * @return the signed version of the transaction.
       */

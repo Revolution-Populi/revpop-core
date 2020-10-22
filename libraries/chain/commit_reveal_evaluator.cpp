@@ -51,14 +51,15 @@ object_id_type commit_create_evaluator::do_apply( const commit_create_operation&
          obj.hash = o.hash;
          obj.value = 0;
       });
-   } else {
-      const auto &new_cr_object = d.create<commit_reveal_object>([&o](commit_reveal_object &obj) {
-         obj.account = o.account;
-         obj.hash = o.hash;
-         obj.value = 0;
-      });
-      return new_cr_object.id;
+      return itr->id;
    }
+   const auto &new_cr_object = d.create<commit_reveal_object>([&o](commit_reveal_object &obj) {
+      obj.account = o.account;
+      obj.hash = o.hash;
+      obj.value = 0;
+   });
+   return new_cr_object.id;
+
 } FC_CAPTURE_AND_RETHROW((o)) }
 
 void_result reveal_create_evaluator::do_evaluate( const reveal_create_operation& op )

@@ -116,7 +116,7 @@ namespace graphene { namespace app { namespace detail {
 
 void application_impl::reset_p2p_node(const fc::path& data_dir)
 { try {
-   _p2p_network = std::make_shared<net::node>("BitShares Reference Implementation");
+   _p2p_network = std::make_shared<net::node>("RevPop Reference Implementation");
 
    _p2p_network->load_configuration(data_dir / "p2p");
    _p2p_network->set_node_delegate(this);

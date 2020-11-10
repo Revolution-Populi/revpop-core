@@ -1,4 +1,4 @@
-# BitShares Plugins
+# RevPop Plugins
 
 The bitshares plugins are a collection of tools that brings new functionality without the need of modifications in the consensus and more sensitive areas of the bitshares-core.
 

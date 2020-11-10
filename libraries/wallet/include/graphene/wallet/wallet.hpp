@@ -518,7 +518,7 @@ class wallet_api
        */
       string  gethelp(const string& method)const;
 
-      /** Loads a specified BitShares wallet.
+      /** Loads a specified RevPop wallet.
        *
        * The current wallet is closed before the new wallet is loaded.
        *
@@ -945,7 +945,7 @@ class wallet_api
 
       /** Place a limit order attempting to sell one asset for another.
        *
-       * Buying and selling are the same operation on BitShares; if you want to buy RVP
+       * Buying and selling are the same operation on RevPop; if you want to buy RVP
        * with USD, you should sell USD for RVP.
        *
        * The blockchain will attempt to sell the \c symbol_to_sell for as

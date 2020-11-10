@@ -1,4 +1,4 @@
-# BitShares Programs
+# RevPop Programs
 
 The bitshares programs are a collection of binaries to run the blockchain, interact with it or utilities.
 

@@ -116,14 +116,14 @@ BOOST_AUTO_TEST_CASE(asset_claim_fees_test)
       const asset izzy_satoshi = asset(1, izzycoin_id);
       const asset jill_satoshi = asset(1, jillcoin_id);
 
-      // Izzycoin is worth 100 REV
+      // Izzycoin is worth 100 RVP
       price_feed feed;
       feed.settlement_price = price( _izzy(1), _core(100) );
       feed.maintenance_collateral_ratio = 175 * GRAPHENE_COLLATERAL_RATIO_DENOM / 100;
       feed.maximum_short_squeeze_ratio = 150 * GRAPHENE_COLLATERAL_RATIO_DENOM / 100;
       publish_feed( izzycoin_id(db), izzy, feed );
 
-      // Jillcoin is worth 30 REV
+      // Jillcoin is worth 30 RVP
       feed.settlement_price = price( _jill(1), _core(30) );
       feed.maintenance_collateral_ratio = 175 * GRAPHENE_COLLATERAL_RATIO_DENOM / 100;
       feed.maximum_short_squeeze_ratio = 150 * GRAPHENE_COLLATERAL_RATIO_DENOM / 100;
@@ -207,7 +207,7 @@ BOOST_AUTO_TEST_CASE(asset_claim_pool_test)
     {
         ACTORS((alice)(bob));
         // Alice and Bob create some user issued assets
-        // Alice deposits REV to the fee pool
+        // Alice deposits RVP to the fee pool
         // Alice claimes fee pool of her asset and can't claim pool of Bob's asset
 
         const share_type core_prec = asset::scaled_precision( asset_id_type()(db).precision );
@@ -274,7 +274,7 @@ BOOST_AUTO_TEST_CASE(asset_claim_pool_test)
 
         };
 
-        // deposit 100 REV to the fee pool of ALICEUSD asset
+        // deposit 100 RVP to the fee pool of ALICEUSD asset
         fund_fee_pool( alice_id(db), aliceusd_id(db), _core(100).amount );
 
         // New reference for core_asset after having produced blocks
@@ -283,7 +283,7 @@ BOOST_AUTO_TEST_CASE(asset_claim_pool_test)
         // can't claim pool because it is empty
         GRAPHENE_REQUIRE_THROW( claim_pool( alice_id, alicecoin_id, _core(1), core_asset_hf), fc::exception );
 
-        // deposit 300 REV to the fee pool of ALICECOIN asset
+        // deposit 300 RVP to the fee pool of ALICECOIN asset
         fund_fee_pool( alice_id(db), alicecoin_id(db), _core(300).amount );
 
         // Test amount of CORE in fee pools
@@ -299,7 +299,7 @@ BOOST_AUTO_TEST_CASE(asset_claim_pool_test)
         // can't pay fee in the same asset whose pool is being drained
         GRAPHENE_REQUIRE_THROW( claim_pool( alice_id, alicecoin_id, _core(200), alicecoin_id(db) ), fc::exception );
 
-        // can claim REV back from the fee pool
+        // can claim RVP back from the fee pool
         claim_pool( alice_id, alicecoin_id, _core(200), core_asset_hf );
         BOOST_CHECK( alicecoin_id(db).dynamic_asset_data_id(db).fee_pool == _core(100).amount );
 

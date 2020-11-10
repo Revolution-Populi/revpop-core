@@ -1031,7 +1031,7 @@ void process_hf_1465( database& db )
 }
 
 /****
- * @brief a one-time data process to correct current_supply of BTS token in the BitShares mainnet
+ * @brief a one-time data process to correct current_supply of RVP token in the BitShares mainnet
  */
 void process_hf_2103( database& db )
 {

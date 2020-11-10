@@ -33,7 +33,7 @@ void ticket_create_operation::validate()const
    FC_ASSERT( target_type != static_cast<uint64_t>(liquid), "Target type can not be liquid" );
    FC_ASSERT( target_type < static_cast<uint64_t>(TICKET_TYPE_COUNT), "Invalid target type" );
    FC_ASSERT( amount.amount > 0, "A positive amount is needed for creating a ticket" );
-   FC_ASSERT( amount.asset_id == asset_id_type(), "Amount must be in BTS so far" );
+   FC_ASSERT( amount.asset_id == asset_id_type(), "Amount must be in RVP so far" );
 }
 
 void ticket_update_operation::validate()const
@@ -43,7 +43,7 @@ void ticket_update_operation::validate()const
    if( amount_for_new_target.valid() )
    {
       FC_ASSERT( amount_for_new_target->amount > 0, "A positive amount is needed" );
-      FC_ASSERT( amount_for_new_target->asset_id == asset_id_type(), "Amount must be in BTS so far" );
+      FC_ASSERT( amount_for_new_target->asset_id == asset_id_type(), "Amount must be in RVP so far" );
    }
 }
 

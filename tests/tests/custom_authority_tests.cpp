@@ -3170,7 +3170,7 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
          //                  "restriction_type": 0,
          //                  "argument": [
          //                    5,
-         //                    "BTS6MWg7PpE6azCGwKuhB17DbtSqhzf8i25hspdhndsf7VfsLee7k"
+         //                    "RVP6MWg7PpE6azCGwKuhB17DbtSqhzf8i25hspdhndsf7VfsLee7k"
          //                  ],
          //                  "extensions": []
          //                },
@@ -3179,7 +3179,7 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
          //                  "restriction_type": 0,
          //                  "argument": [
          //                    5,
-         //                    "BTS5VE6Dgy9FUmd1mFotXwF88HkQN1KysCWLPqpVnDMjRvGRi1YrM"
+         //                    "RVP5VE6Dgy9FUmd1mFotXwF88HkQN1KysCWLPqpVnDMjRvGRi1YrM"
          //                  ],
          //                  "extensions": []
          //                }
@@ -3446,7 +3446,7 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
          //          "restriction_type": 0,
          //          "argument": [
          //            5,
-         //            "BTS6MWg7PpE6azCGwKuhB17DbtSqhzf8i25hspdhndsf7VfsLee7k"
+         //            "RVP6MWg7PpE6azCGwKuhB17DbtSqhzf8i25hspdhndsf7VfsLee7k"
          //          ],
          //          "extensions": []
          //        },
@@ -3455,7 +3455,7 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
          //          "restriction_type": 0,
          //          "argument": [
          //            5,
-         //            "BTS5VE6Dgy9FUmd1mFotXwF88HkQN1KysCWLPqpVnDMjRvGRi1YrM"
+         //            "RVP5VE6Dgy9FUmd1mFotXwF88HkQN1KysCWLPqpVnDMjRvGRi1YrM"
          //          ],
          //          "extensions": []
          //        }
@@ -5911,7 +5911,7 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
             //          "restriction_type": 0,
             //          "argument": [
             //            5,
-            //            "BTS7zsqi7QUAjTAdyynd6DVe8uv4K8gCTRHnAoMN9w9CA1xLCTDVv"
+            //            "RVP7zsqi7QUAjTAdyynd6DVe8uv4K8gCTRHnAoMN9w9CA1xLCTDVv"
             //          ],
             //          "extensions": []
             //        }

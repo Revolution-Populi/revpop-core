@@ -1242,7 +1242,7 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
 static string encapsulate( const graphene::wallet::signed_message& msg )
 {
    fc::stringstream encapsulated;
-   encapsulated << "-----BEGIN BITSHARES SIGNED MESSAGE-----\n"
+   encapsulated << "-----BEGIN REVPOP SIGNED MESSAGE-----\n"
                 << msg.message << '\n'
                 << "-----BEGIN META-----\n"
                 << "account=" << msg.meta.account << '\n'
@@ -1251,7 +1251,7 @@ static string encapsulate( const graphene::wallet::signed_message& msg )
                 << "timestamp=" << msg.meta.time << '\n'
                 << "-----BEGIN SIGNATURE-----\n"
                 << fc::to_hex( (const char*)msg.signature->data(), msg.signature->size() ) << '\n'
-                << "-----END BITSHARES SIGNED MESSAGE-----";
+                << "-----END REVPOP SIGNED MESSAGE-----";
    return encapsulated.str();
 }
 

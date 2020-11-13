@@ -41,10 +41,10 @@ using namespace graphene::protocol;
 using namespace graphene::chain;
 using namespace graphene::app;
 
-static const string ENC_HEADER( "-----BEGIN BITSHARES SIGNED MESSAGE-----\n" );
+static const string ENC_HEADER( "-----BEGIN REVPOP SIGNED MESSAGE-----\n" );
 static const string ENC_META(   "-----BEGIN META-----\n" );
 static const string ENC_SIG(    "-----BEGIN SIGNATURE-----\n" );
-static const string ENC_FOOTER( "-----END BITSHARES SIGNED MESSAGE-----" );
+static const string ENC_FOOTER( "-----END REVPOP SIGNED MESSAGE-----" );
 
 template<class T>
 fc::optional<T> maybe_id( const string& name_or_id )

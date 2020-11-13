@@ -614,28 +614,6 @@ class wallet_api
        */
       bool import_key(string account_name_or_id, string wif_key);
 
-      /** Imports accounts from a BitShares 0.x wallet file.
-       * Current wallet file must be unlocked to perform the import.
-       *
-       * @param filename the BitShares 0.x wallet file to import
-       * @param password the password to encrypt the BitShares 0.x wallet file
-       * @returns a map containing the accounts found and whether imported
-       */
-      map<string, bool> import_accounts( string filename, string password );
-
-      /** Imports from a BitShares 0.x wallet file, find keys that were bound to a given account name on the
-       * BitShares 0.x chain, rebind them to an account name on the 2.0 chain.
-       * Current wallet file must be unlocked to perform the import.
-       *
-       * @param filename the BitShares 0.x wallet file to import
-       * @param password the password to encrypt the BitShares 0.x wallet file
-       * @param src_account_name name of the account on BitShares 0.x chain
-       * @param dest_account_name name of the account on BitShares 2.0 chain,
-       *                          can be same or different to \c src_account_name
-       * @returns whether the import has succeeded
-       */
-      bool import_account_keys( string filename, string password, string src_account_name, string dest_account_name );
-
       /**
        * This call will construct transaction(s) that will claim all balances controled
        * by wif_keys and deposit them into the given account.
@@ -2106,8 +2084,6 @@ FC_API( graphene::wallet::wallet_api,
         (list_assets)
         (get_asset_count)
         (import_key)
-        (import_accounts)
-        (import_account_keys)
         (import_balance)
         (suggest_brain_key)
         (derive_owner_keys_from_brain_key)

@@ -388,7 +388,7 @@ BOOST_FIXTURE_TEST_SUITE(margin_call_fee_tests, bitasset_database_fixture)
          // Want new price = 1.7 / CR_0 = (17/10) / CR_0
          //
          // Collateral ratios are defined as collateral / debt
-         // BitShares prices are conventionally defined as debt / collateral
+         // RevPop prices are conventionally defined as debt / collateral
          // The new price can be expressed with the available codebase as
          // = (17/10) * ~CR_0 = ~CR_0 * (17/10)
          const price intermediate_feed_price = ~bob_initial_cr * ratio_type(17, 10); // Units of debt / collateral
@@ -667,7 +667,7 @@ BOOST_FIXTURE_TEST_SUITE(margin_call_fee_tests, bitasset_database_fixture)
          // Want new price = 1.7 / CR_0 = (17/10) / CR_0
          //
          // Collateral ratios are defined as collateral / debt
-         // BitShares prices are conventionally defined as debt / collateral
+         // RevPop prices are conventionally defined as debt / collateral
          // The new price can be expressed with the available codebase as
          // = (17/10) * ~CR_0 = ~CR_0 * (17/10)
          const price intermediate_feed_price = ~bob_initial_cr * ratio_type(17, 10); // Units of debt / collateral
@@ -989,7 +989,7 @@ BOOST_FIXTURE_TEST_SUITE(margin_call_fee_tests, bitasset_database_fixture)
          // Want new price = 1.7 / CR_0 = (17/10) / CR_0
          //
          // Collateral ratios are defined as collateral / debt
-         // BitShares prices are conventionally defined as debt / collateral
+         // RevPop prices are conventionally defined as debt / collateral
          // The new price can be expressed with the available codebase as
          // = (17/10) * ~CR_0 = ~CR_0 * (17/10)
          const price intermediate_feed_price = ~bob_initial_cr * ratio_type(17, 10); // Units of debt / collateral
@@ -1312,7 +1312,7 @@ BOOST_FIXTURE_TEST_SUITE(margin_call_fee_tests, bitasset_database_fixture)
          // Want new price = 1.7 / CR_0 = (17/10) / CR_0
          //
          // Collateral ratios are defined as collateral / debt
-         // BitShares prices are conventionally defined as debt / collateral
+         // RevPop prices are conventionally defined as debt / collateral
          // The new price can be expressed with the available codebase as
          // = (17/10) * ~CR_0 = ~CR_0 * (17/10)
          const price expected_bob_initial_cr =
@@ -1610,7 +1610,7 @@ BOOST_FIXTURE_TEST_SUITE(margin_call_fee_tests, bitasset_database_fixture)
          // Want new price = 1.7 / CR_0 = (17/10) / CR_0
          //
          // Collateral ratios are defined as collateral / debt
-         // BitShares prices are conventionally defined as debt / collateral
+         // RevPop prices are conventionally defined as debt / collateral
          // The new price can be expressed with the available codebase as
          // = (17/10) * ~CR_0 = ~CR_0 * (17/10)
          const price expected_bob_initial_cr =
@@ -1980,7 +1980,7 @@ BOOST_FIXTURE_TEST_SUITE(margin_call_fee_tests, bitasset_database_fixture)
          // Want new price = 1.7 / CR_0 = (17/10) / CR_0
          //
          // Collateral ratios are defined as collateral / debt
-         // BitShares prices are conventionally defined as debt / collateral
+         // RevPop prices are conventionally defined as debt / collateral
          // The new price can be expressed with the available codebase as
          // = (17/10) * ~CR_0 = ~CR_0 * (17/10)
          const price expected_bob_initial_cr =

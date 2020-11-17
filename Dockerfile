@@ -32,8 +32,8 @@ RUN \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-ADD . /bitshares-core
-WORKDIR /bitshares-core
+ADD . /revpop-core
+WORKDIR /revpop-core
 
 # Compile
 RUN \
@@ -53,19 +53,19 @@ RUN \
     install -s programs/witness_node/witness_node programs/genesis_util/get_dev_key programs/cli_wallet/cli_wallet /usr/local/bin && \
     #
     # Obtain version
-    mkdir /etc/bitshares && \
-    git rev-parse --short HEAD > /etc/bitshares/version && \
+    mkdir /etc/revpop && \
+    git rev-parse --short HEAD > /etc/revpop/version && \
     cd / && \
-    rm -rf /bitshares-core
+    rm -rf /revpop-core
 
 # Home directory $HOME
 WORKDIR /
-RUN useradd -s /bin/bash -m -d /var/lib/bitshares bitshares
-ENV HOME /var/lib/bitshares
-RUN chown bitshares:bitshares -R /var/lib/bitshares
+RUN useradd -s /bin/bash -m -d /var/lib/revpop revpop
+ENV HOME /var/lib/revpop
+RUN chown revpop:revpop -R /var/lib/revpop
 
 # Volume
-VOLUME ["/var/lib/bitshares", "/etc/bitshares"]
+VOLUME ["/var/lib/revpop", "/etc/revpop"]
 
 # rpc service:
 EXPOSE 8090
@@ -73,17 +73,17 @@ EXPOSE 8090
 EXPOSE 1776
 
 # default exec/config files
-ADD docker/revpop/default_config.ini /etc/bitshares/config.ini
-ADD docker/revpop/default_logging.ini /etc/bitshares/logging.ini
-ADD docker/revpop/my-genesis.json /etc/bitshares/genesis.json
-ADD docker/revpop/revpopentry.sh /usr/local/bin/revpopentry.sh
-RUN chmod a+x /usr/local/bin/revpopentry.sh
+ADD docker/revpop/default_config.ini /etc/revpop/config.ini
+ADD docker/revpop/default_logging.ini /etc/revpop/logging.ini
+ADD docker/revpop/my-genesis.json /etc/revpop/genesis.json
+ADD docker/revpop/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod a+x /usr/local/bin/entrypoint.sh
 
 # Make Docker send SIGINT instead of SIGTERM to the daemon
 STOPSIGNAL SIGINT
 
 # default execute entry
-CMD ["/usr/local/bin/revpopentry.sh"]
+CMD ["/usr/local/bin/entrypoint.sh"]
 
 FROM phusion/baseimage:0.11 AS run
 MAINTAINER The Revolution Populi Project
@@ -92,12 +92,12 @@ COPY --from=build /usr/local/bin /usr/local/bin
 
 # Home directory $HOME
 WORKDIR /
-RUN useradd -s /bin/bash -m -d /var/lib/bitshares bitshares
-ENV HOME /var/lib/bitshares
-RUN chown bitshares:bitshares -R /var/lib/bitshares
+RUN useradd -s /bin/bash -m -d /var/lib/revpop revpop
+ENV HOME /var/lib/revpop
+RUN chown revpop:revpop -R /var/lib/revpop
 
 # Volume
-VOLUME ["/var/lib/bitshares", "/etc/bitshares"]
+VOLUME ["/var/lib/revpop", "/etc/revpop"]
 
 # rpc service:
 EXPOSE 8090
@@ -105,14 +105,14 @@ EXPOSE 8090
 EXPOSE 1776
 
 # default exec/config files
-ADD docker/revpop/default_config.ini /etc/bitshares/config.ini
-ADD docker/revpop/default_logging.ini /etc/bitshares/logging.ini
-ADD docker/revpop/my-genesis.json /etc/bitshares/genesis.json
-ADD docker/revpop/revpopentry.sh /usr/local/bin/revpopentry.sh
-RUN chmod a+x /usr/local/bin/revpopentry.sh
+ADD docker/revpop/default_config.ini /etc/revpop/config.ini
+ADD docker/revpop/default_logging.ini /etc/revpop/logging.ini
+ADD docker/revpop/my-genesis.json /etc/revpop/genesis.json
+ADD docker/revpop/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod a+x /usr/local/bin/entrypoint.sh
 
 # Make Docker send SIGINT instead of SIGTERM to the daemon
 STOPSIGNAL SIGINT
 
 # default execute entry
-CMD ["/usr/local/bin/revpopentry.sh"]
+CMD ["/usr/local/bin/entrypoint.sh"]

@@ -231,7 +231,7 @@ namespace graphene { namespace net {
         /**
          * @brief Helper to convert a string to a collection of endpoints
          *
-         * This converts a string (i.e. "bitshares.eu:665535" to a collection of endpoints.
+         * This converts a string (i.e. "revpop.eu:665535" to a collection of endpoints.
          * NOTE: Throws an exception if not in correct format or was unable to resolve URL.
          *
          * @param in the incoming string

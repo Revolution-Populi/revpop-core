@@ -1417,7 +1417,7 @@ BOOST_AUTO_TEST_CASE(get_account_limit_orders)
    // 2. returned orders sorted by price desendingly
    // 3. the first order's sell price equal to specified
    cancel_limit_order(o); // NOTE 1: this canceled order was in scope of the
-                          // first created 50 orders, so with price 2.5 REV/CNY
+                          // first created 50 orders, so with price 2.5 RVP/CNY
    results = db_api.get_account_limit_orders(seller.name, GRAPHENE_SYMBOL, "CNY", 50,
        limit_order_id_type(o.id), o.sell_price);
    BOOST_CHECK(results.size() == 50);
@@ -1493,7 +1493,7 @@ BOOST_AUTO_TEST_CASE(verify_account_authority)
 
          // bad keys
          flat_set<public_key_type> bad_public_keys;
-         bad_public_keys.emplace(public_key_type("REV6MkMxwBjFWmcDjXRoJ4mW9Hd4LCSPwtv9tKG1qYW5Kgu4AhoZy"));
+         bad_public_keys.emplace(public_key_type("RVP6MkMxwBjFWmcDjXRoJ4mW9Hd4LCSPwtv9tKG1qYW5Kgu4AhoZy"));
          BOOST_CHECK(!db_api.verify_account_authority( "nathan", bad_public_keys));
 
       } FC_LOG_AND_RETHROW()

@@ -127,7 +127,6 @@ std::shared_ptr<graphene::app::application> start_application(fc::temp_directory
 
    app1->register_plugin<graphene::account_history::account_history_plugin>(true);
    app1->register_plugin< graphene::market_history::market_history_plugin >(true);
-   app1->register_plugin< graphene::grouped_orders::grouped_orders_plugin>(true);
    app1->register_plugin< graphene::api_helper_indexes::api_helper_indexes>(true);
    app1->register_plugin<graphene::custom_operations::custom_operations_plugin>(true);
 

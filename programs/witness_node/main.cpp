@@ -31,7 +31,6 @@
 #include <graphene/market_history/market_history_plugin.hpp>
 #include <graphene/snapshot/snapshot.hpp>
 #include <graphene/es_objects/es_objects.hpp>
-#include <graphene/grouped_orders/grouped_orders_plugin.hpp>
 #include <graphene/api_helper_indexes/api_helper_indexes.hpp>
 #include <graphene/custom_operations/custom_operations_plugin.hpp>
 
@@ -66,7 +65,7 @@ int main(int argc, char** argv) {
    try {
       bpo::options_description app_options("RevPop Witness Node");
       bpo::options_description cfg_options("RevPop Witness Node");
-      std::string default_plugins = "witness account_history market_history grouped_orders "
+      std::string default_plugins = "witness account_history market_history "
                                     "api_helper_indexes custom_operations";
       app_options.add_options()
             ("help,h", "Print this help message and exit.")
@@ -95,7 +94,6 @@ int main(int argc, char** argv) {
       auto market_history_plug = node->register_plugin<market_history::market_history_plugin>();
       auto snapshot_plug = node->register_plugin<snapshot_plugin::snapshot_plugin>();
       auto es_objects_plug = node->register_plugin<es_objects::es_objects_plugin>();
-      auto grouped_orders_plug = node->register_plugin<grouped_orders::grouped_orders_plugin>();
       auto api_helper_indexes_plug = node->register_plugin<api_helper_indexes::api_helper_indexes>();
       auto custom_operations_plug = node->register_plugin<custom_operations::custom_operations_plugin>();
 

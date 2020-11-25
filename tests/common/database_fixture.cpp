@@ -27,7 +27,6 @@
 
 #include <graphene/account_history/account_history_plugin.hpp>
 #include <graphene/market_history/market_history_plugin.hpp>
-#include <graphene/grouped_orders/grouped_orders_plugin.hpp>
 #include <graphene/elasticsearch/elasticsearch_plugin.hpp>
 #include <graphene/api_helper_indexes/api_helper_indexes.hpp>
 #include <graphene/es_objects/es_objects.hpp>
@@ -89,7 +88,6 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
    const auto current_test_suite_id = buf::current_test_case().p_parent_id;
    const auto current_suite_name = buf::get<boost::unit_test::test_suite>(current_test_suite_id).p_name.value;
    auto mhplugin = app.register_plugin<graphene::market_history::market_history_plugin>();
-   auto goplugin = app.register_plugin<graphene::grouped_orders::grouped_orders_plugin>();
    init_account_pub_key = init_account_priv_key.get_public_key();
 
    boost::program_options::variables_map options;
@@ -361,11 +359,7 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
    mhplugin->plugin_set_app(&app);
    mhplugin->plugin_initialize(options);
 
-   goplugin->plugin_set_app(&app);
-   goplugin->plugin_initialize(options);
-
    mhplugin->plugin_startup();
-   goplugin->plugin_startup();
 
    generate_block();
 

@@ -89,6 +89,7 @@ FROM phusion/baseimage:0.11 AS run
 MAINTAINER The Revolution Populi Project
 
 COPY --from=build /usr/local/bin /usr/local/bin
+COPY --from=build /etc/revpop/version /etc/revpop/version
 
 # Home directory $HOME
 WORKDIR /

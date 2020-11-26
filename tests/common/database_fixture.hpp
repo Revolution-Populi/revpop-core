@@ -34,7 +34,6 @@
 #include <graphene/chain/operation_history_object.hpp>
 #include <graphene/chain/database.hpp>
 #include <graphene/app/application.hpp>
-#include <graphene/market_history/market_history_plugin.hpp>
 
 #include <iostream>
 
@@ -429,7 +428,6 @@ struct database_fixture {
    int64_t get_market_fee_reward( const account_object& account, const asset_object& asset )const;
 
    vector< operation_history_object > get_operation_history( account_id_type account_id )const;
-   vector< graphene::market_history::order_history_object > get_market_order_history( asset_id_type a, asset_id_type b )const;
    bool validation_current_test_name_for_setting_api_limit( const string& current_test_name )const;
 
    /****

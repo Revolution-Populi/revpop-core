@@ -29,7 +29,6 @@
 
 #include <graphene/account_history/account_history_plugin.hpp>
 #include <graphene/api_helper_indexes/api_helper_indexes.hpp>
-#include <graphene/market_history/market_history_plugin.hpp>
 #include <graphene/custom_operations/custom_operations_plugin.hpp>
 #include <graphene/egenesis/egenesis.hpp>
 #include <graphene/wallet/wallet.hpp>
@@ -126,7 +125,6 @@ std::shared_ptr<graphene::app::application> start_application(fc::temp_directory
    std::shared_ptr<graphene::app::application> app1(new graphene::app::application{});
 
    app1->register_plugin<graphene::account_history::account_history_plugin>(true);
-   app1->register_plugin< graphene::market_history::market_history_plugin >(true);
    app1->register_plugin< graphene::api_helper_indexes::api_helper_indexes>(true);
    app1->register_plugin<graphene::custom_operations::custom_operations_plugin>(true);
 

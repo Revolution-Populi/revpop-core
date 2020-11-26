@@ -26,7 +26,6 @@
 #include <boost/range/algorithm.hpp>
 
 #include <graphene/account_history/account_history_plugin.hpp>
-#include <graphene/market_history/market_history_plugin.hpp>
 #include <graphene/elasticsearch/elasticsearch_plugin.hpp>
 #include <graphene/api_helper_indexes/api_helper_indexes.hpp>
 #include <graphene/es_objects/es_objects.hpp>
@@ -87,7 +86,6 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
    const auto current_test_name = buf::current_test_case().p_name.value;
    const auto current_test_suite_id = buf::current_test_case().p_parent_id;
    const auto current_suite_name = buf::get<boost::unit_test::test_suite>(current_test_suite_id).p_name.value;
-   auto mhplugin = app.register_plugin<graphene::market_history::market_history_plugin>();
    init_account_pub_key = init_account_priv_key.get_public_key();
 
    boost::program_options::variables_map options;
@@ -356,10 +354,6 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
    }
 
    options.insert(std::make_pair("bucket-size", boost::program_options::variable_value(string("[15]"),false)));
-   mhplugin->plugin_set_app(&app);
-   mhplugin->plugin_initialize(options);
-
-   mhplugin->plugin_startup();
 
    generate_block();
 
@@ -1562,24 +1556,6 @@ vector< operation_history_object > database_fixture::get_operation_history( acco
       if(node->next == account_transaction_history_id_type())
          break;
       node = db.find(node->next);
-   }
-   return result;
-}
-
-vector< graphene::market_history::order_history_object > database_fixture::get_market_order_history( asset_id_type a, asset_id_type b )const
-{
-   const auto& history_idx = db.get_index_type<graphene::market_history::history_index>().indices().get<graphene::market_history::by_key>();
-   graphene::market_history::history_key hkey;
-   if( a > b ) std::swap(a,b);
-   hkey.base = a;
-   hkey.quote = b;
-   hkey.sequence = std::numeric_limits<int64_t>::min();
-   auto itr = history_idx.lower_bound( hkey );
-   vector<graphene::market_history::order_history_object> result;
-   while( itr != history_idx.end())
-   {
-       result.push_back( *itr );
-       ++itr;
    }
    return result;
 }

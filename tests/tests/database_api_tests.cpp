@@ -941,14 +941,6 @@ BOOST_AUTO_TEST_CASE( subscription_notification_test )
       db_api47.get_assets( asset_names, true );  // db_api47 subscribe to UIA
       db_api57.get_assets( asset_names, false ); // db_api57 doesn't subscribe to UIA
 
-      graphene::chain::htlc_id_type alice_htlc_id_bob; // assuming ID of the first htlc object is 0
-      db_api8.get_htlc( alice_htlc_id_bob );         // db_api8  subscribe to the HTLC object
-      db_api18.get_htlc( alice_htlc_id_bob, true );  // db_api18 subscribe to the HTLC object
-      db_api28.get_htlc( alice_htlc_id_bob, false ); // db_api28 doesn't subscribe to the HTLC object
-      db_api38.get_htlc( alice_htlc_id_bob );        // db_api38 doesn't subscribe to the HTLC object
-      db_api48.get_htlc( alice_htlc_id_bob, true );  // db_api48 subscribe to the HTLC object
-      db_api58.get_htlc( alice_htlc_id_bob, false ); // db_api58 doesn't subscribe to the HTLC object
-
       generate_block();
       ++expected_objects_changed1; // db_api1 subscribed to Alice, notify Alice account creation
       ++expected_objects_changed11; // db_api11 subscribed to Alice, notify Alice account creation

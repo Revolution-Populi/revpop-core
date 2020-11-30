@@ -439,9 +439,6 @@ void application_impl::startup()
 
    set_api_limit();
 
-   if( _active_plugins.find( "market_history" ) != _active_plugins.end() )
-      _app_options.has_market_history_plugin = true;
-
    if( _active_plugins.find( "api_helper_indexes" ) != _active_plugins.end() )
       _app_options.has_api_helper_indexes_plugin = true;
 

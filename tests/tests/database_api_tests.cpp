@@ -797,39 +797,12 @@ BOOST_AUTO_TEST_CASE( subscription_notification_test )
 
       generate_blocks(HARDFORK_CORE_1468_TIME);
       set_expiration( db, trx );
-      set_htlc_committee_parameters();
       generate_block();
       set_expiration( db, trx );
 
       ACTORS( (alice)(bob) );
 
       create_user_issued_asset( "UIATEST" );
-
-      // prepare data for get_htlc
-      {
-         int64_t init_balance(100 * GRAPHENE_BLOCKCHAIN_PRECISION);
-         transfer( committee_account, alice_id, graphene::chain::asset(init_balance) );
-
-         uint16_t preimage_size = 256;
-         std::vector<char> pre_image(256);
-         std::independent_bits_engine<std::default_random_engine, sizeof(unsigned), unsigned int> rbe;
-         std::generate(begin(pre_image), end(pre_image), std::ref(rbe));
-
-         // alice puts a htlc contract to bob
-         graphene::chain::htlc_create_operation create_operation;
-         BOOST_TEST_MESSAGE("Alice, who has 100 coins, is transferring 3 coins to Bob");
-         create_operation.amount = graphene::chain::asset( 3 * GRAPHENE_BLOCKCHAIN_PRECISION );
-         create_operation.to = bob_id;
-         create_operation.claim_period_seconds = 60;
-         create_operation.preimage_hash = hash_it<fc::sha256>( pre_image );
-         create_operation.preimage_size = preimage_size;
-         create_operation.from = alice_id;
-         create_operation.fee = db.get_global_properties().parameters.current_fees->calculate_fee(create_operation);
-         trx.operations.push_back(create_operation);
-         sign(trx, alice_private_key);
-         PUSH_TX(db, trx, ~0);
-         trx.clear();
-      }
 
 // declare db_api1 ~ db_api60
 #define SUB_NOTIF_TEST_NUM_CALLBACKS_PLUS_ONE 61
@@ -957,9 +930,6 @@ BOOST_AUTO_TEST_CASE( subscription_notification_test )
       ++expected_objects_changed7; // db_api7 subscribed to UIA, notify asset creation
       ++expected_objects_changed17; // db_api17 subscribed to UIA, notify asset creation
       ++expected_objects_changed47; // db_api47 subscribed to UIA, notify asset creation
-      ++expected_objects_changed8; // db_api8 subscribed to HTLC object, notify object creation
-      ++expected_objects_changed18; // db_api18 subscribed to HTLC object, notify object creation
-      ++expected_objects_changed48; // db_api48 subscribed to HTLC object, notify object creation
 
       fc::usleep(fc::milliseconds(200)); // sleep a while to execute callback in another thread
       check_results();

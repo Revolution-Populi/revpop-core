@@ -371,21 +371,11 @@ class wallet_api
        *
        * Sign the transaction in a transaction builder and optionally broadcast to the network.
        * @param transaction_handle handle of the transaction builder
-       * @param broadcast whether to broadcast the signed transaction to the network
-       * @return a signed transaction
-       */
-      signed_transaction sign_builder_transaction(transaction_handle_type transaction_handle, bool broadcast = true);
-
-      /**
-       * @ingroup Transaction Builder API
-       *
-       * Sign the transaction in a transaction builder and optionally broadcast to the network.
-       * @param transaction_handle handle of the transaction builder
        * @param signing_keys Keys that must be used when signing the transaction
        * @param broadcast whether to broadcast the signed transaction to the network
        * @return a signed transaction
        */
-      signed_transaction sign_builder_transaction2(transaction_handle_type transaction_handle,
+      signed_transaction sign_builder_transaction(transaction_handle_type transaction_handle,
                                                   const vector<public_key_type>& signing_keys = vector<public_key_type>(),
                                                   bool broadcast = true);
 
@@ -2069,7 +2059,6 @@ FC_API( graphene::wallet::wallet_api,
         (set_fees_on_builder_transaction)
         (preview_builder_transaction)
         (sign_builder_transaction)
-        (sign_builder_transaction2)
         (broadcast_transaction)
         (propose_builder_transaction)
         (propose_builder_transaction2)

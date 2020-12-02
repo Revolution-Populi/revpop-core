@@ -392,29 +392,6 @@ class wallet_api
        * operation, then replace the transaction builder with the new operation), then sign the transaction
        * and optionally broadcast to the network.
        *
-       * Note: this command is buggy because unable to specify proposer. It will be deprecated in a future release.
-       *       Please use \c propose_builder_transaction2() instead.
-       *
-       * @param handle handle of the transaction builder
-       * @param expiration when the proposal will expire
-       * @param review_period_seconds review period of the proposal in seconds
-       * @param broadcast whether to broadcast the signed transaction to the network
-       * @return a signed transaction
-       */
-      signed_transaction propose_builder_transaction(
-          transaction_handle_type handle,
-          time_point_sec expiration = time_point::now() + fc::minutes(1),
-          uint32_t review_period_seconds = 0,
-          bool broadcast = true
-         );
-
-      /**
-       * @ingroup Transaction Builder API
-       *
-       * Create a proposal containing the operations in a transaction builder (create a new proposal_create
-       * operation, then replace the transaction builder with the new operation), then sign the transaction
-       * and optionally broadcast to the network.
-       *
        * @param handle handle of the transaction builder
        * @param account_name_or_id name or ID of the account who would pay fees for creating the proposal
        * @param expiration when the proposal will expire
@@ -422,7 +399,7 @@ class wallet_api
        * @param broadcast whether to broadcast the signed transaction to the network
        * @return a signed transaction
        */
-      signed_transaction propose_builder_transaction2(
+      signed_transaction propose_builder_transaction(
          transaction_handle_type handle,
          string account_name_or_id,
          time_point_sec expiration = time_point::now() + fc::minutes(1),
@@ -2061,7 +2038,6 @@ FC_API( graphene::wallet::wallet_api,
         (sign_builder_transaction)
         (broadcast_transaction)
         (propose_builder_transaction)
-        (propose_builder_transaction2)
         (remove_builder_transaction)
         (is_new)
         (is_locked)

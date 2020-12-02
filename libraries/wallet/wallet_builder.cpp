@@ -89,23 +89,6 @@ namespace graphene { namespace wallet { namespace detail {
    }
 
    signed_transaction wallet_api_impl::propose_builder_transaction( transaction_handle_type handle,
-         time_point_sec expiration, uint32_t review_period_seconds, bool broadcast)
-   {
-      FC_ASSERT(_builder_transactions.count(handle));
-      proposal_create_operation op;
-      op.expiration_time = expiration;
-      signed_transaction& trx = _builder_transactions[handle];
-      std::transform(trx.operations.begin(), trx.operations.end(), std::back_inserter(op.proposed_ops),
-                     [](const operation& op) -> op_wrapper { return op; });
-      if( review_period_seconds )
-         op.review_period_seconds = review_period_seconds;
-      trx.operations = {op};
-      _remote_db->get_global_properties().parameters.get_current_fees().set_fee( trx.operations.front() );
-
-      return trx = sign_transaction(trx, broadcast);
-   }
-
-   signed_transaction wallet_api_impl::propose_builder_transaction2( transaction_handle_type handle,
       string account_name_or_id, time_point_sec expiration, uint32_t review_period_seconds, bool broadcast )
    {
       FC_ASSERT(_builder_transactions.count(handle));

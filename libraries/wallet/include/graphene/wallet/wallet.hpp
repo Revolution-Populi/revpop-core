@@ -162,65 +162,6 @@ class wallet_api
       vector<bucket_object>             get_market_history( string symbol, string symbol2, uint32_t bucket,
                                                             fc::time_point_sec start, fc::time_point_sec end )const;
 
-      /**
-       * @brief Fetch all orders relevant to the specified account sorted descendingly by price
-       *
-       * @param name_or_id  The name or ID of an account to retrieve
-       * @param base  Base asset
-       * @param quote  Quote asset
-       * @param limit  The limitation of items each query can fetch (max: 101)
-       * @param ostart_id  Start order id, fetch orders which price are lower than or equal to this order
-       * @param ostart_price  Fetch orders with price lower than or equal to this price
-       *
-       * @return List of orders from \c name_or_id to the corresponding account
-       *
-       * @note
-       * 1. if \c name_or_id cannot be tied to an account, empty result will be returned
-       * 2. \c ostart_id and \c ostart_price can be \c null, if so the api will return the "first page" of orders;
-       *    if \c ostart_id is specified and valid, its price will be used to do page query preferentially,
-       *    otherwise the \c ostart_price will be used
-       */
-      vector<limit_order_object>        get_account_limit_orders( const string& name_or_id,
-                                            const string &base,
-                                            const string &quote,
-                                            uint32_t limit = 101,
-                                            optional<limit_order_id_type> ostart_id = optional<limit_order_id_type>(),
-                                            optional<price> ostart_price = optional<price>());
-
-      /**
-       * @brief Get limit orders in a given market
-       * @param a symbol or ID of asset being sold
-       * @param b symbol or ID of asset being purchased
-       * @param limit Maximum number of orders to retrieve
-       * @return The limit orders, ordered from least price to greatest
-       */
-      vector<limit_order_object>        get_limit_orders(string a, string b, uint32_t limit)const;
-
-      /**
-       * @brief Get call orders (aka margin positions) for a given asset
-       * @param a symbol name or ID of the debt asset
-       * @param limit Maximum number of orders to retrieve
-       * @return The call orders, ordered from earliest to be called to latest
-       */
-      vector<call_order_object>         get_call_orders(string a, uint32_t limit)const;
-
-      /**
-       * @brief Get forced settlement orders in a given asset
-       * @param a Symbol or ID of asset being settled
-       * @param limit Maximum number of orders to retrieve
-       * @return The settle orders, ordered from earliest settlement date to latest
-       */
-      vector<force_settlement_object>   get_settle_orders(string a, uint32_t limit)const;
-
-      /** Returns the collateral_bid object for the given MPA
-       *
-       * @param asset the name or id of the asset
-       * @param limit the number of entries to return
-       * @param start the sequence number where to start looping back throw the history
-       * @returns a list of \c collateral_bid_objects
-       */
-      vector<collateral_bid_object> get_collateral_bids(string asset, uint32_t limit = 100, uint32_t start = 0)const;
-
       /** Returns the block chain's slowly-changing settings.
        * This object contains all of the properties of the blockchain that are fixed
        * or that change only once per maintenance interval (daily) such as the
@@ -1677,15 +1618,6 @@ class wallet_api
          bool broadcast /* = false */
          );
 
-      /**
-       * Returns the order book for the market base:quote.
-       * @param base symbol name or ID of the base asset
-       * @param quote symbol name or ID of the quote asset
-       * @param limit depth of the order book to retrieve, for bids and asks each, capped at 50
-       * @return Order book of the market
-       */
-      order_book get_order_book( const string& base, const string& quote, unsigned limit = 50);
-
       /** Signs a transaction.
        *
        * Given a fully-formed transaction with or without signatures, signs
@@ -2139,7 +2071,6 @@ FC_API( graphene::wallet::wallet_api,
         (get_account_history)
         (get_relative_account_history)
         (get_account_history_by_operations)
-        (get_collateral_bids)
         (is_public_key_registered)
         (get_full_account)
         (get_market_history)
@@ -2149,10 +2080,6 @@ FC_API( graphene::wallet::wallet_api,
         (get_private_key)
         (load_wallet_file)
         (normalize_brain_key)
-        (get_account_limit_orders)
-        (get_limit_orders)
-        (get_call_orders)
-        (get_settle_orders)
         (save_wallet_file)
         (serialize_transaction)
         (sign_transaction)
@@ -2191,7 +2118,6 @@ FC_API( graphene::wallet::wallet_api,
         (blind_transfer)
         (blind_history)
         (receive_blind_transfer)
-        (get_order_book)
         (account_store_map)
         (get_account_storage)
         (quit)

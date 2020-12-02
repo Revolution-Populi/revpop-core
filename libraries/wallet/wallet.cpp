@@ -430,37 +430,6 @@ vector<bucket_object> wallet_api::get_market_history(
    return my->_remote_hist->get_market_history( symbol1, symbol2, bucket, start, end );
 }
 
-vector<limit_order_object> wallet_api::get_account_limit_orders(
-      const string& name_or_id,
-      const string &base,
-      const string &quote,
-      uint32_t limit,
-      optional<limit_order_id_type> ostart_id,
-      optional<price> ostart_price)
-{
-   return my->_remote_db->get_account_limit_orders(name_or_id, base, quote, limit, ostart_id, ostart_price);
-}
-
-vector<limit_order_object> wallet_api::get_limit_orders(std::string a, std::string b, uint32_t limit)const
-{
-   return my->_remote_db->get_limit_orders(a, b, limit);
-}
-
-vector<call_order_object> wallet_api::get_call_orders(std::string a, uint32_t limit)const
-{
-   return my->_remote_db->get_call_orders(a, limit);
-}
-
-vector<force_settlement_object> wallet_api::get_settle_orders(std::string a, uint32_t limit)const
-{
-   return my->_remote_db->get_settle_orders(a, limit);
-}
-
-vector<collateral_bid_object> wallet_api::get_collateral_bids(std::string asset, uint32_t limit, uint32_t start)const
-{
-   return my->_remote_db->get_collateral_bids(asset, limit, start);
-}
-
 brain_key_info wallet_api::suggest_brain_key()const
 {
    return graphene::wallet::utility::suggest_brain_key();
@@ -1958,11 +1927,6 @@ vector<blind_receipt> wallet_api::blind_history( string key_or_account )
    std::sort( result.begin(), result.end(),
               [&]( const blind_receipt& a, const blind_receipt& b ){ return a.date > b.date; } );
    return result;
-}
-
-order_book wallet_api::get_order_book( const string& base, const string& quote, unsigned limit )
-{
-   return( my->_remote_db->get_order_book( base, quote, limit ) );
 }
 
 // custom operations

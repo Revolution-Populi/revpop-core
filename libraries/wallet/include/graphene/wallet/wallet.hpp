@@ -689,29 +689,6 @@ class wallet_api
                                   bool broadcast = false);
 
       /**
-       *  This method works just like transfer, except it always broadcasts and
-       *  returns the transaction ID (hash) along with the signed transaction.
-       * @param from the name or id of the account sending the funds
-       * @param to the name or id of the account receiving the funds
-       * @param amount the amount to send (in nominal units -- to send half of a RVP, specify 0.5)
-       * @param asset_symbol the symbol or id of the asset to send
-       * @param memo a memo to attach to the transaction.  The memo will be encrypted in the
-       *             transaction and readable for the receiver.  There is no length limit
-       *             other than the limit imposed by maximum transaction size, but transaction
-       *             increase with transaction size
-       * @returns the transaction ID (hash) along with the signed transaction transferring funds
-       */
-      pair<transaction_id_type,signed_transaction> transfer2(string from,
-                                                             string to,
-                                                             string amount,
-                                                             string asset_symbol,
-                                                             string memo ) {
-         auto trx = transfer( from, to, amount, asset_symbol, memo, true );
-         return std::make_pair(trx.id(),trx);
-      }
-
-
-      /**
        *  This method is used to convert a JSON transaction to its transactin ID.
        * @param trx a JSON transaction
        * @return the ID (hash) of the transaction
@@ -2060,7 +2037,6 @@ FC_API( graphene::wallet::wallet_api,
         (borrow_asset_ext)
         (cancel_order)
         (transfer)
-        (transfer2)
         (get_transaction_id)
         (create_asset)
         (update_asset)

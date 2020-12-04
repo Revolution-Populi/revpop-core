@@ -473,14 +473,14 @@ namespace graphene { namespace app {
        }
        return result;
     }
-
+/*
     flat_set<uint32_t> history_api::get_market_history_buckets()const
     {
        auto hist = _app.get_plugin<market_history_plugin>( "market_history" );
        FC_ASSERT( hist );
        return hist->tracked_buckets();
     }
-
+*/
     history_operation_detail history_api::get_account_history_by_operations( const std::string account_id_or_name,
                                                                              flat_set<uint16_t> operation_types,
                                                                              uint32_t start, unsigned limit )const
@@ -509,35 +509,6 @@ namespace graphene { namespace app {
 
        return result;
     }
-
-    vector<bucket_object> history_api::get_market_history( std::string asset_a, std::string asset_b,
-                                                           uint32_t bucket_seconds,
-                                                           fc::time_point_sec start, fc::time_point_sec end )const
-    { try {
-       FC_ASSERT(_app.chain_database());
-       const auto& db = *_app.chain_database();
-       asset_id_type a = database_api.get_asset_id_from_string( asset_a );
-       asset_id_type b = database_api.get_asset_id_from_string( asset_b );
-       vector<bucket_object> result;
-       result.reserve(200);
-
-       if( a > b ) std::swap(a,b);
-
-       const auto& bidx = db.get_index_type<bucket_index>();
-       const auto& by_key_idx = bidx.indices().get<by_key>();
-
-       auto itr = by_key_idx.lower_bound( bucket_key( a, b, bucket_seconds, start ) );
-       while( itr != by_key_idx.end() && itr->key.open <= end && result.size() < 200 )
-       {
-          if( !(itr->key.base == a && itr->key.quote == b && itr->key.seconds == bucket_seconds) )
-          {
-            return result;
-          }
-          result.push_back(*itr);
-          ++itr;
-       }
-       return result;
-    } FC_CAPTURE_AND_RETHROW( (asset_a)(asset_b)(bucket_seconds)(start)(end) ) }
 
     crypto_api::crypto_api(){};
 

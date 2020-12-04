@@ -289,7 +289,6 @@ struct database_fixture {
    { cover(who(db), what, collateral_freed, target_cr); }
    void cover(const account_object& who, asset what, asset collateral_freed,
                                     optional<uint16_t> target_cr = {} );
-   void bid_collateral(const account_object& who, const asset& to_bid, const asset& to_cover);
 
    const asset_object& get_asset( const string& symbol )const;
    const account_object& get_account( const string& name )const;

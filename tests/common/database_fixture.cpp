@@ -1235,22 +1235,6 @@ void database_fixture::cover(const account_object& who, asset what, asset collat
    verify_asset_supplies(db);
 } FC_CAPTURE_AND_RETHROW( (who.name)(what)(collateral)(target_cr) ) }
 
-void database_fixture::bid_collateral(const account_object& who, const asset& to_bid, const asset& to_cover)
-{ try {
-   set_expiration( db, trx );
-   trx.operations.clear();
-   bid_collateral_operation bid;
-   bid.bidder = who.id;
-   bid.additional_collateral = to_bid;
-   bid.debt_covered = to_cover;
-   trx.operations.push_back(bid);
-   for( auto& op : trx.operations ) db.current_fee_schedule().set_fee(op);
-   trx.validate();
-   PUSH_TX(db, trx, ~0);
-   trx.operations.clear();
-   verify_asset_supplies(db);
-} FC_CAPTURE_AND_RETHROW( (who.name)(to_bid)(to_cover) ) }
-
 void database_fixture::fund_fee_pool( const account_object& from, const asset_object& asset_to_fund, const share_type amount )
 {
    asset_fund_fee_pool_operation fund;

@@ -307,30 +307,6 @@ BOOST_AUTO_TEST_CASE( revive_recovered )
    }
 }
 
-/** Creates a black swan, bid, adjust bid before/after hf_1692
- */
-BOOST_AUTO_TEST_CASE( bid_issue_1692 )
-{ try {
-   init_standard_swan( 700 );
-
-   generate_blocks( HARDFORK_CORE_1692_TIME - 30 );
-
-   int64_t b2_balance = get_balance( borrower2(), back() );
-   bid_collateral( borrower2(), back().amount(1000), swan().amount(100) );
-   BOOST_CHECK_EQUAL( get_balance( borrower2(), back() ), b2_balance - 1000 );
-   GRAPHENE_REQUIRE_THROW( bid_collateral( borrower2(), back().amount(b2_balance), swan().amount(200) ),
-                           fc::assert_exception );
-   GRAPHENE_REQUIRE_THROW( bid_collateral( borrower2(), back().amount(b2_balance-999), swan().amount(200) ),
-                           fc::assert_exception );
-
-   generate_blocks( HARDFORK_CORE_1692_TIME + 30 );
-
-   bid_collateral( borrower2(), back().amount(b2_balance-999), swan().amount(200) );
-   BOOST_CHECK_EQUAL( get_balance( borrower2(), back() ), 999 );
-   bid_collateral( borrower2(), back().amount(b2_balance), swan().amount(200) );
-   BOOST_CHECK_EQUAL( get_balance( borrower2(), back() ), 0 );
-} FC_LOG_AND_RETHROW() }
-
 /** Creates a black swan, settles all debts, recovers price feed - asset should be revived
  */
 BOOST_AUTO_TEST_CASE( revive_empty_recovered )
@@ -418,30 +394,6 @@ BOOST_AUTO_TEST_CASE(revive_empty_hf1270)
    hf1270 = true;
    INVOKE(revive_empty);
 
-} FC_LOG_AND_RETHROW() }
-
-/** Creates a black swan, bids on more than outstanding debt
- */
-BOOST_AUTO_TEST_CASE( overflow )
-{ try {
-   init_standard_swan( 700 );
-
-   wait_for_hf_core_216();
-
-   bid_collateral( borrower(),  back().amount(2200), swan().amount(GRAPHENE_MAX_SHARE_SUPPLY - 1) );
-   bid_collateral( borrower2(), back().amount(2100), swan().amount(1399) );
-   set_feed(1, 2);
-   wait_for_maintenance();
-
-   auto& call_idx = db.get_index_type<call_order_index>().indices().get<by_account>();
-   auto itr = call_idx.find( boost::make_tuple(_borrower, _swan) );
-   BOOST_REQUIRE( itr != call_idx.end() );
-   BOOST_CHECK_EQUAL( 1, itr->debt.value );
-   itr = call_idx.find( boost::make_tuple(_borrower2, _swan) );
-   BOOST_REQUIRE( itr != call_idx.end() );
-   BOOST_CHECK_EQUAL( 1399, itr->debt.value );
-
-   BOOST_CHECK( !swan().bitasset_data(db).has_settlement() );
 } FC_LOG_AND_RETHROW() }
 
 BOOST_AUTO_TEST_SUITE_END()

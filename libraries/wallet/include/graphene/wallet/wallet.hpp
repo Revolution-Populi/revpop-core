@@ -150,18 +150,6 @@ class wallet_api
        */
       full_account                      get_full_account( const string& name_or_id );
 
-      /**
-       * @brief Get OHLCV data of a trading pair in a time range
-       * @param symbol name or ID of the base asset
-       * @param symbol2 name or ID of the quote asset
-       * @param bucket length of each time bucket in seconds.
-       * @param start the start of a time range, E.G. "2018-01-01T00:00:00"
-       * @param end the end of the time range
-       * @return A list of OHLCV data, in "least recent first" order.
-       */
-      vector<bucket_object>             get_market_history( string symbol, string symbol2, uint32_t bucket,
-                                                            fc::time_point_sec start, fc::time_point_sec end )const;
-
       /** Returns the block chain's slowly-changing settings.
        * This object contains all of the properties of the blockchain that are fixed
        * or that change only once per maintenance interval (daily) such as the
@@ -948,14 +936,6 @@ class wallet_api
                                            call_order_update_operation::extensions_type extensions,
                                            bool broadcast = false );
 
-      /** Cancel an existing order
-       *
-       * @param order_id the id of order to be cancelled
-       * @param broadcast true to broadcast the transaction on the network
-       * @returns the signed transaction canceling the order
-       */
-      signed_transaction cancel_order(object_id_type order_id, bool broadcast = false);
-
       /** Creates a new user-issued or market-issued asset.
        *
        * Many options can be changed later using \c update_asset()
@@ -1185,25 +1165,6 @@ class wallet_api
                                       string amount_to_settle,
                                       string symbol,
                                       bool broadcast = false);
-
-      /** Creates or updates a bid on an MPA after global settlement.
-       *
-       * In order to revive a market-pegged asset after global settlement (aka
-       * black swan), investors can bid collateral in order to take over part of
-       * the debt and the settlement fund, see BSIP-0018. Updating an existing
-       * bid to cover 0 debt will delete the bid.
-       *
-       * @param bidder_name the name or id of the account making the bid
-       * @param debt_amount the amount of debt of the named asset to bid for
-       * @param debt_symbol the name or id of the MPA to bid for
-       * @param additional_collateral the amount of additional collateral to bid
-       *        for taking over debt_amount. The asset type of this amount is
-       *        determined automatically from debt_symbol.
-       * @param broadcast true to broadcast the transaction on the network
-       * @returns the signed transaction creating/updating the bid
-       */
-      signed_transaction bid_collateral(string bidder_name, string debt_amount, string debt_symbol,
-                                        string additional_collateral, bool broadcast = false);
 
       /** Whitelist and blacklist accounts, primarily for transacting in whitelisted assets.
        *
@@ -2025,7 +1986,6 @@ FC_API( graphene::wallet::wallet_api,
         (sell_asset)
         (borrow_asset)
         (borrow_asset_ext)
-        (cancel_order)
         (transfer)
         (transfer2)
         (get_transaction_id)
@@ -2044,7 +2004,6 @@ FC_API( graphene::wallet::wallet_api,
         (reserve_asset)
         (global_settle_asset)
         (settle_asset)
-        (bid_collateral)
         (whitelist_account)
         (create_committee_member)
         (get_witness)
@@ -2073,7 +2032,6 @@ FC_API( graphene::wallet::wallet_api,
         (get_account_history_by_operations)
         (is_public_key_registered)
         (get_full_account)
-        (get_market_history)
         (get_global_properties)
         (get_dynamic_global_properties)
         (get_object)

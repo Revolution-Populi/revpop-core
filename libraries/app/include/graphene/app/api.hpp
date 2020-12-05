@@ -191,15 +191,6 @@ namespace graphene { namespace app {
                                                                         unsigned limit = 100,
                                                                         uint64_t start = 0) const;
 
-         /**
-          * @brief Get details of order executions occurred most recently in a trading pair
-          * @param a Asset symbol or ID in a trading pair
-          * @param b The other asset symbol or ID in the trading pair
-          * @param limit Maximum records to return
-          * @return a list of order_history objects, in "most recent first" order
-          */
-         vector<order_history_object> get_fill_order_history( std::string a, std::string b, uint32_t limit )const;
-
       private:
            application& _app;
            graphene::app::database_api database_api;
@@ -622,7 +613,6 @@ FC_API(graphene::app::history_api,
        (get_account_history_by_operations)
        (get_account_history_operations)
        (get_relative_account_history)
-       (get_fill_order_history)
      )
 FC_API(graphene::app::block_api,
        (get_blocks)

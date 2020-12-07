@@ -291,12 +291,6 @@ public:
    signed_transaction update_witness(string witness_name, string url, string block_signing_key,
          bool broadcast );
 
-   signed_transaction create_worker( string owner_account, time_point_sec work_begin_date,
-         time_point_sec work_end_date, share_type daily_pay, string name, string url,
-         variant worker_settings, bool broadcast );
-
-   signed_transaction update_worker_votes( string account, worker_vote_delta delta, bool broadcast );
-
    signed_transaction htlc_create( string source, string destination, string amount, string asset_symbol,
          string hash_algorithm, const std::string& preimage_hash, uint32_t preimage_size,
          const uint32_t claim_period_seconds, const std::string& memo, bool broadcast = false );

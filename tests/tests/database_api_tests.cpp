@@ -1104,12 +1104,10 @@ BOOST_AUTO_TEST_CASE( lookup_vote_ids )
 
    const auto& committee = create_committee_member( connie );
    const auto& witness = create_witness( whitney );
-   const auto& worker = create_worker( wolverine_id );
 
    std::vector<vote_id_type> votes;
    votes.push_back( committee.vote_id );
    votes.push_back( witness.vote_id );
-   votes.push_back( worker.vote_for );
 
    const auto results = db_api.lookup_vote_ids( votes );
 

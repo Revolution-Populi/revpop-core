@@ -420,47 +420,6 @@ full_account wallet_api::get_full_account( const string& name_or_id)
     return my->_remote_db->get_full_accounts({name_or_id}, false)[name_or_id];
 }
 
-vector<bucket_object> wallet_api::get_market_history(
-      string symbol1,
-      string symbol2,
-      uint32_t bucket,
-      fc::time_point_sec start,
-      fc::time_point_sec end )const
-{
-   return my->_remote_hist->get_market_history( symbol1, symbol2, bucket, start, end );
-}
-
-vector<limit_order_object> wallet_api::get_account_limit_orders(
-      const string& name_or_id,
-      const string &base,
-      const string &quote,
-      uint32_t limit,
-      optional<limit_order_id_type> ostart_id,
-      optional<price> ostart_price)
-{
-   return my->_remote_db->get_account_limit_orders(name_or_id, base, quote, limit, ostart_id, ostart_price);
-}
-
-vector<limit_order_object> wallet_api::get_limit_orders(std::string a, std::string b, uint32_t limit)const
-{
-   return my->_remote_db->get_limit_orders(a, b, limit);
-}
-
-vector<call_order_object> wallet_api::get_call_orders(std::string a, uint32_t limit)const
-{
-   return my->_remote_db->get_call_orders(a, limit);
-}
-
-vector<force_settlement_object> wallet_api::get_settle_orders(std::string a, uint32_t limit)const
-{
-   return my->_remote_db->get_settle_orders(a, limit);
-}
-
-vector<collateral_bid_object> wallet_api::get_collateral_bids(std::string asset, uint32_t limit, uint32_t start)const
-{
-   return my->_remote_db->get_collateral_bids(asset, limit, start);
-}
-
 brain_key_info wallet_api::suggest_brain_key()const
 {
    return graphene::wallet::utility::suggest_brain_key();
@@ -735,14 +694,6 @@ signed_transaction wallet_api::settle_asset(string account_to_settle,
                                             bool broadcast /* = false */)
 {
    return my->settle_asset(account_to_settle, amount_to_settle, symbol, broadcast);
-}
-
-signed_transaction wallet_api::bid_collateral(string bidder_name,
-                                              string debt_amount, string debt_symbol,
-                                              string additional_collateral,
-                                              bool broadcast )
-{
-   return my->bid_collateral(bidder_name, debt_amount, debt_symbol, additional_collateral, broadcast);
 }
 
 signed_transaction wallet_api::whitelist_account(string authorizing_account,
@@ -1336,12 +1287,6 @@ signed_transaction wallet_api::borrow_asset_ext( string seller_name, string amou
                                amount_of_collateral, extensions, broadcast);
 }
 
-signed_transaction wallet_api::cancel_order(object_id_type order_id, bool broadcast)
-{
-   FC_ASSERT(!is_locked());
-   return my->cancel_order(order_id, broadcast);
-}
-
 memo_data wallet_api::sign_memo(string from, string to, string memo)
 {
    FC_ASSERT(!is_locked());
@@ -1922,11 +1867,6 @@ vector<blind_receipt> wallet_api::blind_history( string key_or_account )
    std::sort( result.begin(), result.end(),
               [&]( const blind_receipt& a, const blind_receipt& b ){ return a.date > b.date; } );
    return result;
-}
-
-order_book wallet_api::get_order_book( const string& base, const string& quote, unsigned limit )
-{
-   return( my->_remote_db->get_order_book( base, quote, limit ) );
 }
 
 // custom operations

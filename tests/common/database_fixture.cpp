@@ -165,31 +165,6 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
    {
     options.insert(std::make_pair("api-limit-get-key-references", boost::program_options::variable_value((uint64_t)200, false)));
    }
-   if(current_test_name =="api_limit_get_limit_orders")
-   {
-    options.insert(std::make_pair("api-limit-get-limit-orders", boost::program_options::variable_value(
-       (uint64_t)350, false)));
-   }
-   if(current_test_name =="api_limit_get_limit_orders_by_account")
-   {
-    options.insert(std::make_pair("api-limit-get-limit-orders-by-account", boost::program_options::variable_value(
-       (uint64_t)150, false)));
-   }
-   if(current_test_name =="api_limit_get_call_orders")
-   {
-    options.insert(std::make_pair("api-limit-get-call-orders", boost::program_options::variable_value(
-       (uint64_t)350, false)));
-   }
-   if(current_test_name =="api_limit_get_settle_orders")
-   {
-    options.insert(std::make_pair("api-limit-get-settle-orders", boost::program_options::variable_value(
-       (uint64_t)350, false)));
-   }
-   if(current_test_name =="api_limit_get_order_book")
-   {
-    options.insert(std::make_pair("api-limit-get-order-book", boost::program_options::variable_value(
-       (uint64_t)80, false)));
-   }
    if( current_test_name == "asset_in_collateral" )
    {
     options.insert( std::make_pair( "plugins",
@@ -219,31 +194,6 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
    {
       options.insert(std::make_pair("api-limit-lookup-vote-ids", boost::program_options::variable_value
          ((uint64_t)2, false)));
-   }
-   if(current_test_name =="api_limit_get_account_limit_orders")
-   {
-      options.insert(std::make_pair("api-limit-get-account-limit-orders", boost::program_options::variable_value
-         ((uint64_t)250, false)));
-   }
-   if(current_test_name =="api_limit_get_collateral_bids")
-   {
-      options.insert(std::make_pair("api-limit-get-collateral-bids", boost::program_options::variable_value
-         ((uint64_t)250, false)));
-   }
-   if(current_test_name =="api_limit_get_top_markets")
-   {
-      options.insert(std::make_pair("api-limit-get-top-markets", boost::program_options::variable_value
-         ((uint64_t)250, false)));
-   }
-   if(current_test_name =="api_limit_get_trade_history")
-   {
-      options.insert(std::make_pair("api-limit-get-trade-history", boost::program_options::variable_value
-         ((uint64_t)250, false)));
-   }
-   if(current_test_name =="api_limit_get_trade_history_by_sequence")
-   {
-      options.insert(std::make_pair("api-limit-get-trade-history-by-sequence", boost::program_options::variable_value
-         ((uint64_t)250, false)));
    }
    if(current_test_name =="api_limit_get_withdraw_permissions_by_giver")
    {
@@ -450,13 +400,10 @@ bool database_fixture::validation_current_test_name_for_setting_api_limit( const
    vector <string> valid_testcase {"api_limit_get_account_history_operations","api_limit_get_account_history"
       ,"api_limit_get_grouped_limit_orders","api_limit_get_relative_account_history"
       ,"api_limit_get_account_history_by_operations","api_limit_get_asset_holders"
-      ,"api_limit_get_key_references","api_limit_get_limit_orders","api_limit_get_limit_orders_by_account"
-      ,"api_limit_get_call_orders","api_limit_get_settle_orders"
-      ,"api_limit_get_order_book","api_limit_lookup_accounts"
+      ,"api_limit_get_key_references"
+      ,"api_limit_lookup_accounts"
       ,"api_limit_lookup_witness_accounts","api_limit_lookup_committee_member_accounts"
-      ,"api_limit_lookup_vote_ids","api_limit_get_account_limit_orders"
-      ,"api_limit_get_collateral_bids","api_limit_get_top_markets"
-      ,"api_limit_get_trade_history", "api_limit_get_trade_history_by_sequence"
+      ,"api_limit_lookup_vote_ids"
       ,"api_limit_get_withdraw_permissions_by_giver","api_limit_get_withdraw_permissions_by_recipient"
       ,"api_limit_get_full_accounts2"};
    for(string i_valid_testcase: valid_testcase)
@@ -1270,22 +1217,6 @@ void database_fixture::cover(const account_object& who, asset what, asset collat
    trx.operations.clear();
    verify_asset_supplies(db);
 } FC_CAPTURE_AND_RETHROW( (who.name)(what)(collateral)(target_cr) ) }
-
-void database_fixture::bid_collateral(const account_object& who, const asset& to_bid, const asset& to_cover)
-{ try {
-   set_expiration( db, trx );
-   trx.operations.clear();
-   bid_collateral_operation bid;
-   bid.bidder = who.id;
-   bid.additional_collateral = to_bid;
-   bid.debt_covered = to_cover;
-   trx.operations.push_back(bid);
-   for( auto& op : trx.operations ) db.current_fee_schedule().set_fee(op);
-   trx.validate();
-   PUSH_TX(db, trx, ~0);
-   trx.operations.clear();
-   verify_asset_supplies(db);
-} FC_CAPTURE_AND_RETHROW( (who.name)(to_bid)(to_cover) ) }
 
 void database_fixture::fund_fee_pool( const account_object& from, const asset_object& asset_to_fund, const share_type amount )
 {

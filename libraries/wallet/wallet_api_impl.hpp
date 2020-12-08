@@ -269,9 +269,6 @@ public:
    signed_transaction settle_asset(string account_to_settle, string amount_to_settle, string symbol,
          bool broadcast );
 
-   signed_transaction bid_collateral(string bidder_name, string debt_amount, string debt_symbol,
-         string additional_collateral, bool broadcast );
-
    signed_transaction whitelist_account(string authorizing_account, string account_to_list,
          account_whitelist_operation::account_listing new_listing_status, bool broadcast );
 
@@ -348,8 +345,6 @@ public:
    signed_transaction borrow_asset_ext( string seller_name, string amount_to_borrow, string asset_symbol,
          string amount_of_collateral, call_order_update_operation::extensions_type extensions,
          bool broadcast = false);
-
-   signed_transaction cancel_order(limit_order_id_type order_id, bool broadcast = false);
 
    signed_transaction transfer(string from, string to, string amount,
          string asset_symbol, string memo, bool broadcast = false);

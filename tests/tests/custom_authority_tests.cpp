@@ -1176,18 +1176,6 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
 
 
          //////
-         // Bob attempts to cancel the limit order on behalf of Alice
-         // This should succeed because Bob is authorized to cancel limit orders
-         //////
-         limit_order_cancel_operation cancel_order;
-         cancel_order.fee_paying_account = alice_id;
-         cancel_order.order = buy_order_object->id;
-         trx.clear();
-         trx.operations = {cancel_order};
-         sign(trx, bob_private_key);
-         auto processed_cancelled = PUSH_TX(db, trx);
-
-         //////
          // Bob attempts to transfer funds out of Alice's account
          // This should fail because Bob is not authorized to transfer funds out of her account
          //////
@@ -1543,19 +1531,6 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
          auto processed_buy = PUSH_TX(db, trx);
          const limit_order_object *buy_order_object =
             db.find<limit_order_object>( processed_buy.operation_results[0].get<object_id_type>() );
-
-
-         //////
-         // The key attempts to cancel the limit order on behalf of Alice
-         // This should succeed because the key is authorized to cancel limit orders
-         //////
-         limit_order_cancel_operation cancel_order;
-         cancel_order.fee_paying_account = alice_id;
-         cancel_order.order = buy_order_object->id;
-         trx.clear();
-         trx.operations = {cancel_order};
-         sign(trx, some_private_key);
-         auto processed_cancelled = PUSH_TX(db, trx);
 
 
          //////

@@ -150,77 +150,6 @@ class wallet_api
        */
       full_account                      get_full_account( const string& name_or_id );
 
-      /**
-       * @brief Get OHLCV data of a trading pair in a time range
-       * @param symbol name or ID of the base asset
-       * @param symbol2 name or ID of the quote asset
-       * @param bucket length of each time bucket in seconds.
-       * @param start the start of a time range, E.G. "2018-01-01T00:00:00"
-       * @param end the end of the time range
-       * @return A list of OHLCV data, in "least recent first" order.
-       */
-      vector<bucket_object>             get_market_history( string symbol, string symbol2, uint32_t bucket,
-                                                            fc::time_point_sec start, fc::time_point_sec end )const;
-
-      /**
-       * @brief Fetch all orders relevant to the specified account sorted descendingly by price
-       *
-       * @param name_or_id  The name or ID of an account to retrieve
-       * @param base  Base asset
-       * @param quote  Quote asset
-       * @param limit  The limitation of items each query can fetch (max: 101)
-       * @param ostart_id  Start order id, fetch orders which price are lower than or equal to this order
-       * @param ostart_price  Fetch orders with price lower than or equal to this price
-       *
-       * @return List of orders from \c name_or_id to the corresponding account
-       *
-       * @note
-       * 1. if \c name_or_id cannot be tied to an account, empty result will be returned
-       * 2. \c ostart_id and \c ostart_price can be \c null, if so the api will return the "first page" of orders;
-       *    if \c ostart_id is specified and valid, its price will be used to do page query preferentially,
-       *    otherwise the \c ostart_price will be used
-       */
-      vector<limit_order_object>        get_account_limit_orders( const string& name_or_id,
-                                            const string &base,
-                                            const string &quote,
-                                            uint32_t limit = 101,
-                                            optional<limit_order_id_type> ostart_id = optional<limit_order_id_type>(),
-                                            optional<price> ostart_price = optional<price>());
-
-      /**
-       * @brief Get limit orders in a given market
-       * @param a symbol or ID of asset being sold
-       * @param b symbol or ID of asset being purchased
-       * @param limit Maximum number of orders to retrieve
-       * @return The limit orders, ordered from least price to greatest
-       */
-      vector<limit_order_object>        get_limit_orders(string a, string b, uint32_t limit)const;
-
-      /**
-       * @brief Get call orders (aka margin positions) for a given asset
-       * @param a symbol name or ID of the debt asset
-       * @param limit Maximum number of orders to retrieve
-       * @return The call orders, ordered from earliest to be called to latest
-       */
-      vector<call_order_object>         get_call_orders(string a, uint32_t limit)const;
-
-      /**
-       * @brief Get forced settlement orders in a given asset
-       * @param a Symbol or ID of asset being settled
-       * @param limit Maximum number of orders to retrieve
-       * @return The settle orders, ordered from earliest settlement date to latest
-       */
-      vector<force_settlement_object>   get_settle_orders(string a, uint32_t limit)const;
-
-      /** Returns the collateral_bid object for the given MPA
-       *
-       * @param asset the name or id of the asset
-       * @param limit the number of entries to return
-       * @param start the sequence number where to start looping back throw the history
-       * @returns a list of \c collateral_bid_objects
-       */
-      vector<collateral_bid_object> get_collateral_bids(string asset, uint32_t limit = 100, uint32_t start = 0)const;
-
       /** Returns the block chain's slowly-changing settings.
        * This object contains all of the properties of the blockchain that are fixed
        * or that change only once per maintenance interval (daily) such as the
@@ -951,14 +880,6 @@ class wallet_api
                                            call_order_update_operation::extensions_type extensions,
                                            bool broadcast = false );
 
-      /** Cancel an existing order
-       *
-       * @param order_id the id of order to be cancelled
-       * @param broadcast true to broadcast the transaction on the network
-       * @returns the signed transaction canceling the order
-       */
-      signed_transaction cancel_order(object_id_type order_id, bool broadcast = false);
-
       /** Creates a new user-issued or market-issued asset.
        *
        * Many options can be changed later using \c update_asset()
@@ -1188,25 +1109,6 @@ class wallet_api
                                       string amount_to_settle,
                                       string symbol,
                                       bool broadcast = false);
-
-      /** Creates or updates a bid on an MPA after global settlement.
-       *
-       * In order to revive a market-pegged asset after global settlement (aka
-       * black swan), investors can bid collateral in order to take over part of
-       * the debt and the settlement fund, see BSIP-0018. Updating an existing
-       * bid to cover 0 debt will delete the bid.
-       *
-       * @param bidder_name the name or id of the account making the bid
-       * @param debt_amount the amount of debt of the named asset to bid for
-       * @param debt_symbol the name or id of the MPA to bid for
-       * @param additional_collateral the amount of additional collateral to bid
-       *        for taking over debt_amount. The asset type of this amount is
-       *        determined automatically from debt_symbol.
-       * @param broadcast true to broadcast the transaction on the network
-       * @returns the signed transaction creating/updating the bid
-       */
-      signed_transaction bid_collateral(string bidder_name, string debt_amount, string debt_symbol,
-                                        string additional_collateral, bool broadcast = false);
 
       /** Whitelist and blacklist accounts, primarily for transacting in whitelisted assets.
        *
@@ -1582,15 +1484,6 @@ class wallet_api
          const approval_delta& delta,
          bool broadcast /* = false */
          );
-
-      /**
-       * Returns the order book for the market base:quote.
-       * @param base symbol name or ID of the base asset
-       * @param quote symbol name or ID of the quote asset
-       * @param limit depth of the order book to retrieve, for bids and asks each, capped at 50
-       * @return Order book of the market
-       */
-      order_book get_order_book( const string& base, const string& quote, unsigned limit = 50);
 
       /** Signs a transaction.
        *
@@ -1997,7 +1890,6 @@ FC_API( graphene::wallet::wallet_api,
         (sell_asset)
         (borrow_asset)
         (borrow_asset_ext)
-        (cancel_order)
         (transfer)
         (get_transaction_id)
         (create_asset)
@@ -2015,7 +1907,6 @@ FC_API( graphene::wallet::wallet_api,
         (reserve_asset)
         (global_settle_asset)
         (settle_asset)
-        (bid_collateral)
         (whitelist_account)
         (create_committee_member)
         (get_witness)
@@ -2040,20 +1931,14 @@ FC_API( graphene::wallet::wallet_api,
         (get_account_history)
         (get_relative_account_history)
         (get_account_history_by_operations)
-        (get_collateral_bids)
         (is_public_key_registered)
         (get_full_account)
-        (get_market_history)
         (get_global_properties)
         (get_dynamic_global_properties)
         (get_object)
         (get_private_key)
         (load_wallet_file)
         (normalize_brain_key)
-        (get_account_limit_orders)
-        (get_limit_orders)
-        (get_call_orders)
-        (get_settle_orders)
         (save_wallet_file)
         (serialize_transaction)
         (sign_transaction)
@@ -2092,7 +1977,6 @@ FC_API( graphene::wallet::wallet_api,
         (blind_transfer)
         (blind_history)
         (receive_blind_transfer)
-        (get_order_book)
         (account_store_map)
         (get_account_storage)
         (quit)

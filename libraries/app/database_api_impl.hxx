@@ -99,45 +99,6 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
       vector<extended_asset_object>           get_assets_by_issuer(const std::string& issuer_name_or_id,
                                                                    asset_id_type start, uint32_t limit)const;
 
-      // Markets / feeds
-      vector<limit_order_object>         get_limit_orders( const std::string& a, const std::string& b,
-                                                           uint32_t limit)const;
-      vector<limit_order_object>         get_limit_orders_by_account( const string& account_name_or_id,
-                                                                      optional<uint32_t> limit,
-                                                                      optional<limit_order_id_type> start_id );
-      vector<limit_order_object>         get_account_limit_orders( const string& account_name_or_id,
-                                                                   const string &base,
-                                                                   const string &quote, uint32_t limit,
-                                                                   optional<limit_order_id_type> ostart_id,
-                                                                   optional<price> ostart_price );
-      vector<call_order_object>          get_call_orders(const std::string& a, uint32_t limit)const;
-      vector<call_order_object>          get_call_orders_by_account(const std::string& account_name_or_id,
-                                                                    asset_id_type start, uint32_t limit)const;
-      vector<force_settlement_object>    get_settle_orders(const std::string& a, uint32_t limit)const;
-      vector<force_settlement_object>    get_settle_orders_by_account(const std::string& account_name_or_id,
-                                                                      force_settlement_id_type start,
-                                                                      uint32_t limit)const;
-      vector<call_order_object>          get_margin_positions( const std::string account_id_or_name )const;
-      vector<collateral_bid_object>      get_collateral_bids( const std::string& asset,
-                                                              uint32_t limit, uint32_t start)const;
-
-      void subscribe_to_market( std::function<void(const variant&)> callback,
-                                const std::string& a, const std::string& b );
-      void unsubscribe_from_market(const std::string& a, const std::string& b);
-
-      market_ticker                      get_ticker( const string& base, const string& quote,
-                                                     bool skip_order_book = false )const;
-      market_volume                      get_24_volume( const string& base, const string& quote )const;
-      order_book                         get_order_book( const string& base, const string& quote,
-                                                         unsigned limit = 50 )const;
-      vector<market_ticker>              get_top_markets( uint32_t limit )const;
-      vector<market_trade>               get_trade_history( const string& base, const string& quote,
-                                                            fc::time_point_sec start, fc::time_point_sec stop,
-                                                            unsigned limit = 100 )const;
-      vector<market_trade>               get_trade_history_by_sequence( const string& base, const string& quote,
-                                                                        int64_t start, fc::time_point_sec stop,
-                                                                        unsigned limit = 100 )const;
-
       // Witnesses
       vector<optional<witness_object>> get_witnesses(const vector<witness_id_type>& witness_ids)const;
       fc::optional<witness_object> get_witness_by_account(const std::string account_id_or_name)const;
@@ -245,14 +206,6 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
       // helper function
       vector<optional<extended_asset_object>> get_assets( const vector<asset_id_type>& asset_ids,
                                                           optional<bool> subscribe = optional<bool>() )const;
-
-      ////////////////////////////////////////////////
-      // Markets
-      ////////////////////////////////////////////////
-
-      // helper function
-      vector<limit_order_object> get_limit_orders( const asset_id_type a, const asset_id_type b,
-                                                   const uint32_t limit )const;
 
       ////////////////////////////////////////////////
       // Subscription

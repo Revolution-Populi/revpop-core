@@ -525,16 +525,11 @@ transaction wallet_api::preview_builder_transaction(transaction_handle_type hand
    return my->preview_builder_transaction(handle);
 }
 
-signed_transaction wallet_api::sign_builder_transaction(transaction_handle_type transaction_handle, bool broadcast)
-{
-   return my->sign_builder_transaction(transaction_handle, broadcast);
-}
-
-signed_transaction wallet_api::sign_builder_transaction2(transaction_handle_type transaction_handle,
+signed_transaction wallet_api::sign_builder_transaction(transaction_handle_type transaction_handle,
                                                         const vector<public_key_type>& explicit_keys,
                                                         bool broadcast)
 {
-   return my->sign_builder_transaction2(transaction_handle, explicit_keys, broadcast);
+   return my->sign_builder_transaction(transaction_handle, explicit_keys, broadcast);
 }
 
 pair<transaction_id_type,signed_transaction> wallet_api::broadcast_transaction(signed_transaction tx)
@@ -544,21 +539,12 @@ pair<transaction_id_type,signed_transaction> wallet_api::broadcast_transaction(s
 
 signed_transaction wallet_api::propose_builder_transaction(
       transaction_handle_type handle,
-      time_point_sec expiration,
-      uint32_t review_period_seconds,
-      bool broadcast)
-{
-   return my->propose_builder_transaction(handle, expiration, review_period_seconds, broadcast);
-}
-
-signed_transaction wallet_api::propose_builder_transaction2(
-      transaction_handle_type handle,
       string account_name_or_id,
       time_point_sec expiration,
       uint32_t review_period_seconds,
       bool broadcast)
 {
-   return my->propose_builder_transaction2(handle, account_name_or_id, expiration, review_period_seconds, broadcast);
+   return my->propose_builder_transaction(handle, account_name_or_id, expiration, review_period_seconds, broadcast);
 }
 
 void wallet_api::remove_builder_transaction(transaction_handle_type handle)

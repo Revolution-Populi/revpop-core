@@ -615,7 +615,7 @@ BOOST_FIXTURE_TEST_CASE(cli_sign_tx_builder_with_unnecessary_signature, cli_fixt
       con.wallet_api_ptr->set_fees_on_builder_transaction(tx_handle, GRAPHENE_SYMBOL);
 
       // Sign the transaction with the implied nathan's key and the explicitly yet unnecessary Bob's key
-      auto signed_trx = con.wallet_api_ptr->sign_builder_transaction2(tx_handle, {bob_bki.pub_key}, false);
+      auto signed_trx = con.wallet_api_ptr->sign_builder_transaction(tx_handle, {bob_bki.pub_key}, false);
 
       // Check for two signatures on the transaction
       BOOST_CHECK_EQUAL(signed_trx.signatures.size(), 2);
@@ -1424,7 +1424,7 @@ unsigned_int member_index(string name) {
 
 ///////////////////////
 // Wallet RPC
-// Test sign_builder_transaction2 with an account (bob) that has received a custom authorization
+// Test sign_builder_transaction with an account (bob) that has received a custom authorization
 // to transfer funds from another account (alice)
 ///////////////////////
 BOOST_FIXTURE_TEST_CASE(cli_use_authorized_transfer, cli_fixture) {
@@ -1508,7 +1508,7 @@ BOOST_FIXTURE_TEST_CASE(cli_use_authorized_transfer, cli_fixture) {
       asset ca_fee = con_alice.wallet_api_ptr->set_fees_on_builder_transaction(tx_alice_handle, GRAPHENE_SYMBOL);
 
       // Sign the transaction with the inferred Alice key
-      signed_trx = con_alice.wallet_api_ptr->sign_builder_transaction2(tx_alice_handle, {}, true);
+      signed_trx = con_alice.wallet_api_ptr->sign_builder_transaction(tx_alice_handle, {}, true);
 
       // Check for one signatures on the transaction
       BOOST_CHECK_EQUAL(signed_trx.signatures.size(), 1);
@@ -1546,7 +1546,7 @@ BOOST_FIXTURE_TEST_CASE(cli_use_authorized_transfer, cli_fixture) {
       asset transfer_fee = con_bob.wallet_api_ptr->set_fees_on_builder_transaction(tx_bob_handle, GRAPHENE_SYMBOL);
 
       // Sign the transaction with the explicit Bob key
-      signed_trx = con_bob.wallet_api_ptr->sign_builder_transaction2(tx_bob_handle, {bob_bki.pub_key}, true);
+      signed_trx = con_bob.wallet_api_ptr->sign_builder_transaction(tx_bob_handle, {bob_bki.pub_key}, true);
 
       // Check for one signatures on the transaction
       BOOST_CHECK_EQUAL(signed_trx.signatures.size(), 1);

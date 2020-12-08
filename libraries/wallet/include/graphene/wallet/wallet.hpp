@@ -371,21 +371,11 @@ class wallet_api
        *
        * Sign the transaction in a transaction builder and optionally broadcast to the network.
        * @param transaction_handle handle of the transaction builder
-       * @param broadcast whether to broadcast the signed transaction to the network
-       * @return a signed transaction
-       */
-      signed_transaction sign_builder_transaction(transaction_handle_type transaction_handle, bool broadcast = true);
-
-      /**
-       * @ingroup Transaction Builder API
-       *
-       * Sign the transaction in a transaction builder and optionally broadcast to the network.
-       * @param transaction_handle handle of the transaction builder
        * @param signing_keys Keys that must be used when signing the transaction
        * @param broadcast whether to broadcast the signed transaction to the network
        * @return a signed transaction
        */
-      signed_transaction sign_builder_transaction2(transaction_handle_type transaction_handle,
+      signed_transaction sign_builder_transaction(transaction_handle_type transaction_handle,
                                                   const vector<public_key_type>& signing_keys = vector<public_key_type>(),
                                                   bool broadcast = true);
 
@@ -402,29 +392,6 @@ class wallet_api
        * operation, then replace the transaction builder with the new operation), then sign the transaction
        * and optionally broadcast to the network.
        *
-       * Note: this command is buggy because unable to specify proposer. It will be deprecated in a future release.
-       *       Please use \c propose_builder_transaction2() instead.
-       *
-       * @param handle handle of the transaction builder
-       * @param expiration when the proposal will expire
-       * @param review_period_seconds review period of the proposal in seconds
-       * @param broadcast whether to broadcast the signed transaction to the network
-       * @return a signed transaction
-       */
-      signed_transaction propose_builder_transaction(
-          transaction_handle_type handle,
-          time_point_sec expiration = time_point::now() + fc::minutes(1),
-          uint32_t review_period_seconds = 0,
-          bool broadcast = true
-         );
-
-      /**
-       * @ingroup Transaction Builder API
-       *
-       * Create a proposal containing the operations in a transaction builder (create a new proposal_create
-       * operation, then replace the transaction builder with the new operation), then sign the transaction
-       * and optionally broadcast to the network.
-       *
        * @param handle handle of the transaction builder
        * @param account_name_or_id name or ID of the account who would pay fees for creating the proposal
        * @param expiration when the proposal will expire
@@ -432,7 +399,7 @@ class wallet_api
        * @param broadcast whether to broadcast the signed transaction to the network
        * @return a signed transaction
        */
-      signed_transaction propose_builder_transaction2(
+      signed_transaction propose_builder_transaction(
          transaction_handle_type handle,
          string account_name_or_id,
          time_point_sec expiration = time_point::now() + fc::minutes(1),
@@ -720,29 +687,6 @@ class wallet_api
                                   string asset_symbol,
                                   string memo,
                                   bool broadcast = false);
-
-      /**
-       *  This method works just like transfer, except it always broadcasts and
-       *  returns the transaction ID (hash) along with the signed transaction.
-       * @param from the name or id of the account sending the funds
-       * @param to the name or id of the account receiving the funds
-       * @param amount the amount to send (in nominal units -- to send half of a RVP, specify 0.5)
-       * @param asset_symbol the symbol or id of the asset to send
-       * @param memo a memo to attach to the transaction.  The memo will be encrypted in the
-       *             transaction and readable for the receiver.  There is no length limit
-       *             other than the limit imposed by maximum transaction size, but transaction
-       *             increase with transaction size
-       * @returns the transaction ID (hash) along with the signed transaction transferring funds
-       */
-      pair<transaction_id_type,signed_transaction> transfer2(string from,
-                                                             string to,
-                                                             string amount,
-                                                             string asset_symbol,
-                                                             string memo ) {
-         auto trx = transfer( from, to, amount, asset_symbol, memo, true );
-         return std::make_pair(trx.id(),trx);
-      }
-
 
       /**
        *  This method is used to convert a JSON transaction to its transactin ID.
@@ -2031,10 +1975,8 @@ FC_API( graphene::wallet::wallet_api,
         (set_fees_on_builder_transaction)
         (preview_builder_transaction)
         (sign_builder_transaction)
-        (sign_builder_transaction2)
         (broadcast_transaction)
         (propose_builder_transaction)
-        (propose_builder_transaction2)
         (remove_builder_transaction)
         (is_new)
         (is_locked)
@@ -2057,7 +1999,6 @@ FC_API( graphene::wallet::wallet_api,
         (borrow_asset_ext)
         (cancel_order)
         (transfer)
-        (transfer2)
         (get_transaction_id)
         (create_asset)
         (update_asset)

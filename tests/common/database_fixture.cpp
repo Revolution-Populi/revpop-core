@@ -37,7 +37,6 @@
 #include <graphene/chain/market_object.hpp>
 #include <graphene/chain/vesting_balance_object.hpp>
 #include <graphene/chain/witness_object.hpp>
-#include <graphene/chain/worker_object.hpp>
 #include <graphene/chain/htlc_object.hpp>
 #include <graphene/chain/proposal_object.hpp>
 #include <graphene/chain/hardfork_visitor.hpp>
@@ -1026,22 +1025,6 @@ const witness_object& database_fixture::create_witness( const account_object& ow
    processed_transaction ptx = PUSH_TX(db, trx, skip_flags );
    trx.clear();
    return db.get<witness_object>(ptx.operation_results[0].get<object_id_type>());
-} FC_CAPTURE_AND_RETHROW() }
-
-const worker_object& database_fixture::create_worker( const account_id_type owner, const share_type daily_pay, const fc::microseconds& duration )
-{ try {
-   worker_create_operation op;
-   op.owner = owner;
-   op.daily_pay = daily_pay;
-   op.initializer = burn_worker_initializer();
-   op.work_begin_date = db.head_block_time();
-   op.work_end_date = op.work_begin_date + duration;
-   trx.operations.clear();
-   trx.operations.push_back(op);
-   trx.validate();
-   processed_transaction ptx = PUSH_TX(db, trx, ~0);
-   trx.clear();
-   return db.get<worker_object>(ptx.operation_results[0].get<object_id_type>());
 } FC_CAPTURE_AND_RETHROW() }
 
 uint64_t database_fixture::fund(

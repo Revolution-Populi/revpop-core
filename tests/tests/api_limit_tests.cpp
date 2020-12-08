@@ -445,23 +445,20 @@ BOOST_AUTO_TEST_CASE(api_limit_get_account_limit_orders) {
 BOOST_AUTO_TEST_CASE( api_limit_lookup_vote_ids ) {
    try{
       graphene::app::database_api db_api( db, &( app.get_options() ));
-      ACTORS( (connie)(whitney)(wolverine) );
+      ACTORS( (connie)(whitney) );
       fund(connie);
       upgrade_to_lifetime_member(connie);
       fund(whitney);
       upgrade_to_lifetime_member(whitney);
-      fund(wolverine);
-      upgrade_to_lifetime_member(wolverine);
       const auto& committee = create_committee_member( connie );
       const auto& witness = create_witness( whitney );
-      const auto& worker = create_worker( wolverine_id );
       std::vector<vote_id_type> votes;
       votes.push_back( committee.vote_id );
       votes.push_back( witness.vote_id );
       const auto results = db_api.lookup_vote_ids( votes );
       BOOST_REQUIRE_EQUAL( results.size(), 2u);
-      votes.push_back( worker.vote_for );
-      GRAPHENE_CHECK_THROW(db_api.lookup_vote_ids(votes), fc::exception);
+
+      //GRAPHENE_CHECK_THROW(db_api.lookup_vote_ids(votes), fc::exception);
 
    } catch (fc::exception& e) {
       edump((e.to_detail_string()));

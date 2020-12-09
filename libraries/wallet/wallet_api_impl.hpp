@@ -216,17 +216,12 @@ public:
          uint32_t operation_index, const operation& new_op);
    asset set_fees_on_builder_transaction(transaction_handle_type handle, string fee_asset = GRAPHENE_SYMBOL);
    transaction preview_builder_transaction(transaction_handle_type handle);
-   signed_transaction sign_builder_transaction(transaction_handle_type transaction_handle, bool broadcast = true);
-   signed_transaction sign_builder_transaction2(transaction_handle_type transaction_handle,
+   signed_transaction sign_builder_transaction(transaction_handle_type transaction_handle,
          const vector<public_key_type>& signing_keys = vector<public_key_type>(), bool broadcast = true);
 
    pair<transaction_id_type,signed_transaction> broadcast_transaction(signed_transaction tx);
 
    signed_transaction propose_builder_transaction( transaction_handle_type handle,
-         time_point_sec expiration = time_point::now() + fc::minutes(1),
-         uint32_t review_period_seconds = 0, bool broadcast = true);
-
-   signed_transaction propose_builder_transaction2( transaction_handle_type handle,
          string account_name_or_id, time_point_sec expiration = time_point::now() + fc::minutes(1),
          uint32_t review_period_seconds = 0, bool broadcast = true);
 
@@ -272,9 +267,6 @@ public:
    signed_transaction settle_asset(string account_to_settle, string amount_to_settle, string symbol,
          bool broadcast );
 
-   signed_transaction bid_collateral(string bidder_name, string debt_amount, string debt_symbol,
-         string additional_collateral, bool broadcast );
-
    signed_transaction whitelist_account(string authorizing_account, string account_to_list,
          account_whitelist_operation::account_listing new_listing_status, bool broadcast );
 
@@ -288,12 +280,6 @@ public:
 
    signed_transaction update_witness(string witness_name, string url, string block_signing_key,
          bool broadcast );
-
-   signed_transaction create_worker( string owner_account, time_point_sec work_begin_date,
-         time_point_sec work_end_date, share_type daily_pay, string name, string url,
-         variant worker_settings, bool broadcast );
-
-   signed_transaction update_worker_votes( string account, worker_vote_delta delta, bool broadcast );
 
    signed_transaction account_store_map(string account, string catalog, bool remove,
          flat_map<string, optional<string>> key_values, bool broadcast);
@@ -348,8 +334,6 @@ public:
    signed_transaction borrow_asset_ext( string seller_name, string amount_to_borrow, string asset_symbol,
          string amount_of_collateral, call_order_update_operation::extensions_type extensions,
          bool broadcast = false);
-
-   signed_transaction cancel_order(limit_order_id_type order_id, bool broadcast = false);
 
    signed_transaction transfer(string from, string to, string amount,
          string asset_symbol, string memo, bool broadcast = false);

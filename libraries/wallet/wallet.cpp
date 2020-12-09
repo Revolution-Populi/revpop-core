@@ -343,47 +343,6 @@ full_account wallet_api::get_full_account( const string& name_or_id)
     return my->_remote_db->get_full_accounts({name_or_id}, false)[name_or_id];
 }
 
-vector<bucket_object> wallet_api::get_market_history(
-      string symbol1,
-      string symbol2,
-      uint32_t bucket,
-      fc::time_point_sec start,
-      fc::time_point_sec end )const
-{
-   return my->_remote_hist->get_market_history( symbol1, symbol2, bucket, start, end );
-}
-
-vector<limit_order_object> wallet_api::get_account_limit_orders(
-      const string& name_or_id,
-      const string &base,
-      const string &quote,
-      uint32_t limit,
-      optional<limit_order_id_type> ostart_id,
-      optional<price> ostart_price)
-{
-   return my->_remote_db->get_account_limit_orders(name_or_id, base, quote, limit, ostart_id, ostart_price);
-}
-
-vector<limit_order_object> wallet_api::get_limit_orders(std::string a, std::string b, uint32_t limit)const
-{
-   return my->_remote_db->get_limit_orders(a, b, limit);
-}
-
-vector<call_order_object> wallet_api::get_call_orders(std::string a, uint32_t limit)const
-{
-   return my->_remote_db->get_call_orders(a, limit);
-}
-
-vector<force_settlement_object> wallet_api::get_settle_orders(std::string a, uint32_t limit)const
-{
-   return my->_remote_db->get_settle_orders(a, limit);
-}
-
-vector<collateral_bid_object> wallet_api::get_collateral_bids(std::string asset, uint32_t limit, uint32_t start)const
-{
-   return my->_remote_db->get_collateral_bids(asset, limit, start);
-}
-
 brain_key_info wallet_api::suggest_brain_key()const
 {
    return graphene::wallet::utility::suggest_brain_key();
@@ -448,16 +407,11 @@ transaction wallet_api::preview_builder_transaction(transaction_handle_type hand
    return my->preview_builder_transaction(handle);
 }
 
-signed_transaction wallet_api::sign_builder_transaction(transaction_handle_type transaction_handle, bool broadcast)
-{
-   return my->sign_builder_transaction(transaction_handle, broadcast);
-}
-
-signed_transaction wallet_api::sign_builder_transaction2(transaction_handle_type transaction_handle,
+signed_transaction wallet_api::sign_builder_transaction(transaction_handle_type transaction_handle,
                                                         const vector<public_key_type>& explicit_keys,
                                                         bool broadcast)
 {
-   return my->sign_builder_transaction2(transaction_handle, explicit_keys, broadcast);
+   return my->sign_builder_transaction(transaction_handle, explicit_keys, broadcast);
 }
 
 pair<transaction_id_type,signed_transaction> wallet_api::broadcast_transaction(signed_transaction tx)
@@ -467,21 +421,12 @@ pair<transaction_id_type,signed_transaction> wallet_api::broadcast_transaction(s
 
 signed_transaction wallet_api::propose_builder_transaction(
       transaction_handle_type handle,
-      time_point_sec expiration,
-      uint32_t review_period_seconds,
-      bool broadcast)
-{
-   return my->propose_builder_transaction(handle, expiration, review_period_seconds, broadcast);
-}
-
-signed_transaction wallet_api::propose_builder_transaction2(
-      transaction_handle_type handle,
       string account_name_or_id,
       time_point_sec expiration,
       uint32_t review_period_seconds,
       bool broadcast)
 {
-   return my->propose_builder_transaction2(handle, account_name_or_id, expiration, review_period_seconds, broadcast);
+   return my->propose_builder_transaction(handle, account_name_or_id, expiration, review_period_seconds, broadcast);
 }
 
 void wallet_api::remove_builder_transaction(transaction_handle_type handle)
@@ -674,14 +619,6 @@ signed_transaction wallet_api::settle_asset(string account_to_settle,
    return my->settle_asset(account_to_settle, amount_to_settle, symbol, broadcast);
 }
 
-signed_transaction wallet_api::bid_collateral(string bidder_name,
-                                              string debt_amount, string debt_symbol,
-                                              string additional_collateral,
-                                              bool broadcast )
-{
-   return my->bid_collateral(bidder_name, debt_amount, debt_symbol, additional_collateral, broadcast);
-}
-
 signed_transaction wallet_api::whitelist_account(string authorizing_account,
                                                  string account_to_list,
                                                  account_whitelist_operation::account_listing new_listing_status,
@@ -721,28 +658,6 @@ signed_transaction wallet_api::create_witness(string owner_account,
                                               bool broadcast /* = false */)
 {
    return my->create_witness(owner_account, url, broadcast);
-}
-
-signed_transaction wallet_api::create_worker(
-   string owner_account,
-   time_point_sec work_begin_date,
-   time_point_sec work_end_date,
-   share_type daily_pay,
-   string name,
-   string url,
-   variant worker_settings,
-   bool broadcast /* = false */)
-{
-   return my->create_worker( owner_account, work_begin_date, work_end_date,
-      daily_pay, name, url, worker_settings, broadcast );
-}
-
-signed_transaction wallet_api::update_worker_votes(
-   string owner_account,
-   worker_vote_delta delta,
-   bool broadcast /* = false */)
-{
-   return my->update_worker_votes( owner_account, delta, broadcast );
 }
 
 signed_transaction wallet_api::update_witness(
@@ -1293,12 +1208,6 @@ signed_transaction wallet_api::borrow_asset_ext( string seller_name, string amou
    FC_ASSERT(!is_locked());
    return my->borrow_asset_ext(seller_name, amount_to_sell, asset_symbol,
                                amount_of_collateral, extensions, broadcast);
-}
-
-signed_transaction wallet_api::cancel_order(object_id_type order_id, bool broadcast)
-{
-   FC_ASSERT(!is_locked());
-   return my->cancel_order(order_id, broadcast);
 }
 
 memo_data wallet_api::sign_memo(string from, string to, string memo)
@@ -1881,11 +1790,6 @@ vector<blind_receipt> wallet_api::blind_history( string key_or_account )
    std::sort( result.begin(), result.end(),
               [&]( const blind_receipt& a, const blind_receipt& b ){ return a.date > b.date; } );
    return result;
-}
-
-order_book wallet_api::get_order_book( const string& base, const string& quote, unsigned limit )
-{
-   return( my->_remote_db->get_order_book( base, quote, limit ) );
 }
 
 // custom operations

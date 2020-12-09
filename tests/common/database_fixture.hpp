@@ -30,7 +30,6 @@
 
 #include <graphene/chain/committee_member_object.hpp>
 #include <graphene/chain/ticket_object.hpp>
-#include <graphene/chain/worker_object.hpp>
 #include <graphene/chain/operation_history_object.hpp>
 #include <graphene/chain/database.hpp>
 #include <graphene/app/application.hpp>
@@ -289,7 +288,6 @@ struct database_fixture {
    { cover(who(db), what, collateral_freed, target_cr); }
    void cover(const account_object& who, asset what, asset collateral_freed,
                                     optional<uint16_t> target_cr = {} );
-   void bid_collateral(const account_object& who, const asset& to_bid, const asset& to_cover);
 
    const asset_object& get_asset( const string& symbol )const;
    const account_object& get_account( const string& name )const;
@@ -357,7 +355,6 @@ struct database_fixture {
    const witness_object& create_witness(const account_object& owner,
                                         const fc::ecc::private_key& signing_private_key = generate_private_key("null_key"),
                                         uint32_t skip_flags = ~0);
-   const worker_object& create_worker(account_id_type owner, const share_type daily_pay = 1000, const fc::microseconds& duration = fc::days(2));
    template<typename T>
    proposal_create_operation make_proposal_create_op( const T& op, account_id_type proposer = GRAPHENE_TEMP_ACCOUNT,
                                                       uint32_t timeout = 300, uint32_t review_period = 0 ) const

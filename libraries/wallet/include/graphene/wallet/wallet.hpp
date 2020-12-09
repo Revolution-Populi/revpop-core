@@ -24,7 +24,6 @@
 #pragma once
 
 #include <fc/optional.hpp>
-#include <graphene/chain/htlc_object.hpp>
 #include <graphene/app/api.hpp>
 #include <graphene/utilities/key_conversion.hpp>
 #include "wallet_structs.hpp"
@@ -149,77 +148,6 @@ class wallet_api
        *
        */
       full_account                      get_full_account( const string& name_or_id );
-
-      /**
-       * @brief Get OHLCV data of a trading pair in a time range
-       * @param symbol name or ID of the base asset
-       * @param symbol2 name or ID of the quote asset
-       * @param bucket length of each time bucket in seconds.
-       * @param start the start of a time range, E.G. "2018-01-01T00:00:00"
-       * @param end the end of the time range
-       * @return A list of OHLCV data, in "least recent first" order.
-       */
-      vector<bucket_object>             get_market_history( string symbol, string symbol2, uint32_t bucket,
-                                                            fc::time_point_sec start, fc::time_point_sec end )const;
-
-      /**
-       * @brief Fetch all orders relevant to the specified account sorted descendingly by price
-       *
-       * @param name_or_id  The name or ID of an account to retrieve
-       * @param base  Base asset
-       * @param quote  Quote asset
-       * @param limit  The limitation of items each query can fetch (max: 101)
-       * @param ostart_id  Start order id, fetch orders which price are lower than or equal to this order
-       * @param ostart_price  Fetch orders with price lower than or equal to this price
-       *
-       * @return List of orders from \c name_or_id to the corresponding account
-       *
-       * @note
-       * 1. if \c name_or_id cannot be tied to an account, empty result will be returned
-       * 2. \c ostart_id and \c ostart_price can be \c null, if so the api will return the "first page" of orders;
-       *    if \c ostart_id is specified and valid, its price will be used to do page query preferentially,
-       *    otherwise the \c ostart_price will be used
-       */
-      vector<limit_order_object>        get_account_limit_orders( const string& name_or_id,
-                                            const string &base,
-                                            const string &quote,
-                                            uint32_t limit = 101,
-                                            optional<limit_order_id_type> ostart_id = optional<limit_order_id_type>(),
-                                            optional<price> ostart_price = optional<price>());
-
-      /**
-       * @brief Get limit orders in a given market
-       * @param a symbol or ID of asset being sold
-       * @param b symbol or ID of asset being purchased
-       * @param limit Maximum number of orders to retrieve
-       * @return The limit orders, ordered from least price to greatest
-       */
-      vector<limit_order_object>        get_limit_orders(string a, string b, uint32_t limit)const;
-
-      /**
-       * @brief Get call orders (aka margin positions) for a given asset
-       * @param a symbol name or ID of the debt asset
-       * @param limit Maximum number of orders to retrieve
-       * @return The call orders, ordered from earliest to be called to latest
-       */
-      vector<call_order_object>         get_call_orders(string a, uint32_t limit)const;
-
-      /**
-       * @brief Get forced settlement orders in a given asset
-       * @param a Symbol or ID of asset being settled
-       * @param limit Maximum number of orders to retrieve
-       * @return The settle orders, ordered from earliest settlement date to latest
-       */
-      vector<force_settlement_object>   get_settle_orders(string a, uint32_t limit)const;
-
-      /** Returns the collateral_bid object for the given MPA
-       *
-       * @param asset the name or id of the asset
-       * @param limit the number of entries to return
-       * @param start the sequence number where to start looping back throw the history
-       * @returns a list of \c collateral_bid_objects
-       */
-      vector<collateral_bid_object> get_collateral_bids(string asset, uint32_t limit = 100, uint32_t start = 0)const;
 
       /** Returns the block chain's slowly-changing settings.
        * This object contains all of the properties of the blockchain that are fixed
@@ -364,21 +292,11 @@ class wallet_api
        *
        * Sign the transaction in a transaction builder and optionally broadcast to the network.
        * @param transaction_handle handle of the transaction builder
-       * @param broadcast whether to broadcast the signed transaction to the network
-       * @return a signed transaction
-       */
-      signed_transaction sign_builder_transaction(transaction_handle_type transaction_handle, bool broadcast = true);
-
-      /**
-       * @ingroup Transaction Builder API
-       *
-       * Sign the transaction in a transaction builder and optionally broadcast to the network.
-       * @param transaction_handle handle of the transaction builder
        * @param signing_keys Keys that must be used when signing the transaction
        * @param broadcast whether to broadcast the signed transaction to the network
        * @return a signed transaction
        */
-      signed_transaction sign_builder_transaction2(transaction_handle_type transaction_handle,
+      signed_transaction sign_builder_transaction(transaction_handle_type transaction_handle,
                                                   const vector<public_key_type>& signing_keys = vector<public_key_type>(),
                                                   bool broadcast = true);
 
@@ -395,29 +313,6 @@ class wallet_api
        * operation, then replace the transaction builder with the new operation), then sign the transaction
        * and optionally broadcast to the network.
        *
-       * Note: this command is buggy because unable to specify proposer. It will be deprecated in a future release.
-       *       Please use \c propose_builder_transaction2() instead.
-       *
-       * @param handle handle of the transaction builder
-       * @param expiration when the proposal will expire
-       * @param review_period_seconds review period of the proposal in seconds
-       * @param broadcast whether to broadcast the signed transaction to the network
-       * @return a signed transaction
-       */
-      signed_transaction propose_builder_transaction(
-          transaction_handle_type handle,
-          time_point_sec expiration = time_point::now() + fc::minutes(1),
-          uint32_t review_period_seconds = 0,
-          bool broadcast = true
-         );
-
-      /**
-       * @ingroup Transaction Builder API
-       *
-       * Create a proposal containing the operations in a transaction builder (create a new proposal_create
-       * operation, then replace the transaction builder with the new operation), then sign the transaction
-       * and optionally broadcast to the network.
-       *
        * @param handle handle of the transaction builder
        * @param account_name_or_id name or ID of the account who would pay fees for creating the proposal
        * @param expiration when the proposal will expire
@@ -425,7 +320,7 @@ class wallet_api
        * @param broadcast whether to broadcast the signed transaction to the network
        * @return a signed transaction
        */
-      signed_transaction propose_builder_transaction2(
+      signed_transaction propose_builder_transaction(
          transaction_handle_type handle,
          string account_name_or_id,
          time_point_sec expiration = time_point::now() + fc::minutes(1),
@@ -715,29 +610,6 @@ class wallet_api
                                   bool broadcast = false);
 
       /**
-       *  This method works just like transfer, except it always broadcasts and
-       *  returns the transaction ID (hash) along with the signed transaction.
-       * @param from the name or id of the account sending the funds
-       * @param to the name or id of the account receiving the funds
-       * @param amount the amount to send (in nominal units -- to send half of a RVP, specify 0.5)
-       * @param asset_symbol the symbol or id of the asset to send
-       * @param memo a memo to attach to the transaction.  The memo will be encrypted in the
-       *             transaction and readable for the receiver.  There is no length limit
-       *             other than the limit imposed by maximum transaction size, but transaction
-       *             increase with transaction size
-       * @returns the transaction ID (hash) along with the signed transaction transferring funds
-       */
-      pair<transaction_id_type,signed_transaction> transfer2(string from,
-                                                             string to,
-                                                             string amount,
-                                                             string asset_symbol,
-                                                             string memo ) {
-         auto trx = transfer( from, to, amount, asset_symbol, memo, true );
-         return std::make_pair(trx.id(),trx);
-      }
-
-
-      /**
        *  This method is used to convert a JSON transaction to its transactin ID.
        * @param trx a JSON transaction
        * @return the ID (hash) of the transaction
@@ -1000,14 +872,6 @@ class wallet_api
                                            call_order_update_operation::extensions_type extensions,
                                            bool broadcast = false );
 
-      /** Cancel an existing order
-       *
-       * @param order_id the id of order to be cancelled
-       * @param broadcast true to broadcast the transaction on the network
-       * @returns the signed transaction canceling the order
-       */
-      signed_transaction cancel_order(object_id_type order_id, bool broadcast = false);
-
       /** Creates a new user-issued or market-issued asset.
        *
        * Many options can be changed later using \c update_asset()
@@ -1238,25 +1102,6 @@ class wallet_api
                                       string symbol,
                                       bool broadcast = false);
 
-      /** Creates or updates a bid on an MPA after global settlement.
-       *
-       * In order to revive a market-pegged asset after global settlement (aka
-       * black swan), investors can bid collateral in order to take over part of
-       * the debt and the settlement fund, see BSIP-0018. Updating an existing
-       * bid to cover 0 debt will delete the bid.
-       *
-       * @param bidder_name the name or id of the account making the bid
-       * @param debt_amount the amount of debt of the named asset to bid for
-       * @param debt_symbol the name or id of the MPA to bid for
-       * @param additional_collateral the amount of additional collateral to bid
-       *        for taking over debt_amount. The asset type of this amount is
-       *        determined automatically from debt_symbol.
-       * @param broadcast true to broadcast the transaction on the network
-       * @returns the signed transaction creating/updating the bid
-       */
-      signed_transaction bid_collateral(string bidder_name, string debt_amount, string debt_symbol,
-                                        string additional_collateral, bool broadcast = false);
-
       /** Whitelist and blacklist accounts, primarily for transacting in whitelisted assets.
        *
        * Accounts can freely specify opinions about other accounts, in the form of either whitelisting or blacklisting
@@ -1366,45 +1211,6 @@ class wallet_api
                                         string url,
                                         string block_signing_key,
                                         bool broadcast = false);
-
-
-      /**
-       * Create a worker object.
-       *
-       * @param owner_account The account which owns the worker and will be paid
-       * @param work_begin_date When the work begins
-       * @param work_end_date When the work ends
-       * @param daily_pay Amount of pay per day (NOT per maint interval)
-       * @param name Any text
-       * @param url Any text
-       * @param worker_settings {"type" : "burn"|"refund"|"vesting", "pay_vesting_period_days" : x}
-       * @param broadcast true if you wish to broadcast the transaction.
-       * @return the signed transaction
-       */
-      signed_transaction create_worker(
-         string owner_account,
-         time_point_sec work_begin_date,
-         time_point_sec work_end_date,
-         share_type daily_pay,
-         string name,
-         string url,
-         variant worker_settings,
-         bool broadcast = false
-         );
-
-      /**
-       * Update your votes for workers
-       *
-       * @param account The account which will pay the fee and update votes.
-       * @param delta {"vote_for" : [...], "vote_against" : [...], "vote_abstain" : [...]}
-       * @param broadcast true if you wish to broadcast the transaction.
-       * @return the signed transaction
-       */
-      signed_transaction update_worker_votes(
-         string account,
-         worker_vote_delta delta,
-         bool broadcast = false
-         );
 
       /**
        * Get information about a vesting balance object or vesting balance objects owned by an account.
@@ -1627,15 +1433,6 @@ class wallet_api
          const approval_delta& delta,
          bool broadcast /* = false */
          );
-
-      /**
-       * Returns the order book for the market base:quote.
-       * @param base symbol name or ID of the base asset
-       * @param quote symbol name or ID of the quote asset
-       * @param limit depth of the order book to retrieve, for bids and asks each, capped at 50
-       * @return Order book of the market
-       */
-      order_book get_order_book( const string& base, const string& quote, unsigned limit = 50);
 
       /** Signs a transaction.
        *
@@ -2020,10 +1817,8 @@ FC_API( graphene::wallet::wallet_api,
         (set_fees_on_builder_transaction)
         (preview_builder_transaction)
         (sign_builder_transaction)
-        (sign_builder_transaction2)
         (broadcast_transaction)
         (propose_builder_transaction)
-        (propose_builder_transaction2)
         (remove_builder_transaction)
         (is_new)
         (is_locked)
@@ -2044,9 +1839,7 @@ FC_API( graphene::wallet::wallet_api,
         (sell_asset)
         (borrow_asset)
         (borrow_asset_ext)
-        (cancel_order)
         (transfer)
-        (transfer2)
         (get_transaction_id)
         (create_asset)
         (update_asset)
@@ -2062,7 +1855,6 @@ FC_API( graphene::wallet::wallet_api,
         (reserve_asset)
         (global_settle_asset)
         (settle_asset)
-        (bid_collateral)
         (whitelist_account)
         (create_committee_member)
         (get_witness)
@@ -2071,8 +1863,6 @@ FC_API( graphene::wallet::wallet_api,
         (list_committee_members)
         (create_witness)
         (update_witness)
-        (create_worker)
-        (update_worker_votes)
         (get_vesting_balances)
         (withdraw_vesting)
         (vote_for_committee_member)
@@ -2086,20 +1876,14 @@ FC_API( graphene::wallet::wallet_api,
         (get_account_history)
         (get_relative_account_history)
         (get_account_history_by_operations)
-        (get_collateral_bids)
         (is_public_key_registered)
         (get_full_account)
-        (get_market_history)
         (get_global_properties)
         (get_dynamic_global_properties)
         (get_object)
         (get_private_key)
         (load_wallet_file)
         (normalize_brain_key)
-        (get_account_limit_orders)
-        (get_limit_orders)
-        (get_call_orders)
-        (get_settle_orders)
         (save_wallet_file)
         (serialize_transaction)
         (sign_transaction)
@@ -2138,7 +1922,6 @@ FC_API( graphene::wallet::wallet_api,
         (blind_transfer)
         (blind_history)
         (receive_blind_transfer)
-        (get_order_book)
         (account_store_map)
         (get_account_storage)
         (quit)

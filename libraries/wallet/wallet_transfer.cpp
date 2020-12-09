@@ -131,21 +131,6 @@ namespace graphene { namespace wallet { namespace detail {
       return sign_transaction(trx, broadcast);
    }
 
-   signed_transaction wallet_api_impl::cancel_order(limit_order_id_type order_id, bool broadcast )
-   { try {
-         FC_ASSERT(!is_locked());
-         signed_transaction trx;
-
-         limit_order_cancel_operation op;
-         op.fee_paying_account = get_object(order_id).seller;
-         op.order = order_id;
-         trx.operations = {op};
-         set_operation_fees( trx, _remote_db->get_global_properties().parameters.get_current_fees());
-
-         trx.validate();
-         return sign_transaction(trx, broadcast);
-   } FC_CAPTURE_AND_RETHROW((order_id)) }
-
    signed_transaction wallet_api_impl::withdraw_vesting( string witness_name, string amount, string asset_symbol,
          bool broadcast )
    { try {

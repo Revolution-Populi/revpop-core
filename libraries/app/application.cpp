@@ -260,23 +260,8 @@ void application_impl::set_api_limit() {
    if(_options->count("api-limit-get-full-accounts-lists")) {
       _app_options.api_limit_get_full_accounts_lists = _options->at("api-limit-get-full-accounts-lists").as<uint64_t>();
    }
-   if(_options->count("api-limit-get-call-orders")) {
-      _app_options.api_limit_get_call_orders = _options->at("api-limit-get-call-orders").as<uint64_t>();
-   }
-   if(_options->count("api-limit-get-settle-orders")) {
-      _app_options.api_limit_get_settle_orders = _options->at("api-limit-get-settle-orders").as<uint64_t>();
-   }
    if(_options->count("api-limit-get-assets")) {
       _app_options.api_limit_get_assets = _options->at("api-limit-get-assets").as<uint64_t>();
-   }
-   if(_options->count("api-limit-get-limit-orders")){
-      _app_options.api_limit_get_limit_orders = _options->at("api-limit-get-limit-orders").as<uint64_t>();
-   }
-   if(_options->count("api-limit-get-limit-orders-by-account")){
-      _app_options.api_limit_get_limit_orders_by_account = _options->at("api-limit-get-limit-orders-by-account").as<uint64_t>();
-   }
-   if(_options->count("api-limit-get-order-book")){
-      _app_options.api_limit_get_order_book = _options->at("api-limit-get-order-book").as<uint64_t>();
    }
    if(_options->count("api-limit-list-htlcs")){
       _app_options.api_limit_list_htlcs = _options->at("api-limit-list-htlcs").as<uint64_t>();
@@ -292,21 +277,6 @@ void application_impl::set_api_limit() {
    }
    if(_options->count("api-limit-lookup-vote-ids")) {
       _app_options.api_limit_lookup_vote_ids = _options->at("api-limit-lookup-vote-ids").as<uint64_t>();
-   }
-   if(_options->count("api-limit-get-account-limit-orders")) {
-      _app_options.api_limit_get_account_limit_orders = _options->at("api-limit-get-account-limit-orders").as<uint64_t>();
-   }
-   if(_options->count("api-limit-get-collateral-bids")) {
-      _app_options.api_limit_get_collateral_bids = _options->at("api-limit-get-collateral-bids").as<uint64_t>();
-   }
-   if(_options->count("api-limit-get-top-markets")) {
-      _app_options.api_limit_get_top_markets = _options->at("api-limit-get-top-markets").as<uint64_t>();
-   }
-   if(_options->count("api-limit-get-trade-history")) {
-      _app_options.api_limit_get_trade_history = _options->at("api-limit-get-trade-history").as<uint64_t>();
-   }
-   if(_options->count("api-limit-get-trade-history-by-sequence")) {
-      _app_options.api_limit_get_trade_history_by_sequence = _options->at("api-limit-get-trade-history-by-sequence").as<uint64_t>();
    }
    if(_options->count("api-limit-get-withdraw-permissions-by-giver")) {
       _app_options.api_limit_get_withdraw_permissions_by_giver = _options->at("api-limit-get-withdraw-permissions-by-giver").as<uint64_t>();
@@ -1000,18 +970,8 @@ void application::set_program_options(boost::program_options::options_descriptio
           "For database_api_impl::get_full_accounts to set max accounts to query at once")
          ("api-limit-get-full-accounts-lists",boost::program_options::value<uint64_t>()->default_value(500),
           "For database_api_impl::get_full_accounts to set max items to return in the lists")
-         ("api-limit-get-call-orders",boost::program_options::value<uint64_t>()->default_value(300),
-          "For database_api_impl::get_call_orders and get_call_orders_by_account to set max limit value")
-         ("api-limit-get-settle-orders",boost::program_options::value<uint64_t>()->default_value(300),
-          "For database_api_impl::get_settle_orders and get_settle_orders_by_account to set max limit value")
          ("api-limit-get-assets",boost::program_options::value<uint64_t>()->default_value(101),
           "For database_api_impl::list_assets and get_assets_by_issuer to set max limit value")
-         ("api-limit-get-limit-orders",boost::program_options::value<uint64_t>()->default_value(300),
-          "For database_api_impl::get_limit_orders to set max limit value")
-         ("api-limit-get-limit-orders-by-account",boost::program_options::value<uint64_t>()->default_value(101),
-          "For database_api_impl::get_limit_orders_by_account to set max limit value")
-         ("api-limit-get-order-book",boost::program_options::value<uint64_t>()->default_value(50),
-          "For database_api_impl::get_order_book to set max limit value")
          ("api-limit-lookup-accounts",boost::program_options::value<uint64_t>()->default_value(1000),
           "For database_api_impl::lookup_accounts to set max limit value")
          ("api-limit-lookup-witness-accounts",boost::program_options::value<uint64_t>()->default_value(1000),
@@ -1020,16 +980,6 @@ void application::set_program_options(boost::program_options::options_descriptio
           "For database_api_impl::lookup_committee_member_accounts to set max limit value")
          ("api-limit-lookup-vote-ids",boost::program_options::value<uint64_t>()->default_value(1000),
           "For database_api_impl::lookup_vote_ids to set max limit value")
-         ("api-limit-get-account-limit-orders",boost::program_options::value<uint64_t>()->default_value(101),
-          "For database_api_impl::get_account_limit_orders to set max limit value")
-         ("api-limit-get-collateral-bids",boost::program_options::value<uint64_t>()->default_value(100),
-          "For database_api_impl::get_collateral_bids to set max limit value")
-         ("api-limit-get-top-markets",boost::program_options::value<uint64_t>()->default_value(100),
-          "For database_api_impl::get_top_markets to set max limit value")
-         ("api-limit-get-trade-history",boost::program_options::value<uint64_t>()->default_value(100),
-          "For database_api_impl::get_trade_history to set max limit value")
-         ("api-limit-get-trade-history-by-sequence",boost::program_options::value<uint64_t>()->default_value(100),
-          "For database_api_impl::get_trade_history_by_sequence to set max limit value")
          ("api-limit-get-withdraw-permissions-by-giver",boost::program_options::value<uint64_t>()->default_value(101),
           "For database_api_impl::get_withdraw_permissions_by_giver to set max limit value")
          ("api-limit-get-withdraw-permissions-by-recipient",boost::program_options::value<uint64_t>()->default_value(101),

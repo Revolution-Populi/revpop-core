@@ -28,7 +28,6 @@
 #include <graphene/protocol/types.hpp>
 #include <graphene/protocol/confidential.hpp>
 
-#include <graphene/market_history/market_history_plugin.hpp>
 #include <graphene/grouped_orders/grouped_orders_plugin.hpp>
 #include <graphene/custom_operations/custom_operations_plugin.hpp>
 
@@ -52,7 +51,6 @@
 
 namespace graphene { namespace app {
    using namespace graphene::chain;
-   using namespace graphene::market_history;
    using namespace graphene::grouped_orders;
    using namespace graphene::custom_operations;
 

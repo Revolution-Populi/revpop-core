@@ -146,14 +146,6 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
                                                                                 withdraw_permission_id_type start,
                                                                                 uint32_t limit )const;
 
-      // HTLC
-      optional<htlc_object> get_htlc( htlc_id_type id, optional<bool> subscribe ) const;
-      vector<htlc_object> get_htlc_by_from( const std::string account_id_or_name,
-                                            htlc_id_type start, uint32_t limit ) const;
-      vector<htlc_object> get_htlc_by_to( const std::string account_id_or_name,
-                                          htlc_id_type start, uint32_t limit) const;
-      vector<htlc_object> list_htlcs(const htlc_id_type lower_bound_id, uint32_t limit) const;
-
       // RevPop personal data
       vector<personal_data_object> get_personal_data( const account_id_type subject_account,
                                                       const account_id_type operator_account ) const;

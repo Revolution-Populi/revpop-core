@@ -47,7 +47,6 @@ template class fc::api<graphene::app::network_node_api>;
 template class fc::api<graphene::app::history_api>;
 template class fc::api<graphene::app::crypto_api>;
 template class fc::api<graphene::app::asset_api>;
-template class fc::api<graphene::app::orders_api>;
 template class fc::api<graphene::app::custom_operations_api>;
 template class fc::api<graphene::debug_witness::debug_api>;
 template class fc::api<graphene::app::login_api>;
@@ -115,10 +114,6 @@ namespace graphene { namespace app {
        else if( api_name == "asset_api" )
        {
           _asset_api = std::make_shared< asset_api >( _app );
-       }
-       else if( api_name == "orders_api" )
-       {
-          _orders_api = std::make_shared< orders_api >( std::ref( _app ) );
        }
        else if( api_name == "custom_operations_api" )
        {
@@ -288,12 +283,6 @@ namespace graphene { namespace app {
     {
        FC_ASSERT(_asset_api);
        return *_asset_api;
-    }
-
-    fc::api<orders_api> login_api::orders() const
-    {
-       FC_ASSERT(_orders_api);
-       return *_orders_api;
     }
 
     fc::api<graphene::debug_witness::debug_api> login_api::debug() const
@@ -611,49 +600,6 @@ namespace graphene { namespace app {
 
        return result;
     }
-
-   // orders_api
-   flat_set<uint16_t> orders_api::get_tracked_groups()const
-   {
-      auto plugin = _app.get_plugin<grouped_orders_plugin>( "grouped_orders" );
-      FC_ASSERT( plugin );
-      return plugin->tracked_groups();
-   }
-
-   vector< limit_order_group > orders_api::get_grouped_limit_orders( std::string base_asset,
-                                                               std::string quote_asset,
-                                                               uint16_t group,
-                                                               optional<price> start,
-                                                               uint32_t limit )const
-   {
-      const auto configured_limit = _app.get_options().api_limit_get_grouped_limit_orders;
-      FC_ASSERT( limit <= configured_limit,
-                 "limit can not be greater than ${configured_limit}",
-                 ("configured_limit", configured_limit) );
-
-      auto plugin = _app.get_plugin<graphene::grouped_orders::grouped_orders_plugin>( "grouped_orders" );
-      FC_ASSERT( plugin );
-      const auto& limit_groups = plugin->limit_order_groups();
-      vector< limit_order_group > result;
-
-      asset_id_type base_asset_id = database_api.get_asset_id_from_string( base_asset );
-      asset_id_type quote_asset_id = database_api.get_asset_id_from_string( quote_asset );
-
-      price max_price = price::max( base_asset_id, quote_asset_id );
-      price min_price = price::min( base_asset_id, quote_asset_id );
-      if( start.valid() && !start->is_null() )
-         max_price = std::max( std::min( max_price, *start ), min_price );
-
-      auto itr = limit_groups.lower_bound( limit_order_group_key( group, max_price ) );
-      // use an end iterator to try to avoid expensive price comparison
-      auto end = limit_groups.upper_bound( limit_order_group_key( group, min_price ) );
-      while( itr != end && result.size() < limit )
-      {
-         result.emplace_back( *itr );
-         ++itr;
-      }
-      return result;
-   }
 
    // custom operations api
    vector<account_storage_object> custom_operations_api::get_storage_info(std::string account_id_or_name,

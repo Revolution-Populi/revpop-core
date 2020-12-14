@@ -1,7 +1,6 @@
 add_subdirectory( witness )
 add_subdirectory( account_history )
 add_subdirectory( elasticsearch )
-add_subdirectory( grouped_orders )
 add_subdirectory( debug_witness )
 add_subdirectory( snapshot )
 add_subdirectory( es_objects )

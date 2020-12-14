@@ -167,8 +167,6 @@ public:
 
    extended_asset_object get_asset(string asset_symbol_or_id)const;
 
-   fc::optional<htlc_object> get_htlc(string htlc_id) const;
-
    asset_id_type get_asset_id(string asset_symbol_or_id) const;
 
    string get_wallet_filename() const;
@@ -282,15 +280,6 @@ public:
 
    signed_transaction update_witness(string witness_name, string url, string block_signing_key,
          bool broadcast );
-
-   signed_transaction htlc_create( string source, string destination, string amount, string asset_symbol,
-         string hash_algorithm, const std::string& preimage_hash, uint32_t preimage_size,
-         const uint32_t claim_period_seconds, const std::string& memo, bool broadcast = false );
-
-   signed_transaction htlc_redeem( string htlc_id, string issuer, const std::vector<char>& preimage, 
-         bool broadcast );
-
-   signed_transaction htlc_extend ( string htlc_id, string issuer, const uint32_t seconds_to_add, bool broadcast);
 
    signed_transaction account_store_map(string account, string catalog, bool remove,
          flat_map<string, optional<string>> key_values, bool broadcast);
@@ -492,8 +481,6 @@ public:
 
 private:
    std::string account_id_to_string(account_id_type id) const;
-
-   static htlc_hash do_hash( const string& algorithm, const std::string& hash );
 
    void enable_umask_protection();
 

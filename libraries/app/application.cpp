@@ -434,7 +434,6 @@ void application_impl::startup()
       wild_access.allowed_apis.push_back( "database_api" );
       wild_access.allowed_apis.push_back( "network_broadcast_api" );
       wild_access.allowed_apis.push_back( "history_api" );
-      wild_access.allowed_apis.push_back( "orders_api" );
       wild_access.allowed_apis.push_back( "custom_operations_api" );
       _apiaccess.permission_map["*"] = wild_access;
    }
@@ -954,8 +953,6 @@ void application::set_program_options(boost::program_options::options_descriptio
           "For history_api::get_account_history_operations to set max limit value")
          ("api-limit-get-account-history",boost::program_options::value<uint64_t>()->default_value(100),
           "For history_api::get_account_history to set max limit value")
-         ("api-limit-get-grouped-limit-orders",boost::program_options::value<uint64_t>()->default_value(101),
-          "For orders_api::get_grouped_limit_orders to set max limit value")
          ("api-limit-get-relative-account-history",boost::program_options::value<uint64_t>()->default_value(100),
           "For history_api::get_relative_account_history to set max limit value")
          ("api-limit-get-account-history-by-operations",boost::program_options::value<uint64_t>()->default_value(100),

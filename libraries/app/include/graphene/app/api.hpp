@@ -29,7 +29,6 @@
 #include <graphene/protocol/confidential.hpp>
 
 #include <graphene/market_history/market_history_plugin.hpp>
-#include <graphene/grouped_orders/grouped_orders_plugin.hpp>
 #include <graphene/custom_operations/custom_operations_plugin.hpp>
 
 #include <graphene/elasticsearch/elasticsearch_plugin.hpp>
@@ -53,7 +52,6 @@
 namespace graphene { namespace app {
    using namespace graphene::chain;
    using namespace graphene::market_history;
-   using namespace graphene::grouped_orders;
    using namespace graphene::custom_operations;
 
    using namespace fc::ecc;
@@ -95,23 +93,6 @@ namespace graphene { namespace app {
    struct history_operation_detail {
       uint32_t total_count = 0;
       vector<operation_history_object> operation_history_objs;
-   };
-
-   /**
-    * @brief summary data of a group of limit orders
-    */
-   struct limit_order_group
-   {
-      limit_order_group( const std::pair<limit_order_group_key,limit_order_group_data>& p )
-         :  min_price( p.first.min_price ),
-            max_price( p.second.max_price ),
-            total_for_sale( p.second.total_for_sale )
-            {}
-      limit_order_group() {}
-
-      price         min_price; ///< possible lowest price in the group
-      price         max_price; ///< possible highest price in the group
-      share_type    total_for_sale; ///< total amount of asset for sale, asset id is min_price.base.asset_id
    };
 
    /**
@@ -456,43 +437,6 @@ namespace graphene { namespace app {
    };
 
    /**
-    * @brief the orders_api class exposes access to data processed with grouped orders plugin.
-    */
-   class orders_api
-   {
-      public:
-         orders_api(application& app)
-         :_app(app), database_api( std::ref(*app.chain_database()), &(app.get_options()) ){}
-         //virtual ~orders_api() {}
-
-         /**
-          * @brief Get tracked groups configured by the server.
-          * @return A list of numbers which indicate configured groups, of those, 1 means 0.01% diff on price.
-          */
-         flat_set<uint16_t> get_tracked_groups()const;
-
-         /**
-          * @brief Get grouped limit orders in given market.
-          *
-          * @param base_asset ID or symbol of asset being sold
-          * @param quote_asset ID or symbol of asset being purchased
-          * @param group Maximum price diff within each order group, have to be one of configured values
-          * @param start Optional price to indicate the first order group to retrieve
-          * @param limit Maximum number of order groups to retrieve (must not exceed 101)
-          * @return The grouped limit orders, ordered from best offered price to worst
-          */
-         vector< limit_order_group > get_grouped_limit_orders( std::string base_asset,
-                                                               std::string quote_asset,
-                                                               uint16_t group,
-                                                               optional<price> start,
-                                                               uint32_t limit )const;
-
-      private:
-         application& _app;
-         graphene::app::database_api database_api;
-   };
-
-   /**
     * @brief The custom_operations_api class exposes access to standard custom objects parsed by the
     * custom_operations_plugin.
     */
@@ -524,7 +468,6 @@ extern template class fc::api<graphene::app::network_node_api>;
 extern template class fc::api<graphene::app::history_api>;
 extern template class fc::api<graphene::app::crypto_api>;
 extern template class fc::api<graphene::app::asset_api>;
-extern template class fc::api<graphene::app::orders_api>;
 extern template class fc::api<graphene::debug_witness::debug_api>;
 extern template class fc::api<graphene::app::custom_operations_api>;
 
@@ -564,8 +507,6 @@ namespace graphene { namespace app {
          fc::api<crypto_api> crypto()const;
          /// @brief Retrieve the asset API
          fc::api<asset_api> asset()const;
-         /// @brief Retrieve the orders API
-         fc::api<orders_api> orders()const;
          /// @brief Retrieve the debug API (if available)
          fc::api<graphene::debug_witness::debug_api> debug()const;
          /// @brief Retrieve the custom operations API
@@ -583,7 +524,6 @@ namespace graphene { namespace app {
          optional< fc::api<history_api> >  _history_api;
          optional< fc::api<crypto_api> > _crypto_api;
          optional< fc::api<asset_api> > _asset_api;
-         optional< fc::api<orders_api> > _orders_api;
          optional< fc::api<graphene::debug_witness::debug_api> > _debug_api;
          optional< fc::api<custom_operations_api> > _custom_operations_api;
    };
@@ -600,8 +540,6 @@ FC_REFLECT( graphene::app::verify_range_proof_rewind_result,
         (success)(min_val)(max_val)(value_out)(blind_out)(message_out) )
 FC_REFLECT( graphene::app::history_operation_detail,
             (total_count)(operation_history_objs) )
-FC_REFLECT( graphene::app::limit_order_group,
-            (min_price)(max_price)(total_for_sale) )
 //FC_REFLECT_TYPENAME( fc::ecc::compact_signature )
 //FC_REFLECT_TYPENAME( fc::ecc::commitment_type )
 
@@ -645,10 +583,6 @@ FC_API(graphene::app::asset_api,
 	   (get_asset_holders_count)
        (get_all_asset_holders)
      )
-FC_API(graphene::app::orders_api,
-       (get_tracked_groups)
-       (get_grouped_limit_orders)
-     )
 FC_API(graphene::app::custom_operations_api,
        (get_storage_info)
      )
@@ -661,7 +595,6 @@ FC_API(graphene::app::login_api,
        (network_node)
        (crypto)
        (asset)
-       (orders)
        (debug)
        (custom_operations)
      )

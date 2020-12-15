@@ -435,14 +435,6 @@ namespace graphene { namespace app {
        }
        return result;
     }
-/*
-    flat_set<uint32_t> history_api::get_market_history_buckets()const
-    {
-       auto hist = _app.get_plugin<market_history_plugin>( "market_history" );
-       FC_ASSERT( hist );
-       return hist->tracked_buckets();
-    }
-*/
     history_operation_detail history_api::get_account_history_by_operations( const std::string account_id_or_name,
                                                                              flat_set<uint16_t> operation_types,
                                                                              uint32_t start, unsigned limit )const

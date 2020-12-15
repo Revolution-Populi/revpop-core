@@ -59,7 +59,6 @@
 namespace graphene { namespace app {
 
 using namespace graphene::chain;
-using namespace graphene::market_history;
 using std::string;
 using std::vector;
 using std::map;

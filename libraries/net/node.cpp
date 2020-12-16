@@ -3474,14 +3474,14 @@ namespace graphene { namespace net { namespace detail {
           {
           // log common exceptions in debug level
           case graphene::chain::duplicate_transaction::code_enum::code_value :
-          case graphene::chain::limit_order_create_kill_unfilled::code_enum::code_value :
-          case graphene::chain::limit_order_create_market_not_whitelisted::code_enum::code_value :
-          case graphene::chain::limit_order_create_market_blacklisted::code_enum::code_value :
-          case graphene::chain::limit_order_create_selling_asset_unauthorized::code_enum::code_value :
-          case graphene::chain::limit_order_create_receiving_asset_unauthorized::code_enum::code_value :
-          case graphene::chain::limit_order_create_insufficient_balance::code_enum::code_value :
-          case graphene::chain::limit_order_cancel_nonexist_order::code_enum::code_value :
-          case graphene::chain::limit_order_cancel_owner_mismatch::code_enum::code_value :
+          //case graphene::chain::limit_order_create_kill_unfilled::code_enum::code_value :
+          //case graphene::chain::limit_order_create_market_not_whitelisted::code_enum::code_value :
+          //case graphene::chain::limit_order_create_market_blacklisted::code_enum::code_value :
+          //case graphene::chain::limit_order_create_selling_asset_unauthorized::code_enum::code_value :
+          //case graphene::chain::limit_order_create_receiving_asset_unauthorized::code_enum::code_value :
+          //case graphene::chain::limit_order_create_insufficient_balance::code_enum::code_value :
+          //case graphene::chain::limit_order_cancel_nonexist_order::code_enum::code_value :
+          //case graphene::chain::limit_order_cancel_owner_mismatch::code_enum::code_value :
              dlog( "client rejected message sent by peer ${peer}, ${e}",
                    ("peer", originating_peer->get_remote_endpoint() )("e", e) );
              break;

@@ -45,7 +45,6 @@ add_library( graphene_chain
              asset_evaluator.cpp
              transfer_evaluator.cpp
              proposal_evaluator.cpp
-             market_evaluator.cpp
              ticket_evaluator.cpp
              vesting_balance_evaluator.cpp
              withdraw_permission_evaluator.cpp

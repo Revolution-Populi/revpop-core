@@ -2119,11 +2119,9 @@ void database_api_impl::on_applied_block()
          case operation::tag<limit_order_create_operation>::value:
             market = op.op.get<limit_order_create_operation>().get_market();
             break;
-         */
          case operation::tag<fill_order_operation>::value:
             market = op.op.get<fill_order_operation>().get_market();
             break;
-            /*
          case operation::tag<limit_order_cancel_operation>::value:
          */
          default: break;

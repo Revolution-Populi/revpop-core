@@ -32,7 +32,6 @@
 #include <graphene/protocol/confidential.hpp>
 #include <graphene/protocol/custom_authority.hpp>
 #include <graphene/protocol/fba.hpp>
-#include <graphene/protocol/market.hpp>
 #include <graphene/protocol/proposal.hpp>
 #include <graphene/protocol/ticket.hpp>
 #include <graphene/protocol/transfer.hpp>
@@ -56,10 +55,6 @@ namespace graphene { namespace protocol {
     */
    typedef fc::static_variant<
             transfer_operation,
-            limit_order_create_operation,
-            limit_order_cancel_operation,
-            call_order_update_operation,
-            fill_order_operation,           // VIRTUAL
             account_create_operation,
             account_update_operation,
             account_whitelist_operation,
@@ -100,8 +95,6 @@ namespace graphene { namespace protocol {
             asset_settle_cancel_operation,  // VIRTUAL
             asset_claim_fees_operation,
             fba_distribute_operation,       // VIRTUAL
-            bid_collateral_operation,
-            execute_bid_operation,          // VIRTUAL
             asset_claim_pool_operation,
             asset_update_issuer_operation,
             htlc_create_operation,

@@ -57,6 +57,9 @@ namespace graphene { namespace protocol {
       to.accounts_per_fee_scale = from.accounts_per_fee_scale;
       to.account_fee_scale_bitshifts = from.account_fee_scale_bitshifts;
       to.max_authority_depth = from.max_authority_depth;
+      to.revpop_witnesses_top_max = from.revpop_witnesses_top_max;
+      to.revpop_witnesses_active_max = from.revpop_witnesses_active_max;
+      to.revpop_vote_mixture = from.revpop_vote_mixture;
       to.extensions = from.extensions;
    }
 

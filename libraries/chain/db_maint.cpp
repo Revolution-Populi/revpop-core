@@ -217,12 +217,13 @@ void database::update_active_witnesses()
       }
    }
 
+   const global_property_object& gpo = get_global_properties();
    const chain_property_object& cpo = get_chain_properties();
    const dynamic_global_property_object& dpo = get_dynamic_global_properties();
 
    witness_count = std::max( witness_count*2+1, (size_t)cpo.immutable_parameters.min_witness_count );
    // RevPop: limit witnesses top list to max 63
-   witness_count = std::min( witness_count, (size_t)REVPOP_WITNESSES_TOP_MAX );
+   witness_count = std::min( witness_count, static_cast<size_t>(gpo.parameters.revpop_witnesses_top_max));
    auto wits = sort_votable_objects<witness_index>( witness_count );
 
    // RevPop: Get accounts of top witnesses
@@ -272,16 +273,14 @@ void database::update_active_witnesses()
    }
 
    // RevPop: leave max 21 active witnesses in witnesses top list
-   if( wits.size() > REVPOP_WITNESSES_ACTIVE_MAX )
+   if( wits.size() > gpo.parameters.revpop_witnesses_active_max)
    {
-      wits.erase( wits.begin() + REVPOP_WITNESSES_ACTIVE_MAX, wits.end() );
+      wits.erase( wits.begin() + gpo.parameters.revpop_witnesses_active_max, wits.end() );
    }
    std::sort(wits.begin(), wits.end(),
              [&](const witness_object& a, const witness_object& b){
                 return _vote_tally_buffer[a.vote_id] > _vote_tally_buffer[b.vote_id];
              });
-
-   const global_property_object& gpo = get_global_properties();
 
    auto update_witness_total_votes = [this]( const witness_object& wit ) {
       modify( wit, [this]( witness_object& obj )

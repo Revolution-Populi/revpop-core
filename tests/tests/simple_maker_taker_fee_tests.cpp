@@ -962,7 +962,7 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          //////
          // The taker fees should automatically default to maker fees if the taker fee is not explicitly set
          // UNUSED: uint16_t jill_maker_fee_percent = jill_market_fee_percent;
-         uint16_t jill_taker_fee_percent = jill_market_fee_percent;
+         // UNUSED: uint16_t jill_taker_fee_percent = jill_market_fee_percent;
 
          uint16_t izzy_maker_fee_percent = izzy_market_fee_percent;
          // UNUSED: uint16_t izzy_taker_fee_percent = izzy_market_fee_percent;
@@ -1014,7 +1014,6 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          const asset_object jillcoin = create_user_issued_asset("JCOIN", jill, charge_market_fee, price, 2,
                                                                 jill_market_fee_percent);
 
-         const uint16_t SMARTBIT_PRECISION = 10000;
          const uint16_t smartbit_market_fee_percent = 2 * GRAPHENE_1_PERCENT;
          create_bitasset("SMARTBIT", smartissuer.id, smartbit_market_fee_percent,
                                                         charge_market_fee, 4);
@@ -1132,12 +1131,10 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
 
          // Initialize tokens
          price price(asset(1, asset_id_type(1)), asset(1));
-         const uint16_t JILL_PRECISION = 100;
          const uint16_t jill_market_fee_percent = 2 * GRAPHENE_1_PERCENT;
          const asset_object jillcoin = create_user_issued_asset("JCOIN", jill, charge_market_fee, price, 2,
                                                                 jill_market_fee_percent);
 
-         const uint16_t SMARTBIT_PRECISION = 10000;
          const uint16_t smartbit_market_fee_percent = 2 * GRAPHENE_1_PERCENT;
          create_bitasset("SMARTBIT", smartissuer.id, smartbit_market_fee_percent,
                                                         charge_market_fee, 4);
@@ -1262,12 +1259,10 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
 
          // Initialize tokens
          price price(asset(1, asset_id_type(1)), asset(1));
-         const uint16_t JILL_PRECISION = 100;
          const uint16_t jill_market_fee_percent = 2 * GRAPHENE_1_PERCENT;
          const asset_object jillcoin = create_user_issued_asset("JCOIN", jill, charge_market_fee, price, 2,
                                                                 jill_market_fee_percent);
 
-         const uint16_t SMARTBIT_PRECISION = 10000;
          const uint16_t smartbit_market_fee_percent = 2 * GRAPHENE_1_PERCENT;
          create_bitasset("SMARTBIT", smartissuer.id, smartbit_market_fee_percent,
                          charge_market_fee, 4);
@@ -1276,7 +1271,6 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          uint16_t jill_taker_fee_percent = jill_market_fee_percent;
 
          uint16_t smartbit_maker_fee_percent = smartbit_market_fee_percent;
-         uint16_t smartbit_taker_fee_percent = smartbit_market_fee_percent;
 
 
          // Obtain asset object after a block is generated to obtain the final object that is commited to the database

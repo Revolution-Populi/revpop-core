@@ -24,8 +24,6 @@
 
 #include <fc/uint128.hpp>
 
-#include <graphene/protocol/market.hpp>
-
 #include <graphene/chain/database.hpp>
 #include <graphene/chain/fba_accumulator_id.hpp>
 #include <graphene/chain/hardfork.hpp>
@@ -780,39 +778,6 @@ void create_buyback_orders( database& db )
          if( buyback_account.allowed_assets->find( asset_to_sell ) == buyback_account.allowed_assets->end() )
          {
             wlog( "buyback account ${b} not selling disallowed holdings of asset ${a} at block ${n}", ("b", buyback_account)("a", asset_to_sell)("n", db.head_block_num()) );
-            continue;
-         }
-
-         try
-         {
-            transaction_evaluation_state buyback_context(&db);
-            buyback_context.skip_fee_schedule_check = true;
-
-            limit_order_create_operation create_vop;
-            create_vop.fee = asset( 0, asset_id_type() );
-            create_vop.seller = buyback_account.id;
-            create_vop.amount_to_sell = asset( amount_to_sell, asset_to_sell );
-            create_vop.min_to_receive = asset( 1, asset_to_buy.id );
-            create_vop.expiration = time_point_sec::maximum();
-            create_vop.fill_or_kill = false;
-
-            limit_order_id_type order_id = db.apply_operation( buyback_context, create_vop ).get< object_id_type >();
-
-            if( db.find( order_id ) != nullptr )
-            {
-               limit_order_cancel_operation cancel_vop;
-               cancel_vop.fee = asset( 0, asset_id_type() );
-               cancel_vop.order = order_id;
-               cancel_vop.fee_paying_account = buyback_account.id;
-
-               db.apply_operation( buyback_context, cancel_vop );
-            }
-         }
-         catch( const fc::exception& e )
-         {
-            // we can in fact get here, e.g. if asset issuer of buy/sell asset blacklists/whitelists the buyback account
-            wlog( "Skipping buyback processing selling ${as} for ${ab} for buyback account ${b} at block ${n}; exception was ${e}",
-                  ("as", asset_to_sell)("ab", asset_to_buy)("b", buyback_account)("n", db.head_block_num())("e", e.to_detail_string()) );
             continue;
          }
       }

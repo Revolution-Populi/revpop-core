@@ -26,7 +26,6 @@
 #include <fc/io/json.hpp>
 
 #include <graphene/protocol/types.hpp>
-#include <graphene/protocol/market.hpp>
 
 #include <graphene/chain/committee_member_object.hpp>
 #include <graphene/chain/ticket_object.hpp>
@@ -278,17 +277,6 @@ struct database_fixture {
    void publish_feed( const asset_object& mia, const account_object& by, const price_feed& f,
                       const optional<uint16_t> icr = {} );
 
-   const call_order_object* borrow( account_id_type who, asset what, asset collateral,
-                                    optional<uint16_t> target_cr = {} )
-   { return borrow(who(db), what, collateral, target_cr); }
-   const call_order_object* borrow( const account_object& who, asset what, asset collateral,
-                                    optional<uint16_t> target_cr = {} );
-   void cover(account_id_type who, asset what, asset collateral_freed,
-                                    optional<uint16_t> target_cr = {} )
-   { cover(who(db), what, collateral_freed, target_cr); }
-   void cover(const account_object& who, asset what, asset collateral_freed,
-                                    optional<uint16_t> target_cr = {} );
-
    const asset_object& get_asset( const string& symbol )const;
    const account_object& get_account( const string& name )const;
    asset_create_operation make_bitasset( const string& name,
@@ -386,13 +374,6 @@ struct database_fixture {
    uint64_t fund( const account_object& account, const asset& amount = asset(500000) );
    digest_type digest( const transaction& tx );
    void sign( signed_transaction& trx, const fc::ecc::private_key& key );
-   const limit_order_object* create_sell_order( account_id_type user, const asset& amount, const asset& recv,
-                                                const time_point_sec order_expiration = time_point_sec::maximum(),
-                                                const price& fee_core_exchange_rate = price::unit_price() );
-   const limit_order_object* create_sell_order( const account_object& user, const asset& amount, const asset& recv,
-                                                const time_point_sec order_expiration = time_point_sec::maximum(),
-                                                const price& fee_core_exchange_rate = price::unit_price() );
-   asset cancel_limit_order( const limit_order_object& order );
    void transfer( account_id_type from, account_id_type to, const asset& amount, const asset& fee = asset() );
    void transfer( const account_object& from, const account_object& to, const asset& amount, const asset& fee = asset() );
    void fund_fee_pool( const account_object& from, const asset_object& asset_to_fund, const share_type amount );

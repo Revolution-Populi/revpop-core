@@ -993,51 +993,6 @@ digest_type database_fixture::digest( const transaction& tx )
    return tx.digest();
 }
 
-const limit_order_object*database_fixture::create_sell_order(account_id_type user, const asset& amount, const asset& recv,
-                                                const time_point_sec order_expiration,
-                                                const price& fee_core_exchange_rate )
-{
-   auto r =  create_sell_order( user(db), amount, recv, order_expiration, fee_core_exchange_rate );
-   verify_asset_supplies(db);
-   return r;
-}
-
-const limit_order_object* database_fixture::create_sell_order( const account_object& user, const asset& amount, const asset& recv,
-                                                const time_point_sec order_expiration,
-                                                const price& fee_core_exchange_rate )
-{
-   set_expiration( db, trx );
-   trx.operations.clear();
-
-   limit_order_create_operation buy_order;
-   buy_order.seller = user.id;
-   buy_order.amount_to_sell = amount;
-   buy_order.min_to_receive = recv;
-   buy_order.expiration = order_expiration;
-   trx.operations.push_back(buy_order);
-   for( auto& op : trx.operations ) db.current_fee_schedule().set_fee(op, fee_core_exchange_rate);
-   trx.validate();
-   auto processed = PUSH_TX(db, trx, ~0);
-   trx.operations.clear();
-   verify_asset_supplies(db);
-   return db.find<limit_order_object>( processed.operation_results[0].get<object_id_type>() );
-}
-
-asset database_fixture::cancel_limit_order( const limit_order_object& order )
-{
-  limit_order_cancel_operation cancel_order;
-  cancel_order.fee_paying_account = order.seller;
-  cancel_order.order = order.id;
-  trx.operations.clear();
-  trx.operations.push_back(cancel_order);
-  for( auto& op : trx.operations ) db.current_fee_schedule().set_fee(op);
-  trx.validate();
-  auto processed = PUSH_TX(db, trx, ~0);
-  trx.operations.clear();
-   verify_asset_supplies(db);
-  return processed.operation_results[0].get<asset>();
-}
-
 void database_fixture::transfer(
    account_id_type from,
    account_id_type to,
@@ -1174,49 +1129,6 @@ operation_result database_fixture::force_settle( const account_object& who, asse
    verify_asset_supplies(db);
    return op_result;
 } FC_CAPTURE_AND_RETHROW( (who)(what) ) }
-
-const call_order_object* database_fixture::borrow( const account_object& who, asset what, asset collateral,
-                                                   optional<uint16_t> target_cr )
-{ try {
-   set_expiration( db, trx );
-   trx.operations.clear();
-   call_order_update_operation update = {};
-   update.funding_account = who.id;
-   update.delta_collateral = collateral;
-   update.delta_debt = what;
-   update.extensions.value.target_collateral_ratio = target_cr;
-   trx.operations.push_back(update);
-   for( auto& op : trx.operations ) db.current_fee_schedule().set_fee(op);
-   trx.validate();
-   PUSH_TX(db, trx, ~0);
-   trx.operations.clear();
-   verify_asset_supplies(db);
-
-   auto& call_idx = db.get_index_type<call_order_index>().indices().get<by_account>();
-   auto itr = call_idx.find( boost::make_tuple(who.id, what.asset_id) );
-   const call_order_object* call_obj = nullptr;
-
-   if( itr != call_idx.end() )
-      call_obj = &*itr;
-   return call_obj;
-} FC_CAPTURE_AND_RETHROW( (who.name)(what)(collateral)(target_cr) ) }
-
-void database_fixture::cover(const account_object& who, asset what, asset collateral, optional<uint16_t> target_cr)
-{ try {
-   set_expiration( db, trx );
-   trx.operations.clear();
-   call_order_update_operation update = {};
-   update.funding_account = who.id;
-   update.delta_collateral = -collateral;
-   update.delta_debt = -what;
-   update.extensions.value.target_collateral_ratio = target_cr;
-   trx.operations.push_back(update);
-   for( auto& op : trx.operations ) db.current_fee_schedule().set_fee(op);
-   trx.validate();
-   PUSH_TX(db, trx, ~0);
-   trx.operations.clear();
-   verify_asset_supplies(db);
-} FC_CAPTURE_AND_RETHROW( (who.name)(what)(collateral)(target_cr) ) }
 
 void database_fixture::fund_fee_pool( const account_object& from, const asset_object& asset_to_fund, const share_type amount )
 {

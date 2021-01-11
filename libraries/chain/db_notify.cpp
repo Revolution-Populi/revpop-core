@@ -55,30 +55,6 @@ struct get_impacted_account_visitor
    {
       _impacted.insert( op.fee_payer() ); // issuer
    }
-   void operator()( const limit_order_create_operation& op )
-   {
-      _impacted.insert( op.fee_payer() ); // seller
-   }
-   void operator()( const limit_order_cancel_operation& op )
-   {
-      _impacted.insert( op.fee_payer() ); // fee_paying_account
-   }
-   void operator()( const call_order_update_operation& op )
-   {
-      _impacted.insert( op.fee_payer() ); // funding_account
-   }
-   void operator()( const bid_collateral_operation& op )
-   {
-      _impacted.insert( op.fee_payer() ); // bidder
-   }
-   void operator()( const fill_order_operation& op )
-   {
-      _impacted.insert( op.fee_payer() ); // account_id
-   }
-   void operator()( const execute_bid_operation& op )
-   {
-      _impacted.insert( op.fee_payer() ); // bidder
-   }
    void operator()( const account_create_operation& op )
    {
       _impacted.insert( op.fee_payer() ); // registrar

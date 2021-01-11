@@ -21,7 +21,6 @@ list(APPEND SOURCES account.cpp
                     custom_authority.cpp
                     committee_member.cpp
                     custom.cpp
-                    market.cpp
                     ticket.cpp
                     operations.cpp
                     pts_address.cpp

@@ -331,10 +331,6 @@ public:
    signed_transaction borrow_asset(string seller_name, string amount_to_borrow, string asset_symbol,
          string amount_of_collateral, bool broadcast = false);
 
-   signed_transaction borrow_asset_ext( string seller_name, string amount_to_borrow, string asset_symbol,
-         string amount_of_collateral, call_order_update_operation::extensions_type extensions,
-         bool broadcast = false);
-
    signed_transaction transfer(string from, string to, string amount,
          string asset_symbol, string memo, bool broadcast = false);
 

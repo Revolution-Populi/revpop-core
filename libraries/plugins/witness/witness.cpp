@@ -282,11 +282,12 @@ bool witness_plugin::process_master_operations( const chain::signed_block& b ) {
       o_op->op.visit(*o_v);
    }
 
+   const auto& gpo = db.get_global_properties();
    const auto& dyn_props = db.get_dynamic_global_properties();
    const auto& chain_props = db.get_chain_properties();
 
    for (auto &vote_counter: o_v->vote_counters) {
-      if (vote_counter.second >= REVPOP_VOTE_MIXTURE) {
+      if (vote_counter.second >= gpo.parameters.revpop_vote_mixture) {
          const auto& mst_acc_id = vote_counter.first;
          const auto& acc_idx = db.get_index_type<account_index>();
          const auto& acc_op_idx = acc_idx.indices().get<by_id>();

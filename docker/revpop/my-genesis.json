@@ -335,6 +335,9 @@
     "accounts_per_fee_scale": 1000,
     "account_fee_scale_bitshifts": 4,
     "max_authority_depth": 2,
+    "revpop_witnesses_top_max": 63,
+    "revpop_witnesses_active_max": 21,
+    "revpop_vote_mixture": 3,
     "extensions": {
       "updatable_htlc_options": {
         "max_timeout_secs": 2592000,

@@ -84,7 +84,6 @@ namespace graphene { namespace protocol {
             committee_member_update_global_parameters_operation,
             vesting_balance_create_operation,
             vesting_balance_withdraw_operation,
-            worker_create_operation,
             custom_operation,
             assert_operation,
             balance_claim_operation,

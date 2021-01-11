@@ -69,7 +69,6 @@
 #include <graphene/chain/vesting_balance_evaluator.hpp>
 #include <graphene/chain/withdraw_permission_evaluator.hpp>
 #include <graphene/chain/witness_evaluator.hpp>
-#include <graphene/chain/worker_evaluator.hpp>
 #include <graphene/chain/htlc_evaluator.hpp>
 #include <graphene/chain/custom_authority_evaluator.hpp>
 #include <graphene/chain/personal_data_evaluator.hpp>
@@ -197,7 +196,6 @@ void database::initialize_evaluators()
    register_evaluator<withdraw_permission_claim_evaluator>();
    register_evaluator<withdraw_permission_update_evaluator>();
    register_evaluator<withdraw_permission_delete_evaluator>();
-   register_evaluator<worker_create_evaluator>();
    register_evaluator<balance_claim_evaluator>();
    register_evaluator<transfer_to_blind_evaluator>();
    register_evaluator<transfer_from_blind_evaluator>();
@@ -712,21 +710,6 @@ void database::init_genesis(const genesis_state_type& genesis_state)
       committee_member_create_operation op;
       op.committee_member_account = get_account_id(member.owner_name);
       apply_operation(genesis_eval_state, op);
-   });
-
-   // Create initial workers
-   std::for_each(genesis_state.initial_worker_candidates.begin(), genesis_state.initial_worker_candidates.end(),
-                  [&](const genesis_state_type::initial_worker_type& worker)
-   {
-       worker_create_operation op;
-       op.owner = get_account_id(worker.owner_name);
-       op.work_begin_date = genesis_state.initial_timestamp;
-       op.work_end_date = time_point_sec::maximum();
-       op.daily_pay = worker.daily_pay;
-       op.name = "Genesis-Worker-" + worker.owner_name;
-       op.initializer = vesting_balance_worker_initializer{uint16_t(0)};
-
-       apply_operation(genesis_eval_state, std::move(op));
    });
 
    // Set active witnesses

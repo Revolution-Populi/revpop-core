@@ -37,7 +37,6 @@
 #include <graphene/net/exceptions.hpp>
 
 #include <graphene/utilities/key_conversion.hpp>
-#include <graphene/chain/worker_evaluator.hpp>
 
 #include <fc/asio.hpp>
 #include <fc/io/fstream.hpp>

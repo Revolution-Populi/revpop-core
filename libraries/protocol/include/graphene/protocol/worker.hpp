@@ -70,28 +70,6 @@ namespace graphene { namespace protocol {
       vesting_balance_worker_initializer,
       burn_worker_initializer > worker_initializer;
 
-
-   /**
-    * @brief Create a new worker object
-    * @ingroup operations
-    */
-   struct worker_create_operation : public base_operation
-   {
-      struct fee_parameters_type { uint64_t fee = 5000*GRAPHENE_BLOCKCHAIN_PRECISION; };
-
-      asset                fee;
-      account_id_type      owner;
-      time_point_sec       work_begin_date;
-      time_point_sec       work_end_date;
-      share_type           daily_pay;
-      string               name;
-      string               url;
-      /// This should be set to the initializer appropriate for the type of worker to be created.
-      worker_initializer   initializer;
-
-      account_id_type   fee_payer()const { return owner; }
-      void              validate()const;
-   };
    ///@}
 
 } }
@@ -100,10 +78,3 @@ FC_REFLECT( graphene::protocol::vesting_balance_worker_initializer, (pay_vesting
 FC_REFLECT( graphene::protocol::burn_worker_initializer, )
 FC_REFLECT( graphene::protocol::refund_worker_initializer, )
 FC_REFLECT_TYPENAME( graphene::protocol::worker_initializer )
-
-FC_REFLECT( graphene::protocol::worker_create_operation::fee_parameters_type, (fee) )
-FC_REFLECT( graphene::protocol::worker_create_operation,
-            (fee)(owner)(work_begin_date)(work_end_date)(daily_pay)(name)(url)(initializer) )
-
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::worker_create_operation::fee_parameters_type )
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::worker_create_operation )

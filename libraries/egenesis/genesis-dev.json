@@ -6,200 +6,201 @@
       "parameters": [[
           0,{
             "name": "transfer",
-            "fee": 2000000,
-            "price_per_kbyte": 1000000
+            "fee": 86869,
+            "price_per_kbyte": 48260
           }
         ],[
           1,{
             "name": "account_create",
-            "fee": 500000
+            "basic_fee": 482609,
+            "premium_fee": 24130471,
+            "price_per_kbyte": 48260
           }
         ],[
           2,{
             "name": "account_update",
-            "fee": 0
+            "fee": 241304,
+            "price_per_kbyte": 48260
           }
         ],[
           3,{
             "name": "account_whitelist",
-            "fee": 2000000
+            "fee": 482609
           }
         ],[
           4,{
-            "name": "account_upgrade"
+            "name": "account_upgrade",
+            "membership_annual_fee": 579131307,
+            "membership_lifetime_fee": 579131307
           }
         ],[
           5,{
             "name": "account_transfer",
-            "basic_fee": 500000,
-            "premium_fee": 200000000,
-            "price_per_kbyte": 100000
+            "fee": 96521884
           }
         ],[
           6,{
             "name": "asset_create",
-            "fee": 2000000,
-            "price_per_kbyte": 100000
+            "symbol3": "120652355825",
+            "symbol4": "24130471165",
+            "long_symbol": 2413047116,
+            "price_per_kbyte": 48260
           }
         ],[
           7,{
             "name": "asset_update",
-            "fee": 300000
+            "fee": 482609,
+            "price_per_kbyte": 48260
           }
         ],[
           8,{
             "name": "asset_update_bitasset",
-            "membership_annual_fee": 200000000,
-            "membership_lifetime_fee": 1000000000
+            "fee": 2413047
           }
         ],[
           9,{
             "name": "asset_update_feed_producers",
-            "fee": 50000000
+            "fee": 2413047
           }
         ],[
           10,{
-            "name": "asset_update_feed_producers",
-            "symbol3": "50000000000",
-            "symbol4": "30000000000",
-            "long_symbol": 500000000,
-            "price_per_kbyte": 10
+            "name": "asset_issue",
+            "fee": 86869,
+            "price_per_kbyte": 48260
           }
         ],[
           11,{
             "name": "asset_reserve",
-            "fee": 50000000,
-            "price_per_kbyte": 10
+            "fee": 4826
           }
         ],[
           12,{
             "name": "asset_fund_fee_pool",
-            "fee": 50000000
+            "fee": 2413047
           }
         ],[
           13,{
             "name": "asset_settle",
-            "fee": 50000000
+            "fee": 965218
           }
         ],[
           14,{
             "name": "asset_global_settle",
-            "fee": 2000000,
-            "price_per_kbyte": 100000
+            "fee": 24130471
           }
         ],[
           15,{
             "name": "asset_publish_feed",
-            "fee": 2000000
+            "fee": 482
           }
         ],[
           16,{
             "name": "witness_create",
-            "fee": 100000
+            "fee": 241304711
           }
         ],[
           17,{
             "name": "witness_update",
-            "fee": 10000000
+            "fee": 48260
           }
         ],[
           18,{
             "name": "proposal_create",
-            "fee": 50000000
+            "fee": 965218,
+            "price_per_kbyte": 241304
           }
         ],[
           19,{
             "name": "proposal_update",
-            "fee": 100000
+            "fee": 48260,
+            "price_per_kbyte": 48260
           }
         ],[
           20,{
             "name": "proposal_delete",
-            "fee": 500000000
+            "fee": 0
           }
         ],[
           21,{
             "name": "withdraw_permission_create",
-            "fee": 2000000
+            "fee": 723914
           }
         ],[
           22,{
             "name": "withdraw_permission_update",
-            "fee": 2000000,
-            "price_per_kbyte": 10
+            "fee": 48260
           }
         ],[
           23,{
             "name": "withdraw_permission_claim",
-            "fee": 2000000,
-            "price_per_kbyte": 10
+            "fee": 69495,
+            "price_per_kbyte": 48260
           }
         ],[
           24,{
             "name": "withdraw_permission_delete",
-            "fee": 100000
+            "fee": 0
           }
         ],[
           25,{
             "name": "committee_member_create",
-            "fee": 100000
+            "fee": 24130471
           }
         ],[
           26,{
             "name": "committee_member_update",
-            "fee": 100000
+            "fee": 48260942
           }
         ],[
           27,{
             "name": "committee_member_update_global_parameters",
-            "fee": 2000000,
-            "price_per_kbyte": 10
+            "fee": 0
           }
         ],[
           28,{
             "name": "vesting_balance_create",
-            "fee": 0
+            "fee": 482609
           }
         ],[
           29,{
             "name": "vesting_balance_withdraw",
-            "fee": 500000000
+            "fee": 482609
           }
         ],[
           30,{
             "name": "custom",
-            "fee": 2000000
+            "fee": 48260,
+            "price_per_kbyte": 48260
           }
         ],[
           31,{
             "name": "assert",
-            "fee": 100000
+            "fee": 48260
           }
         ],[
           32,{
-            "name": "balance_claim",
-            "fee": 100000
+            "name": "balance_claim"
           }
         ],[
           33,{
             "name": "override_transfer",
-            "fee": 2000000
+            "fee": 4826094,
+            "price_per_kbyte": 48260
           }
         ],[
           34,{
             "name": "transfer_to_blind",
-            "fee": 500000000
+            "fee": 1013479,
+            "price_per_output": 337826
           }
         ],[
           35,{
-            "name": "blind_transfer",
-            "fee": 100000,
-            "price_per_kbyte": 10
+            "name": "blind_transfer"
           }
         ],[
           36,{
             "name": "transfer_from_blind",
-            "fee": 100000
+            "fee": 1013479
           }
         ],[
           37,{
@@ -208,25 +209,21 @@
         ],[
           38,{
             "name": "asset_claim_fees",
-            "fee": 2000000,
-            "price_per_kbyte": 10
+            "fee": 4826094
           }
         ],[
           39,{
-            "name": "fba_distribute",
-            "fee": 500000,
-            "price_per_output": 500000
+            "name": "fba_distribute"
           }
         ],[
           40,{
             "name": "asset_claim_pool",
-            "fee": 500000,
-            "price_per_output": 500000
+            "fee": 482609
           }
         ],[
           41,{
             "name": "asset_update_issuer",
-            "fee": 500000
+            "fee": 48260942
           }
         ],[
           42,{
@@ -234,8 +231,7 @@
           }
         ],[
           43,{
-            "name": "custom_authority_update",
-            "fee": 2000000
+            "name": "custom_authority_update"
           }
         ],[
           44,{
@@ -244,83 +240,71 @@
         ],[
           45,{
             "name": "ticket_create",
-            "fee": 2000000
+            "fee": 1
           }
         ],[
           46,{
             "name": "ticket_update"
           }
         ],[
-          47,
-          {
+          47,{
             "name": "personal_data_create",
             "fee": 86869,
             "price_per_kbyte": 48260
           }
         ],[
-          48,
-          {
+          48,{
             "name": "personal_data_remove",
             "fee": 0
           }
         ],[
-          49,
-          {
+          49,{
             "name": "content_card_create",
             "fee": 48260,
             "price_per_kbyte": 48260
           }
         ],[
-          50,
-          {
+          50,{
             "name": "content_card_update",
             "fee": 48260,
             "price_per_kbyte": 48260
           }
         ],[
-          51,
-          {
+          51,{
             "name": "content_card_remove",
             "fee": 0
           }
         ],[
-          52,
-          {
+          52,{
             "name": "permission_create",
-            "fee": 8686
+            "fee": 482
           }
         ],[
-          53,
-          {
+          53,{
             "name": "permission_remove",
             "fee": 0
           }
         ],[
-          54,
-          {
+          54,{
             "name": "content_vote_create",
-            "fee": 8686
+            "fee": 482
           }
         ],[
-          55,
-          {
+          55,{
             "name": "content_vote_remove",
             "fee": 0
           }
         ],[
-          56,
-          {
+          56,{
             "name": "vote_counter_update",
             "fee": 21717
           }
         ],[
-          57,
-          {
+          57,{
             "name": "commit_create"
           }
         ],[
-          58,
-          {
+          58,{
             "name": "reveal_create"
           }
         ]
@@ -328,7 +312,7 @@
       "scale": 10000
     },
     "block_interval": 5,
-    "maintenance_interval": 86400,
+    "maintenance_interval": 3600,
     "maintenance_skip_slots": 3,
     "committee_proposal_review_period": 1209600,
     "maximum_transaction_size": 2048,
@@ -348,7 +332,7 @@
     "count_non_member_votes": true,
     "allow_non_member_whitelists": false,
     "witness_pay_per_block": 1000000,
-    "worker_budget_per_day": "50000000000",
+    "worker_budget_per_day": 0,
     "max_predicate_opcode": 1,
     "fee_liquidation_threshold": 10000000,
     "accounts_per_fee_scale": 1000,

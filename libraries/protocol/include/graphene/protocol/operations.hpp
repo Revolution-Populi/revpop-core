@@ -85,7 +85,7 @@ namespace graphene { namespace protocol {
             vesting_balance_withdraw_operation,
             custom_operation,
             assert_operation,
-            balance_claim_operation,
+            balance_claim_operation,        // VIRTUAL
             override_transfer_operation,
             transfer_to_blind_operation,
             blind_transfer_operation,
@@ -110,8 +110,8 @@ namespace graphene { namespace protocol {
             content_vote_create_operation,
             content_vote_remove_operation,
             vote_counter_update_operation,
-            commit_create_operation,         // VIRTUAL
-            reveal_create_operation          // VIRTUAL
+            commit_create_operation,        // VIRTUAL
+            reveal_create_operation         // VIRTUAL
          > operation;
 
    /// @} // operations group

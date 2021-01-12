@@ -24,7 +24,7 @@ namespace graphene { namespace protocol {
 
 share_type personal_data_create_operation::calculate_fee( const fee_parameters_type& k )const
 {
-   return 0;
+   return k.fee + calculate_data_fee( fc::raw::pack_size(url), k.price_per_kbyte );
 }
 
 

@@ -24,7 +24,7 @@ namespace graphene { namespace protocol {
 
 share_type content_card_create_operation::calculate_fee( const fee_parameters_type& k )const
 {
-   return 0;
+   return k.fee + calculate_data_fee( fc::raw::pack_size(url), k.price_per_kbyte );
 }
 
 void content_card_create_operation::validate()const
@@ -35,7 +35,7 @@ void content_card_create_operation::validate()const
 
 share_type content_card_update_operation::calculate_fee( const fee_parameters_type& k )const
 {
-   return 0;
+   return k.fee + calculate_data_fee( fc::raw::pack_size(url), k.price_per_kbyte );
 }
 
 void content_card_update_operation::validate()const

@@ -34,7 +34,7 @@ namespace graphene { namespace protocol {
    {
       struct fee_parameters_type {};
 
-      asset           fee;
+      asset           fee; // always zero
 
       account_id_type account;
       string          hash;
@@ -59,7 +59,7 @@ namespace graphene { namespace protocol {
    {
       struct fee_parameters_type {};
 
-      asset           fee;
+      asset           fee; // always zero
 
       account_id_type account;
       uint64_t        value;

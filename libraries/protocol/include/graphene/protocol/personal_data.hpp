@@ -34,7 +34,10 @@ namespace graphene { namespace protocol {
     */
    struct personal_data_create_operation : public base_operation
    {
-      struct fee_parameters_type {};
+      struct fee_parameters_type {
+         uint64_t fee       = 20 * GRAPHENE_BLOCKCHAIN_PRECISION;
+         uint32_t price_per_kbyte = 10 * GRAPHENE_BLOCKCHAIN_PRECISION;
+      };
 
       asset           fee;
 
@@ -61,9 +64,9 @@ namespace graphene { namespace protocol {
     */
    struct personal_data_remove_operation : public base_operation
    {
-      struct fee_parameters_type {};
+      struct fee_parameters_type { uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION; };
 
-      asset           fee;
+      asset           fee; // always zero
 
       account_id_type subject_account;
       account_id_type operator_account;
@@ -82,13 +85,13 @@ namespace graphene { namespace protocol {
 
 } } // graphene::protocol
 
-FC_REFLECT( graphene::protocol::personal_data_create_operation::fee_parameters_type,  )
+FC_REFLECT( graphene::protocol::personal_data_create_operation::fee_parameters_type, (fee)(price_per_kbyte) )
 FC_REFLECT( graphene::protocol::personal_data_create_operation,
             (fee)
             (subject_account)(operator_account)
             (url)(hash)
           )
-FC_REFLECT( graphene::protocol::personal_data_remove_operation::fee_parameters_type,  )
+FC_REFLECT( graphene::protocol::personal_data_remove_operation::fee_parameters_type, (fee) )
 FC_REFLECT( graphene::protocol::personal_data_remove_operation,
             (fee)
             (subject_account)(operator_account)(hash)

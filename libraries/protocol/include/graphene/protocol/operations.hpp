@@ -39,7 +39,6 @@
 #include <graphene/protocol/withdraw_permission.hpp>
 #include <graphene/protocol/witness.hpp>
 #include <graphene/protocol/worker.hpp>
-#include <graphene/protocol/htlc.hpp>
 #include <graphene/protocol/personal_data.hpp>
 #include <graphene/protocol/content_card.hpp>
 #include <graphene/protocol/permission.hpp>
@@ -96,11 +95,6 @@ namespace graphene { namespace protocol {
             fba_distribute_operation,       // VIRTUAL
             asset_claim_pool_operation,
             asset_update_issuer_operation,
-            htlc_create_operation,
-            htlc_redeem_operation,
-            htlc_redeemed_operation,         // VIRTUAL
-            htlc_extend_operation,
-            htlc_refund_operation,           // VIRTUAL
             custom_authority_create_operation,
             custom_authority_update_operation,
             custom_authority_delete_operation,

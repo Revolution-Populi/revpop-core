@@ -23,10 +23,24 @@
  */
 #pragma once
 
-#include <graphene/protocol/htlc.hpp>
 #include <graphene/db/generic_index.hpp>
 
 #include <boost/multi_index/composite_key.hpp>
+
+namespace graphene { namespace protocol {
+      typedef fc::ripemd160    htlc_algo_ripemd160;
+      typedef fc::sha1         htlc_algo_sha1;
+      typedef fc::sha256       htlc_algo_sha256;
+      typedef fc::hash160      htlc_algo_hash160;
+
+      typedef fc::static_variant<
+         htlc_algo_ripemd160,
+         htlc_algo_sha1,
+         htlc_algo_sha256,
+         htlc_algo_hash160
+      > htlc_hash;
+   } 
+}
 
 namespace graphene { namespace chain {
    using namespace protocol;
@@ -115,6 +129,8 @@ namespace graphene { namespace chain {
    typedef generic_index< htlc_object, htlc_object_index_type > htlc_index;
 
 } } // namespace graphene::chain
+
+FC_REFLECT_TYPENAME( graphene::protocol::htlc_hash )
 
 MAP_OBJECT_ID_TO_TYPE(graphene::chain::htlc_object)
 

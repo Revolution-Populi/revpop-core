@@ -28,7 +28,6 @@ list(APPEND SOURCES account.cpp
                     transaction.cpp
                     types.cpp
                     withdraw_permission.cpp
-                    htlc.cpp
                     personal_data.cpp
                     content_card.cpp
                     permission.cpp

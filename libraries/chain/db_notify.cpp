@@ -246,29 +246,6 @@ struct get_impacted_account_visitor
    {
       _impacted.insert( op.fee_payer() ); // account_id
    }
-   void operator()( const htlc_create_operation& op )
-   {
-      _impacted.insert( op.fee_payer() );
-      _impacted.insert( op.to );
-   }
-   void operator()( const htlc_redeem_operation& op )
-   {
-      _impacted.insert( op.fee_payer() );
-   }
-   void operator()( const htlc_redeemed_operation& op )
-   {
-      _impacted.insert( op.from );
-      if ( op.to != op.redeemer )
-         _impacted.insert( op.to );
-   }
-   void operator()( const htlc_extend_operation& op )
-   {
-      _impacted.insert( op.fee_payer() ); 
-   }
-   void operator()( const htlc_refund_operation& op ) 
-   { 
-      _impacted.insert( op.fee_payer() );
-   }
    void operator()( const custom_authority_create_operation& op )
    {
       _impacted.insert( op.fee_payer() ); // account

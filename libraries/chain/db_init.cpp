@@ -69,7 +69,6 @@
 #include <graphene/chain/vesting_balance_evaluator.hpp>
 #include <graphene/chain/withdraw_permission_evaluator.hpp>
 #include <graphene/chain/witness_evaluator.hpp>
-#include <graphene/chain/htlc_evaluator.hpp>
 #include <graphene/chain/custom_authority_evaluator.hpp>
 #include <graphene/chain/personal_data_evaluator.hpp>
 #include <graphene/chain/content_card_evaluator.hpp>
@@ -203,9 +202,6 @@ void database::initialize_evaluators()
    register_evaluator<asset_claim_fees_evaluator>();
    register_evaluator<asset_update_issuer_evaluator>();
    register_evaluator<asset_claim_pool_evaluator>();
-   register_evaluator<htlc_create_evaluator>();
-   register_evaluator<htlc_redeem_evaluator>();
-   register_evaluator<htlc_extend_evaluator>();
    register_evaluator<custom_authority_create_evaluator>();
    register_evaluator<custom_authority_update_evaluator>();
    register_evaluator<custom_authority_delete_evaluator>();

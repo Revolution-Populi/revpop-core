@@ -97,9 +97,6 @@ public:
    std::string operator()(const graphene::protocol::account_create_operation& op)const;
    std::string operator()(const graphene::protocol::account_update_operation& op)const;
    std::string operator()(const graphene::protocol::asset_create_operation& op)const;
-   std::string operator()(const graphene::protocol::htlc_create_operation& op)const;
-   std::string operator()(const graphene::protocol::htlc_redeem_operation& op)const;
-   std::string operator()(const graphene::protocol::htlc_redeemed_operation& op)const;
    protected:
    std::string print_memo( const fc::optional<graphene::protocol::memo_data>& memo)const;
    void print_preimage( const std::vector<char>& preimage)const;

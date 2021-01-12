@@ -170,37 +170,6 @@ std::string operation_printer::operator()(const asset_create_operation& op) cons
    return fee(op.fee);
 }
 
-std::string operation_printer::operator()(const htlc_redeem_operation& op) const
-{
-   return print_redeem(op.htlc_id, wallet.get_account(op.redeemer).name, op.preimage, op.fee);
-}
-
-std::string operation_printer::operator()(const htlc_redeemed_operation& op) const
-{
-   return print_redeem(op.htlc_id, wallet.get_account(op.redeemer).name, op.preimage, op.fee);
-}
-
-std::string operation_printer::operator()(const htlc_create_operation& op) const
-{
-   static htlc_hash_to_string_visitor vtor;
-
-   auto fee_asset = wallet.get_asset( op.fee.asset_id );
-   auto to = wallet.get_account( op.to );
-   auto from = wallet.get_account( op.from );
-   operation_result_printer rprinter(wallet);
-   std::string database_id = result.visit(rprinter);
-
-   out << "Create HTLC from " << from.name << " to " << to.name 
-         << " with id " << database_id
-         << " preimage hash: [" << op.preimage_hash.visit( vtor ) << "] ";
-   print_memo( op.extensions.value.memo );
-   // determine if the block that the HTLC is in is before or after LIB
-   int32_t pending_blocks = hist.block_num - wallet.get_dynamic_global_properties().last_irreversible_block_num;
-   if (pending_blocks > 0)
-      out << " (pending " << std::to_string(pending_blocks) << " blocks)";
-   return fee(op.fee);
-}
-
 std::string operation_result_printer::operator()(const void_result& x) const
 {
    return "";

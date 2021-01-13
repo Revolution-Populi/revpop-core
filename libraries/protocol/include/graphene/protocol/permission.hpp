@@ -34,7 +34,7 @@ namespace graphene { namespace protocol {
     */
    struct permission_create_operation : public base_operation
    {
-      struct fee_parameters_type {};
+      struct fee_parameters_type { share_type fee = 300000; };
 
       asset           fee;
 
@@ -62,9 +62,9 @@ namespace graphene { namespace protocol {
     */
    struct permission_remove_operation : public base_operation
    {
-      struct fee_parameters_type {};
+      struct fee_parameters_type { uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION; };
 
-      asset           fee;
+      asset           fee; // always zero
 
       account_id_type    subject_account;
       permission_id_type permission_id;
@@ -82,12 +82,12 @@ namespace graphene { namespace protocol {
 
 } } // graphene::protocol
 
-FC_REFLECT( graphene::protocol::permission_create_operation::fee_parameters_type,  )
+FC_REFLECT( graphene::protocol::permission_create_operation::fee_parameters_type, (fee) )
 FC_REFLECT( graphene::protocol::permission_create_operation,
             (fee)
             (subject_account)(operator_account)(permission_type)(object_id)(content_key)
           )
-FC_REFLECT( graphene::protocol::permission_remove_operation::fee_parameters_type,  )
+FC_REFLECT( graphene::protocol::permission_remove_operation::fee_parameters_type, (fee) )
 FC_REFLECT( graphene::protocol::permission_remove_operation,
             (fee)
             (subject_account)(permission_id)

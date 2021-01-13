@@ -47,7 +47,9 @@ using operation_list_11 = static_variant<typelist::builder<>
 using operation_list_12 = static_variant<typelist::slice<operation::list, 43>>;
 using virtual_operations_list = static_variant<
                                                asset_settle_cancel_operation, // 37
-                                               fba_distribute_operation       // 39
+                                               fba_distribute_operation,      // 39
+                                               commit_create_operation,       // 57
+                                               reveal_create_operation        // 58
                                               >;
 
 object_restriction_predicate<operation> get_restriction_predicate_list_1(size_t idx, vector<restriction> rs);

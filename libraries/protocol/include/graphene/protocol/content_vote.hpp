@@ -34,7 +34,7 @@ namespace graphene { namespace protocol {
     */
    struct content_vote_create_operation : public base_operation
    {
-      struct fee_parameters_type {};
+      struct fee_parameters_type { share_type fee = 300000; };
 
       asset           fee;
 
@@ -61,9 +61,9 @@ namespace graphene { namespace protocol {
     */
    struct content_vote_remove_operation : public base_operation
    {
-      struct fee_parameters_type {};
+      struct fee_parameters_type { uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION; };
 
-      asset           fee;
+      asset           fee; // always zero
 
       account_id_type      subject_account;
       content_vote_id_type vote_id;
@@ -81,12 +81,12 @@ namespace graphene { namespace protocol {
 
 } } // graphene::protocol
 
-FC_REFLECT( graphene::protocol::content_vote_create_operation::fee_parameters_type,  )
+FC_REFLECT( graphene::protocol::content_vote_create_operation::fee_parameters_type, (fee) )
 FC_REFLECT( graphene::protocol::content_vote_create_operation,
             (fee)
             (subject_account)(content_id)(master_account)(master_content_id)
           )
-FC_REFLECT( graphene::protocol::content_vote_remove_operation::fee_parameters_type,  )
+FC_REFLECT( graphene::protocol::content_vote_remove_operation::fee_parameters_type, (fee) )
 FC_REFLECT( graphene::protocol::content_vote_remove_operation,
             (fee)
             (subject_account)(vote_id)

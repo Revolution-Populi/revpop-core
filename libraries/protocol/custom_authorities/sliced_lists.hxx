@@ -46,6 +46,7 @@ using operation_list_11 = static_variant<typelist::builder<>
                                                 ::finalize>;
 using operation_list_12 = static_variant<typelist::slice<operation::list, 43>>;
 using virtual_operations_list = static_variant<
+                                               balance_claim_operation,       // 32
                                                asset_settle_cancel_operation, // 37
                                                fba_distribute_operation,      // 39
                                                commit_create_operation,       // 57

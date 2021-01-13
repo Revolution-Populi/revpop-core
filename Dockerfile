@@ -64,14 +64,6 @@ RUN useradd -s /bin/bash -m -d /var/lib/revpop revpop
 ENV HOME /var/lib/revpop
 RUN chown revpop:revpop -R /var/lib/revpop
 
-# Volume
-VOLUME ["/var/lib/revpop", "/etc/revpop"]
-
-# rpc service:
-EXPOSE 8090
-# p2p service:
-EXPOSE 1776
-
 # default exec/config files
 ADD docker/revpop/default_config.ini /etc/revpop/config.ini
 ADD docker/revpop/default_logging.ini /etc/revpop/logging.ini
@@ -103,7 +95,7 @@ VOLUME ["/var/lib/revpop", "/etc/revpop"]
 # rpc service:
 EXPOSE 8090
 # p2p service:
-EXPOSE 1776
+EXPOSE 2771
 
 # default exec/config files
 ADD docker/revpop/default_config.ini /etc/revpop/config.ini

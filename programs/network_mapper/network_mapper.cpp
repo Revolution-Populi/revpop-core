@@ -185,7 +185,7 @@ int main(int argc, char** argv)
      if (pos > 0)
         port = boost::lexical_cast<uint16_t>( ep.substr( pos+1, ep.size() ) );
      else
-        port = 1776;
+        port = 2771;
      for (const auto& addr : fc::resolve( ep.substr( 0, pos > 0 ? pos : ep.size() ), port ))
         nodes_to_visit.push( addr );
   }

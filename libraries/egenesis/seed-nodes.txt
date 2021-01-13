@@ -1,1 +1,3 @@
-"core.revolutionpopuli.com:1776",          //
+"testnet.revolutionpopuli.com:2771",    // RevolutionPopuli    (Oregon, USA)
+"testnet2.revolutionpopuli.com:2771",   // RevolutionPopuli    (N.Virginia, USA)
+"testnet3.revolutionpopuli.com:2771",   // RevolutionPopuli    (Frankfurt, Germany)

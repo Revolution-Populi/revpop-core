@@ -16,7 +16,7 @@ The `Dockerfile` performs the following steps:
 7. Purge source code off the container
 8. Add a local revpop user and set `$HOME` to `/var/lib/revpop`
 9. Make `/var/lib/revpop` and `/etc/revpop` a docker *volume*
-10. Expose ports `8090` and `1776`
+10. Expose ports `8090` and `2771`
 11. Add default config from `docker/default_config.ini` and entry point script
 12. Run entry point script by default
 

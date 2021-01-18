@@ -6,6 +6,7 @@ before_script:
    - export LD_LIBRARY_PATH="/usr/local/lib/:/usr/local/lib64/"
    - sed -i 's/3500/7200/g' programs/build_helpers/build_for_cache # 120 minutes max
    - sed -i 's/3500/7200/g' programs/build_helpers/build_and_test  # 120 minutes max
+   - sed -i 's/"\$1"$/& --report_level=detailed/' libraries/fc/tests/run-parallel-tests.sh # temporary workaround since fc is in external deps
 
 Build binaries and run tests:
    stage: build

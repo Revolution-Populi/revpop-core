@@ -14,9 +14,9 @@ A Dockerfile can be used to build and run a fully functional blockchain node. [R
 Getting Started
 ---------------
 Build instructions and additional documentation are available in the
-[Wiki](https://github.com/bitshares/bitshares-core/wiki).
+[Wiki]().
 
-We recommend building on Ubuntu 16.04 LTS (64-bit) 
+We recommend building on Ubuntu 18.04 LTS (64-bit) 
 
 **Build Dependencies:**
 
@@ -51,10 +51,6 @@ manually build your preferred version and use it with RevPop by specifying it on
   Example: `cmake -DBOOST_ROOT=/path/to/boost ..`
 
 **NOTE:** RevPop requires a 64-bit operating system to build, and will not build on a 32-bit OS.
-
-**NOTE:** RevPop now supports Ubuntu 18.04 LTS
-
-**NOTE:** RevPop now supports OpenSSL 1.1.0
 
 **After Building**, the `witness_node` can be launched with:
 

@@ -41,6 +41,8 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <unordered_map>
+
 namespace graphene { namespace witness_plugin {
 
 using namespace graphene::chain;
@@ -108,15 +110,18 @@ private:
 
    /// RevPop
    bool process_master_operations( const chain::signed_block& b );
-   void send_commit_reveal_operations();
+   void commit_reveal_operations();
+   void execute_operation_scheduling();
+   void broadcast_commit(chain::account_id_type& acc_id);
+   void broadcast_reveal(chain::account_id_type& acc_id);
    fc::optional< fc::ecc::private_key > get_witness_private_key( const chain::account_object& acc ) const;
-   bool operation_possibility(uint32_t interval_sec, uint64_t expired_sec, uint16_t param, uint64_t seed);
-   void test_operation_possibility();
 
    fc::api< app::network_broadcast_api > _network_broadcast_api;
    std::shared_ptr< operation_visitor > o_v;
    std::vector< chain::account_id_type > _witness_accounts;
-   fc::flat_map< account_id_type, uint64_t > _reveal_value;
+   fc::flat_map< account_id_type, uint64_t > _reveal_value;             // witness-> bid
+   std::unordered_multimap<uint64_t, account_id_type> _commit_schedule; // block  -> witness
+   std::unordered_multimap<uint64_t, account_id_type> _reveal_schedule; // block  -> witness
 public:
    fc::optional< fc::ecc::private_key > get_witness_private_key( const public_key_type& public_key ) const;
 };

@@ -1,5 +1,4 @@
-FROM phusion/baseimage:0.11 AS build
-MAINTAINER The Revolution Populi Project
+FROM phusion/baseimage:18.04-1.0.0 AS build
 
 ENV LANG=en_US.UTF-8
 RUN \
@@ -27,7 +26,6 @@ RUN \
       libtool \
       doxygen \
       ca-certificates \
-      fish \
     && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -39,15 +37,15 @@ WORKDIR /revpop-core
 RUN \
     ( git submodule sync --recursive || \
       find `pwd`  -type f -name .git | \
-	while read f; do \
-	  rel="$(echo "${f#$PWD/}" | sed 's=[^/]*/=../=g')"; \
-	  sed -i "s=: .*/.git/=: $rel/=" "$f"; \
-	done && \
+      while read f; do \
+        rel="$(echo "${f#$PWD/}" | sed 's=[^/]*/=../=g')"; \
+        sed -i "s=: .*/.git/=: $rel/=" "$f"; \
+      done && \
       git submodule sync --recursive ) && \
     git submodule update --init --recursive && \
     cmake \
         -DCMAKE_BUILD_TYPE=Release \
-	-DGRAPHENE_DISABLE_UNITY_BUILD=ON \
+        -DGRAPHENE_DISABLE_UNITY_BUILD=ON \
         . && \
     make witness_node cli_wallet get_dev_key && \
     install -s programs/witness_node/witness_node programs/genesis_util/get_dev_key programs/cli_wallet/cli_wallet /usr/local/bin && \
@@ -58,8 +56,7 @@ RUN \
     cd / && \
     rm -rf /revpop-core
 
-FROM phusion/baseimage:0.11 AS run
-MAINTAINER The Revolution Populi Project
+FROM phusion/baseimage:18.04-1.0.0 AS run
 
 COPY --from=build /usr/local/bin /usr/local/bin
 COPY --from=build /etc/revpop/version /etc/revpop/version

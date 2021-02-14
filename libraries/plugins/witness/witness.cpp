@@ -361,20 +361,9 @@ void witness_plugin::commit_reveal_operations() {
       //ilog("A block numer since the commit interval begginig: ${blc}", ("blc", block_id));
 
       auto group = _commit_schedule.equal_range(block_id);
-      for (auto it = group.first; it != group.second; ++it) {
-         broadcast_commit(it->second);
-      }
-      _commit_schedule.erase(block_id);
-
-      // Some operations may take longer than intended for the block.
-      // Then it leads to a violation of the sequence.
-      // Here we have the last opportunity to publish all
-      // the commit operations that were skipped earlier.
-      if (head_block_time_sec + gpo.parameters.block_interval >= commit_reveal_switch) {
-         for (auto& it: _commit_schedule)
-            broadcast_commit(it.second);
-         _commit_schedule.clear();
-      }
+      std::for_each(group.first, group.second, [this](const auto& it){
+         broadcast_commit(it.second);
+      });
    } else {
       // --------------- //
       // Reveal interval //
@@ -385,18 +374,9 @@ void witness_plugin::commit_reveal_operations() {
       //ilog("A block numer since the reveal interval begginig: ${blc}", ("blc", block_id));
 
       auto group = _reveal_schedule.equal_range(block_id);
-      for (auto it = group.first; it != group.second; ++it) {
-         broadcast_reveal(it->second);
-      }
-      _reveal_schedule.erase(block_id);
-
-      // Here we have the last opportunity to publish all
-      // the reveal operations that were skipped earlier.
-      if (head_block_time_sec + gpo.parameters.block_interval >= dgpo.next_maintenance_time.sec_since_epoch()) {
-         for (auto& it: _reveal_schedule)
-            broadcast_reveal(it.second);
-         _reveal_schedule.clear();
-      }
+      std::for_each(group.first, group.second, [this](const auto& it){
+         broadcast_reveal(it.second);
+      });
    }
 
 }
@@ -415,12 +395,29 @@ void witness_plugin::execute_operation_scheduling() {
       std::chrono::high_resolution_clock::now().time_since_epoch().count());
    gen.seed(seed);
 
-   // Use uniform distribution for the commit operations
-   std::uniform_int_distribution<int32_t> unidist {0, blocks/2 - 1};
+   // Use uniform distribution for the commit operations.
+   // For:
+   // {
+   //    "block_interval": 5,
+   //    "maintenance_interval": 300,
+   //    "maintenance_skip_slots": 3,
+   // }
+   // commit interval shoud be from the 4-th to the 29-th blocks
+   int32_t skip_blocks = static_cast<int32_t>(gpo.parameters.maintenance_skip_slots);
+   std::uniform_int_distribution<int32_t> unidist {skip_blocks + 1, blocks/2 - 1};
 
-   // Use binomial distribution for the reveal operations
+   // Use binomial distribution for the reveal operations.
+   // For:
+   // {
+   //    "block_interval": 5,
+   //    "maintenance_interval": 300,
+   //    "maintenance_skip_slots": 3,
+   // }
+   // reveal interval shoud be from the 30-th to the 59-th blocks
    std::binomial_distribution<> bindist{blocks/2 - 1, 0.8};
 
+   _commit_schedule.clear();
+   _reveal_schedule.clear();
    for (const auto& acc_id: _witness_accounts){
       _commit_schedule.emplace(unidist(gen), acc_id);
       _reveal_schedule.emplace(bindist(gen), acc_id);
@@ -437,7 +434,7 @@ void witness_plugin::execute_operation_scheduling() {
    */
 }
 
-void witness_plugin::broadcast_commit(chain::account_id_type& acc_id) {
+void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
    auto& db = database();
    const auto& dgpo = db.get_dynamic_global_properties();
    const auto& chain_props = db.get_chain_properties();
@@ -488,7 +485,7 @@ void witness_plugin::broadcast_commit(chain::account_id_type& acc_id) {
    }
 }
 
-void witness_plugin::broadcast_reveal(chain::account_id_type& acc_id) {
+void witness_plugin::broadcast_reveal(const chain::account_id_type& acc_id) {
    auto& db = database();
    const auto& dgpo = db.get_dynamic_global_properties();
    const auto& chain_props = db.get_chain_properties();

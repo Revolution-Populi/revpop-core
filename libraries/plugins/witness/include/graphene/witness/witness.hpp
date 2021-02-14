@@ -112,8 +112,8 @@ private:
    bool process_master_operations( const chain::signed_block& b );
    void commit_reveal_operations();
    void execute_operation_scheduling();
-   void broadcast_commit(chain::account_id_type& acc_id);
-   void broadcast_reveal(chain::account_id_type& acc_id);
+   void broadcast_commit(const chain::account_id_type& acc_id);
+   void broadcast_reveal(const chain::account_id_type& acc_id);
    fc::optional< fc::ecc::private_key > get_witness_private_key( const chain::account_object& acc ) const;
 
    fc::api< app::network_broadcast_api > _network_broadcast_api;

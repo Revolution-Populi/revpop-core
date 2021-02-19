@@ -23,8 +23,6 @@ VERSION=`cat /etc/revpop/version`
 #
 
 ARGS=""
-# Prevent minority fork error
-ARGS+=" --required-participation 0"
 # Translate environmental variables
 if [[ ! -z "$REVPOPD_SEED_NODES" ]]; then
     for NODE in $REVPOPD_SEED_NODES ; do

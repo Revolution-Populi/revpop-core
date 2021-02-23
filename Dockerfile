@@ -58,25 +58,6 @@ RUN \
     cd / && \
     rm -rf /revpop-core
 
-# Home directory $HOME
-WORKDIR /
-RUN useradd -s /bin/bash -m -d /var/lib/revpop revpop
-ENV HOME /var/lib/revpop
-RUN chown revpop:revpop -R /var/lib/revpop
-
-# default exec/config files
-ADD docker/revpop/default_config.ini /etc/revpop/config.ini
-ADD docker/revpop/default_logging.ini /etc/revpop/logging.ini
-ADD docker/revpop/my-genesis.json /etc/revpop/genesis.json
-ADD docker/revpop/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod a+x /usr/local/bin/entrypoint.sh
-
-# Make Docker send SIGINT instead of SIGTERM to the daemon
-STOPSIGNAL SIGINT
-
-# default execute entry
-CMD ["/usr/local/bin/entrypoint.sh"]
-
 FROM phusion/baseimage:0.11 AS run
 MAINTAINER The Revolution Populi Project
 
@@ -98,10 +79,9 @@ EXPOSE 8090
 EXPOSE 2771
 
 # default exec/config files
-ADD docker/revpop/default_config.ini /etc/revpop/config.ini
-ADD docker/revpop/default_logging.ini /etc/revpop/logging.ini
-ADD docker/revpop/my-genesis.json /etc/revpop/genesis.json
-ADD docker/revpop/entrypoint.sh /usr/local/bin/entrypoint.sh
+ADD docker/default_config.ini /etc/revpop/config.ini
+ADD docker/default_logging.ini /etc/revpop/logging.ini
+ADD docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod a+x /usr/local/bin/entrypoint.sh
 
 # Make Docker send SIGINT instead of SIGTERM to the daemon

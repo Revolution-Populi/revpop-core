@@ -7,8 +7,8 @@ containers. This README serves as documentation.
 
 The `Dockerfile` performs the following steps:
 
-1. Obtain base image (phusion/baseimage:0.10.1)
-2. Install required dependencies using `apt-get`
+1. Obtain base image (phusion/baseimage:18.04-1.0.0)
+2. Install required dependencies using `apt`
 3. Add revpop-core source code into container
 4. Update git submodules
 5. Perform `cmake` with build type `Release`
@@ -22,6 +22,11 @@ The `Dockerfile` performs the following steps:
 
 The entry point simplifies the use of parameters for the `witness_node`
 (which is run by default when spinning up the container).
+
+You can launch a build process with a command
+```sh
+$ docker build $REVPOP_CORE_DIR -t local/revpop-core:latest
+```
 
 ### Supported Environmental Variables
 
@@ -43,10 +48,9 @@ The entry point simplifies the use of parameters for the `witness_node`
 
 The default configuration is:
 
-    p2p-endpoint = 0.0.0.0:9090
+    p2p-endpoint = 0.0.0.0:2771
     rpc-endpoint = 0.0.0.0:8090
-    bucket-size = [60,300,900,1800,3600,14400,86400]
-    history-per-size = 1000
+    enable-stale-production = false
     max-ops-per-account = 1000
     partial-operations = true
 
@@ -59,7 +63,7 @@ With docker compose, multiple nodes can be managed with a single
     services:
      main:
       # Image to run
-      image: revpop/revpop-core:latest
+      image: local/revpop-core:latest
       # 
       volumes:
        - ./docker/conf/:/etc/revpop/
@@ -67,15 +71,15 @@ With docker compose, multiple nodes can be managed with a single
       environment:
        - REVPOPD_ARGS=--help
 
+or
 
     version: '3'
     services:
      fullnode:
       # Image to run
-      image: revpop/revpop-core:latest
+      image: local/revpop-core:latest
       environment:
       # Optional parameters
-      environment:
        - REVPOPD_ARGS=--help
       ports:
        - "0.0.0.0:8090:8090"
@@ -83,11 +87,11 @@ With docker compose, multiple nodes can be managed with a single
       - "revpop-fullnode:/var/lib/revpop"
 
 
-# Docker Hub
+# Amazon Elastic Container Registry (ECR)
 
-This container is properly registered with docker hub under the name:
+This container is properly registered with the Amazon ECR service:
 
-* [revpop/revpop-core](https://hub.docker.com/r/revpop/revpop-core/)
+* [revpop/revpop-core](https://gallery.ecr.aws/i2p9w0c4/revpop-core)
 
 Going forward, every release tag as well as all pushes to `develop` and
 `testnet` will be built into ready-to-run containers, there.
@@ -102,14 +106,14 @@ version: '3'
 services:
 
  fullnode:
-  image: revpop/revpop-core:latest
+  image: public.ecr.aws/i2p9w0c4/revpop-core:latest
   ports:
    - "0.0.0.0:8090:8090"
   volumes:
   - "revpop-fullnode:/var/lib/revpop"
 
  delayed_node:
-  image: revpop/revpop-core:latest
+  image: public.ecr.aws/i2p9w0c4/revpop-core:latest
   environment:
    - 'REVPOPD_PLUGINS=delayed_node witness'
    - 'REVPOPD_TRUSTED_NODE=ws://fullnode:8090'

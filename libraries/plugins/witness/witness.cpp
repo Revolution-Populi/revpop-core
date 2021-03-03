@@ -200,6 +200,24 @@ void witness_plugin::plugin_startup()
    }
 
    // RevPop
+   o_v = std::make_shared< operation_visitor >();
+   o_v->plugin = shared_from_this();
+   check_resources();
+
+   _network_broadcast_api = std::make_shared< app::network_broadcast_api >( std::ref( app() ) );
+
+   database().applied_block.connect([this](const signed_block &b) {
+      if (!process_master_operations(b)) {
+         FC_THROW_EXCEPTION(plugin_exception, "Error populating ES database, we are going to keep trying.");
+      }
+      commit_reveal_operations();
+   });
+
+   ilog("witness plugin:  plugin_startup() end");
+} FC_CAPTURE_AND_RETHROW() }
+
+void witness_plugin::check_resources() {
+   // Every maintenance period check for new witnesses.
    auto& db = database();
    const auto& wit_idx = db.get_index_type<witness_index>();
    const auto& wit_op_idx = wit_idx.indices().get<by_id>();
@@ -211,24 +229,8 @@ void witness_plugin::plugin_startup()
          _witness_accounts.push_back(wit_itr->witness_account);
       }
    }
-   o_v = std::make_shared< operation_visitor >();
    o_v->set_master_accounts(masters);
-   o_v->plugin = shared_from_this();
-
-   _network_broadcast_api = std::make_shared< app::network_broadcast_api >( std::ref( app() ) );
-
-   // run scheduling even if we are far from the maintenance
-   execute_operation_scheduling();
-
-   database().applied_block.connect([this](const signed_block &b) {
-      if (!process_master_operations(b)) {
-         FC_THROW_EXCEPTION(plugin_exception, "Error populating ES database, we are going to keep trying.");
-      }
-      commit_reveal_operations();
-   });
-
-   ilog("witness plugin:  plugin_startup() end");
-} FC_CAPTURE_AND_RETHROW() }
+}
 
 void witness_plugin::plugin_shutdown()
 {
@@ -280,6 +282,9 @@ void witness_plugin::schedule_production_loop()
 }
 
 bool witness_plugin::process_master_operations( const chain::signed_block& b ) {
+   if (o_v->no_master_accounts())
+      return true;
+
    auto& db = database();
    const vector<fc::optional< operation_history_object > >& hist = db.get_applied_operations();
    for( const fc::optional< operation_history_object >& o_op : hist ) {
@@ -349,7 +354,7 @@ void witness_plugin::commit_reveal_operations() {
       // ---------------------//
       // Maintenance interval //
       //----------------------//
-      execute_operation_scheduling();
+      schedule_commit_reveal();
    }
 
    uint64_t total_blocks = gpo.parameters.maintenance_interval / gpo.parameters.block_interval;
@@ -384,7 +389,8 @@ void witness_plugin::commit_reveal_operations() {
 
 }
 
-void witness_plugin::execute_operation_scheduling() {
+void witness_plugin::schedule_commit_reveal() {
+   check_resources();
    if (_witness_accounts.empty() || !_production_enabled )
       return;
 
@@ -651,7 +657,7 @@ block_production_condition::block_production_condition_enum witness_plugin::mayb
          ilog("Blockchain is synchronized, we have a recent block");
 
          // run scheduling even if we are far from the maintenance
-         execute_operation_scheduling();
+         schedule_commit_reveal();
       }
       else
          return block_production_condition::not_synced;

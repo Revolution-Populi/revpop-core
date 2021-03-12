@@ -335,6 +335,9 @@ bool witness_plugin::process_master_operations( const chain::signed_block& b ) {
 }
 
 void witness_plugin::commit_reveal_operations() {
+   if (_witness_accounts.empty() || !_production_enabled )
+      return;
+
    auto& db = database();
    const auto& gpo = db.get_global_properties();
    const auto& dgpo = db.get_dynamic_global_properties();
@@ -382,6 +385,9 @@ void witness_plugin::commit_reveal_operations() {
 }
 
 void witness_plugin::execute_operation_scheduling() {
+   if (_witness_accounts.empty() || !_production_enabled )
+      return;
+
    auto& db = database();
    const auto& gpo = db.get_global_properties();
 
@@ -640,7 +646,13 @@ block_production_condition::block_production_condition_enum witness_plugin::mayb
    if( !_production_enabled )
    {
       if( db.get_slot_time(1) >= now )
+      {
          _production_enabled = true;
+         ilog("Blockchain is synchronized, we have a recent block");
+
+         // run scheduling even if we are far from the maintenance
+         execute_operation_scheduling();
+      }
       else
          return block_production_condition::not_synced;
    }

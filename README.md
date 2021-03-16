@@ -9,7 +9,7 @@ RevPop Core is the RevPop blockchain implementation and command-line interface.
 Quick start using Docker
 -----------------------
 
-A Dockerfile can be used to build and run a fully functional blockchain node. [Refer to the instructions](README-revpop-docker.md).
+A Dockerfile can be used to build and run a fully functional blockchain node. [Refer to the instructions](README-docker.md).
 
 Getting Started
 ---------------

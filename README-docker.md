@@ -91,10 +91,9 @@ or
 
 This container is properly registered with the Amazon ECR service:
 
-* [revpop/revpop-core](https://gallery.ecr.aws/i2p9w0c4/revpop-core)
+* [revpop/revpop-core](https://gallery.ecr.aws/revpop/revpop-core)
 
-Going forward, every release tag as well as all pushes to `develop` and
-`testnet` will be built into ready-to-run containers, there.
+Going forward, every release tag will be built into ready-to-run containers, there.
 
 # Docker Compose
 
@@ -106,14 +105,14 @@ version: '3'
 services:
 
  fullnode:
-  image: public.ecr.aws/i2p9w0c4/revpop-core:latest
+  image: public.ecr.aws/revpop/revpop-core:latest
   ports:
    - "0.0.0.0:8090:8090"
   volumes:
   - "revpop-fullnode:/var/lib/revpop"
 
  delayed_node:
-  image: public.ecr.aws/i2p9w0c4/revpop-core:latest
+  image: public.ecr.aws/revpop/revpop-core:latest
   environment:
    - 'REVPOPD_PLUGINS=delayed_node witness'
    - 'REVPOPD_TRUSTED_NODE=ws://fullnode:8090'

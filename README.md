@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.com/Revolution-Populi/revpop-core.svg?branch=master)](https://travis-ci.com/Revolution-Populi/revpop-core)
+
+----
+
 RevPop Core
 ==============
 

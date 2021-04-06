@@ -217,7 +217,8 @@ void witness_plugin::plugin_startup()
 } FC_CAPTURE_AND_RETHROW() }
 
 void witness_plugin::check_resources() {
-   // Every maintenance period check for new witnesses.
+   // Every maintenance period check for the witnesses update:
+   // old witnesses may lose votes, while new ones can collect them.
    auto& db = database();
    const auto& wit_idx = db.get_index_type<witness_index>();
    const auto& wit_op_idx = wit_idx.indices().get<by_id>();
@@ -226,10 +227,10 @@ void witness_plugin::check_resources() {
       const auto& wit_itr = wit_op_idx.lower_bound(wit_id);
       if (wit_itr != wit_op_idx.end()) {
          masters.push_back(wit_itr->witness_account);
-         _witness_accounts.push_back(wit_itr->witness_account);
       }
    }
    o_v->set_master_accounts(masters);
+   _witness_accounts.swap(masters);
 }
 
 void witness_plugin::plugin_shutdown()

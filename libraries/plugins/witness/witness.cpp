@@ -369,10 +369,14 @@ void witness_plugin::commit_reveal_operations() {
                                            / gpo.parameters.block_interval;
       //ilog("A block numer since the commit interval begginig: ${blc}", ("blc", block_id));
 
-      auto group = _commit_schedule.equal_range(block_id);
-      std::for_each(group.first, group.second, [this](const auto& it){
-         broadcast_commit(it.second);
-      });
+      // Even if the required block was skipped, the operation will be executed.
+      for (auto& op: _commit_schedule) {
+         if (get<0>(op) > block_id) return; // block
+         if (get<2>(op)) {                  // requires processing
+            broadcast_commit(get<1>(op));   // witness
+            get<2>(op) = false;
+         }
+      }
    } else {
       // --------------- //
       // Reveal interval //
@@ -382,10 +386,14 @@ void witness_plugin::commit_reveal_operations() {
                            / gpo.parameters.block_interval - total_blocks / 2;
       //ilog("A block numer since the reveal interval begginig: ${blc}", ("blc", block_id));
 
-      auto group = _reveal_schedule.equal_range(block_id);
-      std::for_each(group.first, group.second, [this](const auto& it){
-         broadcast_reveal(it.second);
-      });
+      // Even if the required block was skipped, the operation will be executed.
+      for (auto &op : _reveal_schedule) {
+         if (get<0>(op) > block_id) return; // block
+         if (get<2>(op)) {                  // requires processing
+            broadcast_reveal(get<1>(op));   // witness
+            get<2>(op) = false;
+         }
+      }
    }
 
 }
@@ -415,9 +423,9 @@ void witness_plugin::schedule_commit_reveal() {
    //    "maintenance_interval": 300,
    //    "maintenance_skip_slots": 3,
    // }
-   // commit interval shoud be from the 4-th to the 29-th blocks
+   // commit interval shoud be from the 3-th to the 29-th blocks
    int32_t skip_blocks = static_cast<int32_t>(gpo.parameters.maintenance_skip_slots);
-   std::uniform_int_distribution<int32_t> unidist {skip_blocks + 1, blocks/2 - 1};
+   std::uniform_int_distribution<int32_t> unidist {skip_blocks, blocks/2 - 1};
 
    // Use binomial distribution for the reveal operations.
    // For:
@@ -432,9 +440,11 @@ void witness_plugin::schedule_commit_reveal() {
    _commit_schedule.clear();
    _reveal_schedule.clear();
    for (const auto& acc_id: _witness_accounts){
-      _commit_schedule.emplace(unidist(gen), acc_id);
-      _reveal_schedule.emplace(bindist(gen), acc_id);
+      _commit_schedule.emplace_back(unidist(gen), acc_id, true);
+      _reveal_schedule.emplace_back(bindist(gen), acc_id, true);
    }
+   sort(_commit_schedule.begin(), _commit_schedule.end());
+   sort(_reveal_schedule.begin(), _reveal_schedule.end());
 
    // DEBUG
    /*

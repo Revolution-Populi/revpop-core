@@ -41,8 +41,6 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include <unordered_map>
-
 namespace graphene { namespace witness_plugin {
 
 using namespace graphene::chain;
@@ -121,8 +119,10 @@ private:
    std::shared_ptr< operation_visitor > o_v;
    std::vector< chain::account_id_type > _witness_accounts;
    fc::flat_map< account_id_type, uint64_t > _reveal_value;             // witness-> bid
-   std::unordered_multimap<uint64_t, account_id_type> _commit_schedule; // block  -> witness
-   std::unordered_multimap<uint64_t, account_id_type> _reveal_schedule; // block  -> witness
+   // block, witness, requires processing
+   std::vector<std::tuple<uint64_t, account_id_type, bool>> _commit_schedule;
+   // block, witness, requires processing
+   std::vector<std::tuple<uint64_t, account_id_type, bool>> _reveal_schedule;
 public:
    fc::optional< fc::ecc::private_key > get_witness_private_key( const public_key_type& public_key ) const;
 };

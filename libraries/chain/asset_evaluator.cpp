@@ -183,20 +183,16 @@ void_result asset_create_evaluator::do_evaluate( const asset_create_operation& o
    auto asset_symbol_itr = asset_indx.find( op.symbol );
    FC_ASSERT( asset_symbol_itr == asset_indx.end() );
 
-   // This must remain due to "BOND.CNY" being allowed before this HF
-   if( now > HARDFORK_385_TIME )
+   auto dotpos = op.symbol.rfind( '.' );
+   if( dotpos != std::string::npos )
    {
-      auto dotpos = op.symbol.rfind( '.' );
-      if( dotpos != std::string::npos )
-      {
-         auto prefix = op.symbol.substr( 0, dotpos );
-         auto asset_symbol_itr = asset_indx.find( prefix );
-         FC_ASSERT( asset_symbol_itr != asset_indx.end(),
-                    "Asset ${s} may only be created by issuer of asset ${p}, but asset ${p} has not been created",
-                    ("s",op.symbol)("p",prefix) );
-         FC_ASSERT( asset_symbol_itr->issuer == op.issuer, "Asset ${s} may only be created by issuer of ${p}, ${i}",
-                    ("s",op.symbol)("p",prefix)("i", op.issuer(d).name) );
-      }
+      auto prefix = op.symbol.substr( 0, dotpos );
+      auto asset_symbol_itr = asset_indx.find( prefix );
+      FC_ASSERT( asset_symbol_itr != asset_indx.end(),
+                  "Asset ${s} may only be created by issuer of asset ${p}, but asset ${p} has not been created",
+                  ("s",op.symbol)("p",prefix) );
+      FC_ASSERT( asset_symbol_itr->issuer == op.issuer, "Asset ${s} may only be created by issuer of ${p}, ${i}",
+                  ("s",op.symbol)("p",prefix)("i", op.issuer(d).name) );
    }
 
    if( op.bitasset_opts )

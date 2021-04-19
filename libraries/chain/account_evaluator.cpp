@@ -156,24 +156,6 @@ object_id_type account_create_evaluator::do_apply( const account_create_operatio
 
    database& d = db();
    uint16_t referrer_percent = o.referrer_percent;
-   bool has_small_percent = (
-         (db().head_block_time() <= HARDFORK_453_TIME)
-      && (o.referrer != o.registrar  )
-      && (o.referrer_percent != 0    )
-      && (o.referrer_percent <= 0x100)
-      );
-
-   if( has_small_percent )
-   {
-      if( referrer_percent >= 100 )
-      {
-         wlog( "between 100% and 0x100%:  ${o}", ("o", o) );
-      }
-      referrer_percent = referrer_percent*100;
-      if( referrer_percent > GRAPHENE_100_PERCENT )
-         referrer_percent = GRAPHENE_100_PERCENT;
-   }
-
    const auto& global_properties = d.get_global_properties();
 
    const auto& new_acnt_object = d.create<account_object>( [&o,&d,&global_properties,referrer_percent]( account_object& obj )

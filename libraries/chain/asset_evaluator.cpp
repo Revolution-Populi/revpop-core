@@ -1090,21 +1090,10 @@ void_result asset_publish_feeds_evaluator::do_evaluate(const asset_publish_feed_
    FC_ASSERT( o.feed.settlement_price.quote.asset_id == bitasset.options.short_backing_asset,
               "Quote asset type in settlement price should be same as backing asset of this asset" );
 
-   if( now > HARDFORK_480_TIME )
+   if( !o.feed.core_exchange_rate.is_null() )
    {
-      if( !o.feed.core_exchange_rate.is_null() )
-      {
-         FC_ASSERT( o.feed.core_exchange_rate.quote.asset_id == asset_id_type(),
-                    "Quote asset in core exchange rate should be CORE asset" );
-      }
-   }
-   else
-   {
-      if( (!o.feed.settlement_price.is_null()) && (!o.feed.core_exchange_rate.is_null()) )
-      {
-         // Old buggy code, but we have to live with it
-         FC_ASSERT( o.feed.settlement_price.quote.asset_id == o.feed.core_exchange_rate.quote.asset_id, "Bad feed" );
-      }
+      FC_ASSERT( o.feed.core_exchange_rate.quote.asset_id == asset_id_type(),
+                  "Quote asset in core exchange rate should be CORE asset" );
    }
 
    //Verify that the publisher is authoritative to publish a feed

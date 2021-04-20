@@ -1060,8 +1060,7 @@ void database_fixture::publish_feed( const asset_object& mia, const account_obje
    if( op.feed.core_exchange_rate.is_null() )
    {
       op.feed.core_exchange_rate = op.feed.settlement_price;
-      if( db.head_block_time() > HARDFORK_480_TIME )
-         op.feed.core_exchange_rate.quote.asset_id = asset_id_type();
+      op.feed.core_exchange_rate.quote.asset_id = asset_id_type();
    }
    op.extensions.value.initial_collateral_ratio = icr;
    trx.operations.emplace_back( std::move(op) );

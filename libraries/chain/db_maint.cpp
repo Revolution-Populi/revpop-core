@@ -308,40 +308,30 @@ void database::update_active_witnesses()
    // Update witness authority
    modify( get(GRAPHENE_WITNESS_ACCOUNT), [this,&wits]( account_object& a )
    {
-      if( head_block_time() < HARDFORK_533_TIME )
+      uint64_t total_votes = 0;
+      map<account_id_type, uint64_t> weights;
+      a.active.weight_threshold = 0;
+      a.active.clear();
+
+      for( const witness_object& wit : wits )
       {
-         uint64_t total_votes = 0;
-         map<account_id_type, uint64_t> weights;
-         a.active.weight_threshold = 0;
-         a.active.clear();
-
-         for( const witness_object& wit : wits )
-         {
-            weights.emplace(wit.witness_account, _vote_tally_buffer[wit.vote_id]);
-            total_votes += _vote_tally_buffer[wit.vote_id];
-         }
-
-         // total_votes is 64 bits. Subtract the number of leading low bits from 64 to get the number of useful bits,
-         // then I want to keep the most significant 16 bits of what's left.
-         int8_t bits_to_drop = std::max(int(boost::multiprecision::detail::find_msb(total_votes)) - 15, 0);
-         for( const auto& weight : weights )
-         {
-            // Ensure that everyone has at least one vote. Zero weights aren't allowed.
-            uint16_t votes = std::max((weight.second >> bits_to_drop), uint64_t(1) );
-            a.active.account_auths[weight.first] += votes;
-            a.active.weight_threshold += votes;
-         }
-
-         a.active.weight_threshold /= 2;
-         a.active.weight_threshold += 1;
+         weights.emplace(wit.witness_account, _vote_tally_buffer[wit.vote_id]);
+         total_votes += _vote_tally_buffer[wit.vote_id];
       }
-      else
+
+      // total_votes is 64 bits. Subtract the number of leading low bits from 64 to get the number of useful bits,
+      // then I want to keep the most significant 16 bits of what's left.
+      int8_t bits_to_drop = std::max(int(boost::multiprecision::detail::find_msb(total_votes)) - 15, 0);
+      for( const auto& weight : weights )
       {
-         vote_counter vc;
-         for( const witness_object& wit : wits )
-            vc.add( wit.witness_account, _vote_tally_buffer[wit.vote_id] );
-         vc.finish( a.active );
+         // Ensure that everyone has at least one vote. Zero weights aren't allowed.
+         uint16_t votes = std::max((weight.second >> bits_to_drop), uint64_t(1) );
+         a.active.account_auths[weight.first] += votes;
+         a.active.weight_threshold += votes;
       }
+
+      a.active.weight_threshold /= 2;
+      a.active.weight_threshold += 1;
    } );
 
    modify( gpo, [&wits]( global_property_object& gp )
@@ -409,40 +399,30 @@ void database::update_active_committee_members()
       const account_object& committee_account = get(GRAPHENE_COMMITTEE_ACCOUNT);
       modify( committee_account, [this,&committee_members](account_object& a)
       {
-         if( head_block_time() < HARDFORK_533_TIME )
+         uint64_t total_votes = 0;
+         map<account_id_type, uint64_t> weights;
+         a.active.weight_threshold = 0;
+         a.active.clear();
+
+         for( const committee_member_object& cm : committee_members )
          {
-            uint64_t total_votes = 0;
-            map<account_id_type, uint64_t> weights;
-            a.active.weight_threshold = 0;
-            a.active.clear();
-
-            for( const committee_member_object& cm : committee_members )
-            {
-               weights.emplace( cm.committee_member_account, _vote_tally_buffer[cm.vote_id] );
-               total_votes += _vote_tally_buffer[cm.vote_id];
-            }
-
-            // total_votes is 64 bits. Subtract the number of leading low bits from 64 to get the number of useful bits,
-            // then I want to keep the most significant 16 bits of what's left.
-            int8_t bits_to_drop = std::max(int(boost::multiprecision::detail::find_msb(total_votes)) - 15, 0);
-            for( const auto& weight : weights )
-            {
-               // Ensure that everyone has at least one vote. Zero weights aren't allowed.
-               uint16_t votes = std::max((weight.second >> bits_to_drop), uint64_t(1) );
-               a.active.account_auths[weight.first] += votes;
-               a.active.weight_threshold += votes;
-            }
-
-            a.active.weight_threshold /= 2;
-            a.active.weight_threshold += 1;
+            weights.emplace( cm.committee_member_account, _vote_tally_buffer[cm.vote_id] );
+            total_votes += _vote_tally_buffer[cm.vote_id];
          }
-         else
+
+         // total_votes is 64 bits. Subtract the number of leading low bits from 64 to get the number of useful bits,
+         // then I want to keep the most significant 16 bits of what's left.
+         int8_t bits_to_drop = std::max(int(boost::multiprecision::detail::find_msb(total_votes)) - 15, 0);
+         for( const auto& weight : weights )
          {
-            vote_counter vc;
-            for( const committee_member_object& cm : committee_members )
-               vc.add( cm.committee_member_account, _vote_tally_buffer[cm.vote_id] );
-            vc.finish( a.active );
+            // Ensure that everyone has at least one vote. Zero weights aren't allowed.
+            uint16_t votes = std::max((weight.second >> bits_to_drop), uint64_t(1) );
+            a.active.account_auths[weight.first] += votes;
+            a.active.weight_threshold += votes;
          }
+
+         a.active.weight_threshold /= 2;
+         a.active.weight_threshold += 1;
       });
       modify( get(GRAPHENE_RELAXED_COMMITTEE_ACCOUNT), [&committee_account](account_object& a)
       {

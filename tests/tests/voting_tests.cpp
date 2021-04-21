@@ -38,49 +38,6 @@ using namespace graphene::chain::test;
 
 BOOST_FIXTURE_TEST_SUITE(voting_tests, database_fixture)
 
-BOOST_FIXTURE_TEST_CASE( committee_account_initialization_test, database_fixture )
-{ try {
-   // Check current default committee
-   // By default chain is configured with INITIAL_COMMITTEE_MEMBER_COUNT=9 members
-   const auto &committee_members = db.get_global_properties().active_committee_members;
-   const auto &committee = committee_account(db);
-
-   BOOST_CHECK_EQUAL(committee_members.size(), INITIAL_COMMITTEE_MEMBER_COUNT);
-   BOOST_CHECK_EQUAL(committee.active.num_auths(), INITIAL_COMMITTEE_MEMBER_COUNT);
-
-   generate_blocks(HARDFORK_533_TIME);
-   generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
-   generate_block();
-   set_expiration(db, trx);
-
-   // Check that committee not changed after 533 hardfork
-   // vote counting method changed, but any votes are absent
-   const auto &committee_members_after_hf533 = db.get_global_properties().active_committee_members;
-   const auto &committee_after_hf533 = committee_account(db);
-   BOOST_CHECK_EQUAL(committee_members_after_hf533.size(), INITIAL_COMMITTEE_MEMBER_COUNT);
-   BOOST_CHECK_EQUAL(committee_after_hf533.active.num_auths(), INITIAL_COMMITTEE_MEMBER_COUNT);
-
-   // You can't use uninitialized committee after 533 hardfork
-   // when any user with stake created (create_account method automatically set up votes for committee)
-   // committee is incomplete and consist of random active members
-   ACTOR(alice);
-   fund(alice);
-   generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
-
-   const auto &committee_after_hf533_with_stake = committee_account(db);
-   BOOST_CHECK_LT(committee_after_hf533_with_stake.active.num_auths(), INITIAL_COMMITTEE_MEMBER_COUNT);
-
-   // Initialize committee by voting for each memeber and for desired count
-   vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
-   generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
-
-   const auto &committee_members_after_hf533_and_init = db.get_global_properties().active_committee_members;
-   const auto &committee_after_hf533_and_init = committee_account(db);
-   BOOST_CHECK_EQUAL(committee_members_after_hf533_and_init.size(), INITIAL_COMMITTEE_MEMBER_COUNT);
-   BOOST_CHECK_EQUAL(committee_after_hf533_and_init.active.num_auths(), INITIAL_COMMITTEE_MEMBER_COUNT);
-
-} FC_LOG_AND_RETHROW() }
-
 BOOST_AUTO_TEST_CASE(put_my_witnesses)
 {
    try

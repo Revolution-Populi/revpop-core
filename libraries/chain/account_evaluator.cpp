@@ -79,7 +79,7 @@ void verify_account_votes( const database& db, const account_options& options )
       has_worker_votes |= (id.type() == vote_id_type::worker);
    }
 
-   if( has_worker_votes && (db.head_block_time() >= HARDFORK_607_TIME) )
+   if( has_worker_votes )
    {
       const auto& against_worker_idx = db.get_index_type<worker_index>().indices().get<by_vote_against>();
       for( auto id : options.votes )

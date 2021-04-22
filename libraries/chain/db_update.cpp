@@ -485,7 +485,6 @@ void database::update_expired_feeds()
 {
    const auto head_time = head_block_time();
    const auto next_maint_time = get_dynamic_global_properties().next_maintenance_time;
-   bool after_hardfork_615 = ( head_time >= HARDFORK_615_TIME );
 
    const auto& idx = get_index_type<asset_bitasset_data_index>().indices().get<by_feed_expiration>();
    auto itr = idx.begin();
@@ -496,25 +495,22 @@ void database::update_expired_feeds()
       bool update_cer = false; // for better performance, to only update bitasset once, also check CER in this function
       const asset_object* asset_ptr = nullptr;
       // update feeds, check margin calls
-      if( after_hardfork_615 || b.feed_is_expired_before_hardfork_615( head_time ) )
+      auto old_median_feed = b.current_feed;
+      modify( b, [head_time,next_maint_time,&update_cer]( asset_bitasset_data_object& abdo )
       {
-         auto old_median_feed = b.current_feed;
-         modify( b, [head_time,next_maint_time,&update_cer]( asset_bitasset_data_object& abdo )
+         abdo.update_median_feeds( head_time, next_maint_time );
+         if( abdo.need_to_update_cer() )
          {
-            abdo.update_median_feeds( head_time, next_maint_time );
-            if( abdo.need_to_update_cer() )
-            {
-               update_cer = true;
-               abdo.asset_cer_updated = false;
-               abdo.feed_cer_updated = false;
-            }
-         });
-         if( !b.current_feed.settlement_price.is_null()
-               && !b.current_feed.margin_call_params_equal( old_median_feed ) )
-         {
-            asset_ptr = &b.asset_id( *this );
-            check_call_orders( *asset_ptr, true, false, &b );
+            update_cer = true;
+            abdo.asset_cer_updated = false;
+            abdo.feed_cer_updated = false;
          }
+      });
+      if( !b.current_feed.settlement_price.is_null()
+            && !b.current_feed.margin_call_params_equal( old_median_feed ) )
+      {
+         asset_ptr = &b.asset_id( *this );
+         check_call_orders( *asset_ptr, true, false, &b );
       }
       // update CER
       if( update_cer )
@@ -530,15 +526,6 @@ void database::update_expired_feeds()
          }
       }
    } // for each asset whose feed is expired
-
-   // process assets affected by bitshares-core issue 453 before hard fork 615
-   if( !after_hardfork_615 )
-   {
-      for( asset_id_type a : _issue_453_affected_assets )
-      {
-         check_call_orders( a(*this) );
-      }
-   }
 }
 
 void database::update_core_exchange_rates()

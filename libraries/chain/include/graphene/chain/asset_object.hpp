@@ -327,8 +327,6 @@ namespace graphene { namespace chain {
             else
                return current_feed_publication_time + options.feed_lifetime_sec;
          }
-         bool feed_is_expired_before_hardfork_615(time_point_sec current_time)const
-         { return feed_expiration_time() >= current_time; }
          bool feed_is_expired(time_point_sec current_time)const
          { return feed_expiration_time() <= current_time; }
 

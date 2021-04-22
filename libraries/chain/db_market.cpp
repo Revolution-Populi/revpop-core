@@ -1172,8 +1172,6 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
     auto head_time = head_block_time();
     auto head_num = head_block_num();
 
-    bool before_hardfork_615 = ( head_time < HARDFORK_615_TIME );
-
     bool before_core_hardfork_342 = ( maint_time <= HARDFORK_CORE_342_TIME ); // better rounding
     bool before_core_hardfork_343 = ( maint_time <= HARDFORK_CORE_343_TIME ); // update call_price after partially filled
     bool before_core_hardfork_453 = ( maint_time <= HARDFORK_CORE_453_TIME ); // multiple matching issue
@@ -1287,12 +1285,6 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
 
           if( usd_to_buy == usd_for_sale )
              filled_limit = true;
-          else if( filled_limit && maint_time <= HARDFORK_CORE_453_TIME )
-          {
-             //NOTE: Multiple limit match problem (see issue 453, yes this happened)
-             if( before_hardfork_615 )
-                _issue_453_affected_assets.insert( bitasset.asset_id );
-          }
        }
        limit_pays = call_receives;
 

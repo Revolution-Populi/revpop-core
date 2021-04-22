@@ -170,7 +170,6 @@ BOOST_FIXTURE_TEST_SUITE(force_settle_tests, force_settle_database_fixture)
          // Initialize the scenario
          ///////
          // Get around Graphene issue #615 feed expiration bug
-         generate_blocks(HARDFORK_615_TIME);
          generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
          trx.clear();
          set_expiration(db, trx);

@@ -346,7 +346,6 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          generate_block();
          const asset_object &bitsmart = get_asset("SMARTBIT");
 
-         generate_blocks(HARDFORK_615_TIME); // get around Graphene issue #615 feed expiration bug
          generate_block();
 
 

@@ -1393,9 +1393,6 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
       }
    }
 
-   if( (dgpo.next_maintenance_time < HARDFORK_613_TIME) && (next_maintenance_time >= HARDFORK_613_TIME) )
-      deprecate_annual_members(*this);
-
    // To reset call_price of all call orders, then match by new rule, for hard fork core-343
    bool to_update_and_match_call_orders_for_hf_343 = false;
    if( (dgpo.next_maintenance_time <= HARDFORK_CORE_343_TIME) && (next_maintenance_time > HARDFORK_CORE_343_TIME) )

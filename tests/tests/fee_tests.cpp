@@ -375,7 +375,8 @@ BOOST_AUTO_TEST_CASE( cashback_test )
       alife.vcb += xfer_fee; alife.bal += -xfer_fee -aann.b0; aann.bal += aann.b0;
       CustomAudit();
 
-      upgrade_to_annual_member(ann_id);
+      //upgrade_to_annual_member(ann_id);
+      upgrade_to_lifetime_member(ann_id);
       aann.ucb += upg_an_fee; aann.bal += -upg_an_fee;
 
       // audit distribution of fees from Ann
@@ -537,7 +538,7 @@ REG : net' ltm' ref'
 
    BOOST_TEST_MESSAGE("Waiting for annual membership to expire");
 
-   generate_blocks(ann_id(db).membership_expiration_date);
+   //generate_blocks(ann_id(db).membership_expiration_date);
    generate_block();
 
    BOOST_TEST_MESSAGE("Transferring from scud to pleb");

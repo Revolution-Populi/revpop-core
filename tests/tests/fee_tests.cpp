@@ -892,8 +892,6 @@ BOOST_AUTO_TEST_CASE( issue_429_test )
 
       verify_asset_supplies( db );
 
-      generate_blocks( HARDFORK_CORE_429_TIME + 10 );
-
       {
          signed_transaction tx;
          asset_create_operation op;

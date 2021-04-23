@@ -989,8 +989,7 @@ void_result asset_settle_evaluator::do_evaluate(const asset_settle_evaluator::op
    if( bitasset.is_prediction_market )
       FC_ASSERT( bitasset.has_settlement(), "global settlement must occur before force settling a prediction market"  );
    else if( bitasset.current_feed.settlement_price.is_null()
-            && ( d.head_block_time() <= HARDFORK_CORE_216_TIME // TODO check whether the HF check can be removed
-                 || !bitasset.has_settlement() ) )
+            && ( !bitasset.has_settlement() ) )
       FC_THROW_EXCEPTION(insufficient_feeds, "Cannot force settle with no price feed.");
    FC_ASSERT( d.get_balance( op.account, op.amount.asset_id ) >= op.amount, "Insufficient balance" );
 
@@ -1081,7 +1080,7 @@ void_result asset_publish_feeds_evaluator::do_evaluate(const asset_publish_feed_
    FC_ASSERT( base.is_market_issued(), "Can only publish price feeds for market-issued assets" );
 
    const asset_bitasset_data_object& bitasset = base.bitasset_data(d);
-   if( bitasset.is_prediction_market || now <= HARDFORK_CORE_216_TIME )
+   if( bitasset.is_prediction_market )
    {
       FC_ASSERT( !bitasset.has_settlement(), "No further feeds may be published after a settlement event" );
    }
@@ -1140,7 +1139,7 @@ void_result asset_publish_feeds_evaluator::do_apply(const asset_publish_feed_ope
    if( !old_feed.margin_call_params_equal(bad.current_feed) )
    {
       // Check whether need to revive the asset and proceed if need
-      if( bad.has_settlement() // has globally settled, implies head_block_time > HARDFORK_CORE_216_TIME
+      if( bad.has_settlement() // has globally settled
           && !bad.current_feed.settlement_price.is_null() ) // has a valid feed
       {
          bool should_revive = false;

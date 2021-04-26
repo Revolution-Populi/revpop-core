@@ -549,9 +549,17 @@ BOOST_AUTO_TEST_CASE( update_mia )
       trx.operations.back() = op;
       PUSH_TX( db, trx, ~0 );
       std::swap(op.new_options.flags, op.new_options.issuer_permissions);
-      op.new_issuer = account_id_type();
+      //op.new_issuer = account_id_type();
       trx.operations.back() = op;
       PUSH_TX( db, trx, ~0 );
+      {
+         asset_update_issuer_operation upd_op;
+         upd_op.asset_to_update = bit_usd.id;
+         upd_op.issuer = bit_usd.issuer;
+         upd_op.new_issuer = account_id_type();
+         trx.operations.back() = upd_op;
+         PUSH_TX( db, trx, ~0 );
+      }
 
       {
          asset_publish_feed_operation pop;
@@ -572,15 +580,31 @@ BOOST_AUTO_TEST_CASE( update_mia )
       trx.operations.clear();
       auto nathan = create_account("nathan");
       op.issuer = account_id_type();
-      op.new_issuer = nathan.id;
+      //op.new_issuer = nathan.id;
       trx.operations.emplace_back(op);
       PUSH_TX( db, trx, ~0 );
+      {
+         asset_update_issuer_operation upd_op;
+         upd_op.asset_to_update = bit_usd.id;
+         upd_op.issuer = account_id_type();
+         upd_op.new_issuer = nathan.id;
+         trx.operations.back() = upd_op;
+         PUSH_TX( db, trx, ~0 );
+      }
       BOOST_CHECK(bit_usd.issuer == nathan.id);
 
       op.issuer = nathan.id;
-      op.new_issuer = account_id_type();
+      //op.new_issuer = account_id_type();
       trx.operations.back() = op;
       PUSH_TX( db, trx, ~0 );
+      {
+         asset_update_issuer_operation upd_op;
+         upd_op.asset_to_update = bit_usd.id;
+         upd_op.issuer = nathan.id;
+         upd_op.new_issuer = account_id_type();
+         trx.operations.back() = upd_op;
+         PUSH_TX( db, trx, ~0 );
+      }
       BOOST_CHECK(bit_usd.issuer == account_id_type());
    } catch ( const fc::exception& e ) {
       elog( "${e}", ("e", e.to_detail_string() ) );
@@ -670,13 +694,20 @@ BOOST_AUTO_TEST_CASE( update_uia )
       PUSH_TX( db, trx, ~0 );
       REQUIRE_THROW_WITH_VALUE(op, new_options.core_exchange_rate, price());
       op.new_options.core_exchange_rate = test.options.core_exchange_rate;
-      op.new_issuer = nathan.id;
+      //op.new_issuer = nathan.id;
       trx.operations.back() = op;
       PUSH_TX( db, trx, ~0 );
+      {
+         asset_update_issuer_operation upd_op;
+         upd_op.asset_to_update = test.id;
+         upd_op.issuer = test.issuer;
+         upd_op.new_issuer = nathan.id;
+         trx.operations.back() = upd_op;
+         PUSH_TX( db, trx, ~0 );
+      }
 
       BOOST_TEST_MESSAGE( "Test setting flags" );
       op.issuer = nathan.id;
-      op.new_issuer.reset();
       op.new_options.flags = transfer_restricted | white_list;
       trx.operations.back() = op;
       PUSH_TX( db, trx, ~0 );
@@ -711,12 +742,17 @@ BOOST_AUTO_TEST_CASE( update_uia )
       REQUIRE_THROW_WITH_VALUE(op, new_options.issuer_permissions, DEFAULT_UIA_ASSET_ISSUER_PERMISSION);
 
       BOOST_TEST_MESSAGE( "We can change issuer to account_id_type(), but can't do it again" );
-      op.new_issuer = account_id_type();
-      trx.operations.back() = op;
-      PUSH_TX( db, trx, ~0 );
+      {
+         asset_update_issuer_operation upd_op;
+         upd_op.asset_to_update = test.id;
+         upd_op.issuer = nathan.id;
+         upd_op.new_issuer = account_id_type();
+         trx.operations.back() = upd_op;
+         PUSH_TX( db, trx, ~0 );
+      };
       op.issuer = account_id_type();
       GRAPHENE_REQUIRE_THROW(PUSH_TX( db, trx, ~0 ), fc::exception);
-      op.new_issuer.reset();
+      //op.new_issuer.reset();
    } catch(fc::exception& e) {
       edump((e.to_detail_string()));
       throw;
@@ -823,9 +859,6 @@ BOOST_AUTO_TEST_CASE( update_uia_issuer )
       // Create asset
       const auto& test = create_user_issued_asset("UPDATEISSUER", alice_id(db), 0);
       const asset_id_type test_id = test.id;
-
-      // Fast Forward to Hardfork time
-      generate_blocks( HARDFORK_CORE_199_TIME );
 
       update_issuer_proposal( test_id, alice_id(db), bob_id(db), alice_owner);
 
@@ -1000,8 +1033,18 @@ BOOST_AUTO_TEST_CASE( witness_feeds )
          uop.issuer =  current.issuer;
          uop.asset_to_update = current.id;
          uop.new_options = current.options;
-         uop.new_issuer = account_id_type();
+         //uop.new_issuer = account_id_type();
          trx.operations.push_back(uop);
+         PUSH_TX( db, trx, ~0 );
+         trx.clear();
+      }
+      {
+         auto& current = get_asset( "USDBIT" );
+         asset_update_issuer_operation upd_op;
+         upd_op.asset_to_update = current.id;
+         upd_op.issuer = current.issuer;
+         upd_op.new_issuer = account_id_type();
+         trx.operations.push_back(upd_op);
          PUSH_TX( db, trx, ~0 );
          trx.clear();
       }

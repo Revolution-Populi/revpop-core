@@ -96,8 +96,6 @@ void change_asset_options(database_fixture& fixture, const optional<account_id_t
    const asset_object& obj = asset_id(fixture.db);
    op.asset_to_update = asset_id;
    op.issuer = obj.issuer;
-   if (new_issuer)
-      op.new_issuer = new_issuer;
    op.new_options = obj.options;
    if (witness_fed)
    {
@@ -111,6 +109,17 @@ void change_asset_options(database_fixture& fixture, const optional<account_id_t
    fixture.trx.operations.push_back(op);
    fixture.sign( fixture.trx, signing_key );
    PUSH_TX( fixture.db, fixture.trx, ~0 );
+   if (new_issuer)
+   {
+      asset_update_issuer_operation upd_op;
+      const asset_object& obj = asset_id(fixture.db);
+      upd_op.asset_to_update = asset_id;
+      upd_op.issuer = obj.issuer;
+      upd_op.new_issuer = *new_issuer;
+      fixture.trx.operations.push_back(upd_op);
+      fixture.sign( fixture.trx, signing_key );
+      PUSH_TX( fixture.db, fixture.trx, ~0 );
+   }
    fixture.generate_block();
    fixture.trx.clear();
 

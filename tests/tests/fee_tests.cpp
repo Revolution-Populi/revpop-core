@@ -652,11 +652,11 @@ BOOST_AUTO_TEST_CASE( stealth_fba_test )
       }
 
       // Izzy transfers issuer duty to Tom
-      {
+/*      {
          asset_update_operation update_op;
          update_op.issuer = izzy_id;
          update_op.asset_to_update = stealth_id;
-         update_op.new_issuer = tom_id;
+         //update_op.new_issuer = tom_id;
          // new_options should be optional, but isn't...the following line should be unnecessary #580
          update_op.new_options = stealth_id(db).options;
          signed_transaction tx;
@@ -665,10 +665,23 @@ BOOST_AUTO_TEST_CASE( stealth_fba_test )
          sign( tx, izzy_private_key );
          PUSH_TX( db, tx );
       }
+*/
+      {
+         asset_update_issuer_operation upd_op;
+         upd_op.asset_to_update = stealth_id;
+         upd_op.issuer = izzy_id;
+         upd_op.new_issuer = tom_id;
+         signed_transaction tx;
+         tx.operations.push_back( upd_op );
+         set_expiration( db, tx );
+         sign( tx, izzy_private_key );
+         PUSH_TX( db, tx );
+      }
 
       // Tom re-enables the permission bits to clear the flags, then clears them again
       // Allowed by #572 when current_supply == 0
       {
+         BOOST_TEST_MESSAGE("----------------- 300 ---------------------");
          asset_update_operation update_op;
          update_op.issuer = tom_id;
          update_op.asset_to_update = stealth_id;

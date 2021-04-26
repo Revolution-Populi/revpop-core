@@ -393,14 +393,24 @@ BOOST_AUTO_TEST_CASE(bsip36_update_feed_producers)
       const asset_id_type bit_usd_id = create_bitasset("USDBIT").id;
 
       // Update asset issuer
-      const asset_object &asset_obj = bit_usd_id(db);
       {
+         const asset_object &asset_obj = bit_usd_id(db);
          asset_update_operation op;
          op.asset_to_update = bit_usd_id;
          op.issuer = asset_obj.issuer;
-         op.new_issuer = bob_id;
          op.new_options = asset_obj.options;
          op.new_options.flags &= ~witness_fed_asset;
+         trx.operations.push_back(op);
+         PUSH_TX(db, trx, ~0);
+         generate_block();
+         trx.clear();
+      }
+      {
+         const asset_object &asset_obj = bit_usd_id(db);
+         asset_update_issuer_operation op;
+         op.asset_to_update = bit_usd_id;
+         op.issuer = asset_obj.issuer;
+         op.new_issuer = bob_id;
          trx.operations.push_back(op);
          PUSH_TX(db, trx, ~0);
          generate_block();

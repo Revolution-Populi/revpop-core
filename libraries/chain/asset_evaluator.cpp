@@ -1004,9 +1004,7 @@ operation_result asset_settle_evaluator::do_apply(const asset_settle_evaluator::
 
       if( settled_amount.amount == 0 && !bitasset.is_prediction_market )
       {
-         if( d.get_dynamic_global_properties().next_maintenance_time > HARDFORK_CORE_184_TIME )
-            FC_THROW( "Settle amount is too small to receive anything due to rounding" );
-         // else do nothing. Before the hf, something for nothing issue (#184, variant F) could occur
+         FC_THROW( "Settle amount is too small to receive anything due to rounding" );
       }
 
       asset pays = op.amount;

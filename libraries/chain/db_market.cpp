@@ -622,7 +622,7 @@ int database::match( const limit_order_object& usd, const limit_order_object& co
 
       // Be here, it's possible that taker is paying something for nothing due to partially filled in last loop.
       // In this case, we see it as filled and cancel it later
-      if( usd_receives.amount == 0 && maint_time > HARDFORK_CORE_184_TIME )
+      if( usd_receives.amount == 0 )
          return 1;
 
       if( before_core_hardfork_342 )
@@ -747,22 +747,19 @@ asset database::match( const call_order_object& call,
    bool cull_settle_order = false; // whether need to cancel dust settle order
    if( call_pays.amount == 0 )
    {
-      if( maint_time > HARDFORK_CORE_184_TIME )
+      if( call_receives == call_debt ) // the call order is smaller than or equal to the settle order
       {
-         if( call_receives == call_debt ) // the call order is smaller than or equal to the settle order
+         call_pays.amount = 1;
+      }
+      else
+      {
+         if( call_receives == settle.balance ) // the settle order is smaller
          {
-            call_pays.amount = 1;
+            cancel_settle_order( settle );
          }
-         else
-         {
-            if( call_receives == settle.balance ) // the settle order is smaller
-            {
-               cancel_settle_order( settle );
-            }
-            // else do nothing: neither order will be completely filled, perhaps due to max_settlement too small
+         // else do nothing: neither order will be completely filled, perhaps due to max_settlement too small
 
-            return asset( 0, settle.balance.asset_id );
-         }
+         return asset( 0, settle.balance.asset_id );
       }
 
    }

@@ -175,18 +175,6 @@ struct proposal_operation_hardfork_visitor
    }
 };
 
-struct hardfork_visitor_214 // non-recursive proposal visitor
-{
-   typedef void result_type;
-
-   template<typename T>
-   void operator()(const T &v) const {}
-
-   void operator()(const proposal_update_operation &v) const {
-      FC_ASSERT(false, "Not allowed until hardfork 214");
-   }
-};
-
 void hardfork_visitor_1479::operator()(const proposal_update_operation &v)
 {
    if( nested_update_count == 0 || v.proposal.instance.value > max_update_instance )
@@ -216,13 +204,6 @@ void_result proposal_create_evaluator::do_evaluate( const proposal_create_operat
    const fc::time_point_sec block_time = d.head_block_time();
    proposal_operation_hardfork_visitor vtor( d, block_time );
    vtor( o );
-   if( block_time < HARDFORK_CORE_214_TIME )
-   {
-      // cannot be removed after hf, unfortunately
-      hardfork_visitor_214 hf214;
-      for( const op_wrapper &op : o.proposed_ops )
-         op.op.visit( hf214 );
-   }
    vtor_1479( o );
 
    const auto& global_parameters = d.get_global_properties().parameters;

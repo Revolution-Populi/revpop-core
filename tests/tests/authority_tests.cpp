@@ -2167,7 +2167,6 @@ BOOST_AUTO_TEST_CASE( nested_execution )
    ACTORS( (alice)(bob) );
    fund( alice );
 
-   generate_blocks( HARDFORK_CORE_214_TIME + fc::hours(1) );
    set_expiration( db, trx );
 
    const auto& gpo = db.get_global_properties();
@@ -2220,7 +2219,6 @@ BOOST_AUTO_TEST_CASE( issue_214 )
    ACTORS( (alice)(bob) );
    fund( alice );
 
-   generate_blocks( HARDFORK_CORE_214_TIME - fc::hours(1) );
    set_expiration( db, trx );
 
    // Bob proposes that Alice transfer 500 CORE to himself
@@ -2246,39 +2244,6 @@ BOOST_AUTO_TEST_CASE( issue_214 )
    pop.proposed_ops.emplace_back( pup );
    trx.operations.push_back(pop);
    sign( trx, bob_private_key );
-   // before HF_CORE_214, Bob can't do that
-   BOOST_REQUIRE_THROW( PUSH_TX( db, trx ), fc::assert_exception );
-   trx.clear_signatures();
-
-   { // Bob can create a proposal nesting the one containing the proposal_update
-      proposal_create_operation npop;
-      npop.proposed_ops.emplace_back(pop);
-      npop.fee_paying_account = bob_id;
-      npop.expiration_time = db.head_block_time() + fc::days(2);
-      signed_transaction ntx;
-      set_expiration( db, ntx );
-      ntx.operations.push_back(npop);
-      sign( ntx, bob_private_key );
-      const proposal_id_type pid1a = PUSH_TX( db, ntx ).operation_results[0].get<object_id_type>();
-      ntx.clear();
-
-      // But execution after confirming it fails
-      proposal_update_operation npup;
-      npup.fee_paying_account = bob_id;
-      npup.proposal = pid1a;
-      npup.active_approvals_to_add.insert( bob_id );
-      ntx.operations.push_back(npup);
-      sign( ntx, bob_private_key );
-      PUSH_TX( db, ntx );
-      ntx.clear();
-
-      db.get<proposal_object>( pid1a ); // still exists
-   }
-
-   generate_blocks( HARDFORK_CORE_214_TIME + fc::hours(1) );
-   set_expiration( db, trx );
-   sign( trx, bob_private_key );
-   // after the HF the previously failed tx works too
    const proposal_id_type pid2 = PUSH_TX( db, trx ).operation_results[0].get<object_id_type>();
    trx.clear();
 

@@ -519,7 +519,7 @@ bool database::apply_order(const limit_order_object& new_order_object, bool allo
          auto call_min = price::min( recv_asset_id, sell_asset_id );
          while( !finished )
          {
-            // hard fork core-343 and core-625 took place at same time,
+            // hard fork core-625
             // always check call order with least collateral ratio
             auto call_itr = call_collateral_idx.lower_bound( call_min );
             if( call_itr == call_collateral_idx.end()
@@ -527,7 +527,7 @@ bool database::apply_order(const limit_order_object& new_order_object, bool allo
                   // feed protected https://github.com/cryptonomex/graphene/issues/436
                   || call_itr->collateralization() > sell_abd->current_maintenance_collateralization )
                break;
-            // hard fork core-338 and core-625 took place at same time, not checking HARDFORK_CORE_338_TIME here.
+            // hard fork core-625, not checking HARDFORK_CORE_338_TIME here.
             int match_result = match( new_order_object, *call_itr, call_match_price,
                                       sell_abd->current_feed.settlement_price,
                                       sell_abd->current_feed.maintenance_collateral_ratio,
@@ -546,7 +546,7 @@ bool database::apply_order(const limit_order_object& new_order_object, bool allo
          auto call_min = price::min( recv_asset_id, sell_asset_id );
          while( !finished )
          {
-            // assume hard fork core-343 and core-625 will take place at same time, always check call order with least call_price
+            // hard fork core-625, always check call order with least call_price
             auto call_itr = call_price_idx.lower_bound( call_min );
             if( call_itr == call_price_idx.end()
                   || call_itr->debt_type() != sell_asset_id
@@ -605,8 +605,6 @@ int database::match( const limit_order_object& usd, const limit_order_object& co
    auto core_for_sale = core.amount_for_sale();
 
    asset usd_pays, usd_receives, core_pays, core_receives;
-
-   auto maint_time = get_dynamic_global_properties().next_maintenance_time;
 
    bool cull_taker = false;
    if( usd_for_sale <= core_for_sale * match_price ) // rounding down here should be fine
@@ -713,8 +711,6 @@ asset database::match( const call_order_object& call,
 { try {
    FC_ASSERT(call.get_debt().asset_id == settle.balance.asset_id );
    FC_ASSERT(call.debt > 0 && call.collateral > 0 && settle.balance.amount > 0);
-
-   auto maint_time = get_dynamic_global_properties().next_maintenance_time;
 
    auto settle_for_sale = std::min(settle.balance, max_settlement);
    auto call_debt = call.get_debt();
@@ -920,9 +916,9 @@ bool database::fill_call_order( const call_order_object& order, const asset& pay
          else // the debt was not completely paid
          {
             auto maint_time = get_dynamic_global_properties().next_maintenance_time;
-            // update call_price after core-343 hard fork,
+            // update call_price,
             // but don't update call_price after core-1270 hard fork
-            if( maint_time <= HARDFORK_CORE_1270_TIME && maint_time > HARDFORK_CORE_343_TIME )
+            if( maint_time <= HARDFORK_CORE_1270_TIME )
             {
                o.call_price = price::call_price( o.get_debt(), o.get_collateral(),
                      bitasset.current_feed.maintenance_collateral_ratio );
@@ -1127,10 +1123,8 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
     bool filled_limit = false;
     bool margin_called = false;         // toggles true once/if we actually execute a margin call
 
-    auto head_time = head_block_time();
     auto head_num = head_block_num();
 
-    bool before_core_hardfork_343 = ( maint_time <= HARDFORK_CORE_343_TIME ); // update call_price after partially filled
     bool before_core_hardfork_453 = ( maint_time <= HARDFORK_CORE_453_TIME ); // multiple matching issue
     bool before_core_hardfork_606 = ( maint_time <= HARDFORK_CORE_606_TIME ); // feed always trigger call
     bool before_core_hardfork_834 = ( maint_time <= HARDFORK_CORE_834_TIME ); // target collateral ratio option
@@ -1140,8 +1134,6 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
            && ( ( !before_core_hardfork_1270 && call_collateral_itr != call_collateral_end )
               || ( before_core_hardfork_1270 && call_price_itr != call_price_end ) ) )
     {
-       bool  filled_call      = false;
-
        const call_order_object& call_order = ( before_core_hardfork_1270 ? *call_price_itr : *call_collateral_itr );
 
        // Feed protected (don't call if CR>MCR) https://github.com/cryptonomex/graphene/issues/436
@@ -1230,8 +1222,6 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
                                           // one satoshi more than the blackswan check above? Can this bite us?
 
 
-          filled_call    = true; // this is safe, since BSIP38 (hard fork core-834) depends on BSIP31 (hard fork core-343)
-
           if( usd_to_buy == usd_for_sale )
              filled_limit = true;
        }
@@ -1241,15 +1231,12 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
        FC_ASSERT(call_pays >= limit_receives);
        const asset margin_call_fee = call_pays - limit_receives;
 
-       if( filled_call && before_core_hardfork_343 )
-          ++call_price_itr;
-
        // when for_new_limit_order is true, the call order is maker, otherwise the call order is taker
        fill_call_order( call_order, call_pays, call_receives, match_price, for_new_limit_order, margin_call_fee);
 
        if( !before_core_hardfork_1270 )
           call_collateral_itr = call_collateral_index.lower_bound( call_min );
-       else if( !before_core_hardfork_343 )
+       else
           call_price_itr = call_price_index.lower_bound( call_min );
 
        auto next_limit_itr = std::next( limit_itr );

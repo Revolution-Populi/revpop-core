@@ -276,7 +276,6 @@ void database::clear_expired_orders()
          auto head_time = head_block_time();
          auto maint_time = get_dynamic_global_properties().next_maintenance_time;
 
-         bool before_core_hardfork_342 = ( maint_time <= HARDFORK_CORE_342_TIME ); // better rounding
          bool before_core_hardfork_606 = ( maint_time <= HARDFORK_CORE_606_TIME ); // feed always trigger call
 
          auto& limit_index = get_index_type<limit_order_index>().indices().get<by_expiration>();
@@ -412,17 +411,7 @@ void database::clear_expired_orders()
                                     / ratio_type( GRAPHENE_100_PERCENT - mia.options.force_settlement_offset_percent,
                                                   GRAPHENE_100_PERCENT );
 
-         if( before_core_hardfork_342 )
-         {
-            auto& pays = order.balance;
-            auto receives = (order.balance * mia.current_feed.settlement_price);
-            receives.amount = static_cast<uint64_t>( fc::uint128_t(receives.amount.value) *
-                                (GRAPHENE_100_PERCENT - mia.options.force_settlement_offset_percent) /
-                                GRAPHENE_100_PERCENT );
-            assert(receives <= order.balance * mia.current_feed.settlement_price);
-            settlement_price = pays / receives;
-         }
-         else if( settlement_price.base.asset_id != current_asset ) // only calculate once per asset
+         if( settlement_price.base.asset_id != current_asset ) // only calculate once per asset
             settlement_price = settlement_fill_price;
 
          auto& call_index = get_index_type<call_order_index>().indices().get<by_collateral>();
@@ -451,16 +440,6 @@ void database::clear_expired_orders()
                   break;
                }
                settled += new_settled;
-               // before hard fork core-342, `new_settled > 0` is always true, we'll have:
-               // * call order is completely filled (thus itr will change in next loop), or
-               // * settle order is completely filled (thus find_object(order_id) will be false so will break out), or
-               // * reached max_settlement_volume limit (thus new_settled == max_settlement so will break out).
-               //
-               // after hard fork core-342, if new_settled > 0, we'll have:
-               // * call order is completely filled (thus itr will change in next loop), or
-               // * settle order is completely filled (thus find_object(order_id) will be false so will break out), or
-               // * reached max_settlement_volume limit, but it's possible that new_settled < max_settlement,
-               //   in this case, new_settled will be zero in next iteration of the loop, so no need to check here.
             } 
             catch ( const black_swan_exception& e ) { 
                wlog( "Cancelling a settle_order since it may trigger a black swan: ${o}, ${e}",

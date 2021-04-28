@@ -1007,8 +1007,7 @@ operation_result asset_settle_evaluator::do_apply(const asset_settle_evaluator::
 
       asset pays = op.amount;
       if( op.amount.amount != mia_dyn.current_supply
-            && settled_amount.amount != 0
-            && d.get_dynamic_global_properties().next_maintenance_time > HARDFORK_CORE_342_TIME )
+            && settled_amount.amount != 0 )
       {
          pays = settled_amount.multiply_and_round_up( bitasset.settlement_price );
       }

@@ -223,9 +223,8 @@ bool database::check_for_blackswan( const asset_object& mia, bool enable_black_s
     if( maint_time > HARDFORK_CORE_1270_TIME )
        // due to #338, we won't check for black swan on incoming limit order, so need to check with MSSP here
        highest = bitasset.current_feed.max_short_squeeze_price();
-    else if( maint_time > HARDFORK_CORE_338_TIME )
-       // due to #338, we won't check for black swan on incoming limit order, so need to check with MSSP here
-       highest = bitasset.current_feed.max_short_squeeze_price_before_hf_1270();
+    // due to #338, we won't check for black swan on incoming limit order, so need to check with MSSP here
+    highest = bitasset.current_feed.max_short_squeeze_price_before_hf_1270();
 
     const limit_order_index& limit_index = get_index_type<limit_order_index>();
     const auto& limit_price_index = limit_index.indices().get<by_price>();
@@ -261,7 +260,7 @@ bool database::check_for_blackswan( const asset_object& mia, bool enable_black_s
             ("h",highest.to_real())("~h",(~highest).to_real()) );
        edump((enable_black_swan));
        FC_ASSERT( enable_black_swan, "Black swan was detected during a margin update which is not allowed to trigger a blackswan" );
-       if( maint_time > HARDFORK_CORE_338_TIME && ~least_collateral <= settle_price )
+       if( ~least_collateral <= settle_price )
           // global settle at feed price if possible
           globally_settle_asset(mia, settle_price );
        else

@@ -1120,7 +1120,6 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
        call_collateral_end = call_collateral_index.upper_bound( call_max );
     }
 
-    bool filled_limit = false;
     bool margin_called = false;         // toggles true once/if we actually execute a margin call
 
     auto head_num = head_block_num();
@@ -1210,8 +1209,6 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
           //   so calling maybe_cull_small() will always cull it.
           call_receives = limit_receives.multiply_and_round_up( match_price );
 
-          filled_limit = true;
-
        } else { // fill call
           call_receives  = usd_to_buy;
 
@@ -1219,10 +1216,6 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
           call_pays      = usd_to_buy.multiply_and_round_up( call_pays_price ); // BSIP74; excess is fee.
                                           // Note: TODO: Due to different rounding, couldn't this potentialy be
                                           // one satoshi more than the blackswan check above? Can this bite us?
-
-
-          if( usd_to_buy == usd_for_sale )
-             filled_limit = true;
        }
        limit_pays = call_receives;
 

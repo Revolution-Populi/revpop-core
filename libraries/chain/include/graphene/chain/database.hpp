@@ -678,9 +678,6 @@ namespace graphene { namespace chain {
          // Counts nested proposal updates
          uint32_t                           _push_proposal_nesting_depth = 0;
 
-         /// Tracks assets affected by bitshares-core issue #453 before hard fork #615 in one block
-         flat_set<asset_id_type>           _issue_453_affected_assets;
-
          /// Pointers to core asset object and global objects who will have immutable addresses after created
          ///@{
          const asset_object*                    _p_core_asset_obj          = nullptr;

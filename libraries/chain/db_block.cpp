@@ -593,8 +593,6 @@ void database::_apply_block( const signed_block& next_block )
    _current_block_num    = next_block_num;
    _current_trx_in_block = 0;
 
-   _issue_453_affected_assets.clear();
-
    for( const auto& trx : next_block.transactions )
    {
       /* We do not need to push the undo state for each transaction

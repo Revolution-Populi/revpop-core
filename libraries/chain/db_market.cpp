@@ -1125,7 +1125,6 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
 
     auto head_num = head_block_num();
 
-    bool before_core_hardfork_453 = ( maint_time <= HARDFORK_CORE_453_TIME ); // multiple matching issue
     bool before_core_hardfork_606 = ( maint_time <= HARDFORK_CORE_606_TIME ); // feed always trigger call
     bool before_core_hardfork_834 = ( maint_time <= HARDFORK_CORE_834_TIME ); // target collateral ratio option
 
@@ -1243,7 +1242,7 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
        // when for_new_limit_order is true, the limit order is taker, otherwise the limit order is maker
        bool really_filled = fill_limit_order( limit_order, limit_pays, limit_receives, true,
                                               match_price, !for_new_limit_order );
-       if( really_filled || ( filled_limit && before_core_hardfork_453 ) )
+       if( really_filled )
           limit_itr = next_limit_itr;
 
     } // while call_itr != call_end

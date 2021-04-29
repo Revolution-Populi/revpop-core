@@ -144,7 +144,6 @@ BOOST_AUTO_TEST_CASE( bsip77_hardfork_time_and_param_valid_range_test )
    try {
 
       // Proceeds to a recent hard fork
-      generate_blocks( HARDFORK_CORE_583_TIME );
       generate_block();
       set_expiration( db, trx );
 

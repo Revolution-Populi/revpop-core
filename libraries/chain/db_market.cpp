@@ -1119,7 +1119,6 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
 
     auto head_num = head_block_num();
 
-    bool before_core_hardfork_606 = ( maint_time <= HARDFORK_CORE_606_TIME ); // feed always trigger call
     bool before_core_hardfork_834 = ( maint_time <= HARDFORK_CORE_834_TIME ); // target collateral ratio option
 
     while( !check_for_blackswan( mia, enable_black_swan, &bitasset ) // TODO perhaps improve performance by passing in iterators
@@ -1146,10 +1145,6 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
        // call_pays_price for the black swan check, and for the TCR, but we still use the match_price,
        // of course, to determine what the limit order receives.  Note margin_call_pays_ratio() returns
        // 1/1 if margin_call_fee_ratio is unset (i.e. before BSIP74), so hardfork check is implicit.
-
-       // Old rule: margin calls can only buy high https://github.com/bitshares/bitshares-core/issues/606
-       if( before_core_hardfork_606 && match_price > ~call_order.call_price )
-          return margin_called;
 
        margin_called = true;
 

@@ -342,12 +342,7 @@ bool maybe_cull_small_order( database& db, const limit_order_object& order )
     */
    if( order.amount_to_receive().amount == 0 )
    {
-      if( order.deferred_fee > 0 && db.head_block_time() <= HARDFORK_CORE_604_TIME )
-      {
-         db.cancel_limit_order( order, true, true );
-      }
-      else
-         db.cancel_limit_order( order );
+      db.cancel_limit_order( order );
       return true;
    }
    return false;

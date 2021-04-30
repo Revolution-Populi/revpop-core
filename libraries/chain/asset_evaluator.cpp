@@ -648,10 +648,6 @@ void_result asset_update_bitasset_evaluator::do_evaluate(const asset_update_bita
       FC_ASSERT( !mssr_changed, "No permission to update MSSR" );
    }
 
-   // hf 922_931 is a consensus/logic change. This hf cannot be removed.
-   bool after_hf_core_922_931 = ( d.get_dynamic_global_properties().next_maintenance_time
-                                  > HARDFORK_CORE_922_931_TIME );
-
    // Are we changing the backing asset?
    if( op.new_options.short_backing_asset != current_bitasset_data.options.short_backing_asset )
    {
@@ -664,67 +660,61 @@ void_result asset_update_bitasset_evaluator::do_evaluate(const asset_update_bita
 
       const asset_object& new_backing_asset = op.new_options.short_backing_asset(d); // check if the asset exists
 
-      if( after_hf_core_922_931 )
+      FC_ASSERT( op.new_options.short_backing_asset != asset_obj.get_id(),
+                  "Cannot update an asset to be backed by itself." );
+
+      if( current_bitasset_data.is_prediction_market )
       {
-         FC_ASSERT( op.new_options.short_backing_asset != asset_obj.get_id(),
-                    "Cannot update an asset to be backed by itself." );
+         FC_ASSERT( asset_obj.precision == new_backing_asset.precision,
+                     "The precision of the asset and backing asset must be equal." );
+      }
 
-         if( current_bitasset_data.is_prediction_market )
+      if( asset_obj.issuer == GRAPHENE_COMMITTEE_ACCOUNT )
+      {
+         if( new_backing_asset.is_market_issued() )
          {
-            FC_ASSERT( asset_obj.precision == new_backing_asset.precision,
-                       "The precision of the asset and backing asset must be equal." );
-         }
+            FC_ASSERT( new_backing_asset.bitasset_data(d).options.short_backing_asset == asset_id_type(),
+                        "May not modify a blockchain-controlled market asset to be backed by an asset which is not "
+                        "backed by CORE." );
 
-         if( asset_obj.issuer == GRAPHENE_COMMITTEE_ACCOUNT )
-         {
-            if( new_backing_asset.is_market_issued() )
-            {
-               FC_ASSERT( new_backing_asset.bitasset_data(d).options.short_backing_asset == asset_id_type(),
-                          "May not modify a blockchain-controlled market asset to be backed by an asset which is not "
-                          "backed by CORE." );
-
-               check_children_of_bitasset( d, op, new_backing_asset );
-            }
-            else
-            {
-               FC_ASSERT( new_backing_asset.get_id() == asset_id_type(),
-                          "May not modify a blockchain-controlled market asset to be backed by an asset which is not "
-                          "market issued asset nor CORE." );
-            }
+            check_children_of_bitasset( d, op, new_backing_asset );
          }
          else
          {
-            // not a committee issued asset
-
-            // If we're changing to a backing_asset that is not CORE, we need to look at any
-            // asset ( "CHILD" ) that has this one as a backing asset. If CHILD is committee-owned,
-            // the change is not allowed. If CHILD is user-owned, then this asset's backing
-            // asset must be either CORE or a UIA.
-            if ( new_backing_asset.get_id() != asset_id_type() ) // not backed by CORE
-            {
-               check_children_of_bitasset( d, op, new_backing_asset );
-            }
-
+            FC_ASSERT( new_backing_asset.get_id() == asset_id_type(),
+                        "May not modify a blockchain-controlled market asset to be backed by an asset which is not "
+                        "market issued asset nor CORE." );
          }
+      }
+      else
+      {
+         // not a committee issued asset
 
-         // Check if the new backing asset is itself backed by something. It must be CORE or a UIA
-         if ( new_backing_asset.is_market_issued() )
+         // If we're changing to a backing_asset that is not CORE, we need to look at any
+         // asset ( "CHILD" ) that has this one as a backing asset. If CHILD is committee-owned,
+         // the change is not allowed. If CHILD is user-owned, then this asset's backing
+         // asset must be either CORE or a UIA.
+         if ( new_backing_asset.get_id() != asset_id_type() ) // not backed by CORE
          {
-            asset_id_type backing_backing_asset_id = new_backing_asset.bitasset_data(d).options.short_backing_asset;
-            FC_ASSERT( (backing_backing_asset_id == asset_id_type() || !backing_backing_asset_id(d).is_market_issued()),
-                  "A BitAsset cannot be backed by a BitAsset that itself is backed by a BitAsset.");
+            check_children_of_bitasset( d, op, new_backing_asset );
          }
+
+      }
+
+      // Check if the new backing asset is itself backed by something. It must be CORE or a UIA
+      if ( new_backing_asset.is_market_issued() )
+      {
+         asset_id_type backing_backing_asset_id = new_backing_asset.bitasset_data(d).options.short_backing_asset;
+         FC_ASSERT( (backing_backing_asset_id == asset_id_type() || !backing_backing_asset_id(d).is_market_issued()),
+               "A BitAsset cannot be backed by a BitAsset that itself is backed by a BitAsset.");
       }
    }
 
    const auto& chain_parameters = d.get_global_properties().parameters;
-   if( after_hf_core_922_931 )
-   {
-      FC_ASSERT( op.new_options.feed_lifetime_sec > chain_parameters.block_interval,
-            "Feed lifetime must exceed block interval." );
-      FC_ASSERT( op.new_options.force_settlement_delay_sec > chain_parameters.block_interval,
-            "Force settlement delay must exceed block interval." );
-   }
+   FC_ASSERT( op.new_options.feed_lifetime_sec > chain_parameters.block_interval,
+         "Feed lifetime must exceed block interval." );
+   FC_ASSERT( op.new_options.force_settlement_delay_sec > chain_parameters.block_interval,
+         "Force settlement delay must exceed block interval." );
 
    bitasset_to_update = &current_bitasset_data;
    asset_to_update = &asset_obj;

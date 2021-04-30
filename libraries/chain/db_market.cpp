@@ -1067,8 +1067,6 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
 
     auto head_num = head_block_num();
 
-    bool before_core_hardfork_834 = ( maint_time <= HARDFORK_CORE_834_TIME ); // target collateral ratio option
-
     while( !check_for_blackswan( mia, enable_black_swan, &bitasset ) // TODO perhaps improve performance by passing in iterators
            && limit_itr != limit_end
            && ( ( !before_core_hardfork_1270 && call_collateral_itr != call_collateral_end )
@@ -1119,7 +1117,7 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
                                                                 bitasset.current_feed.maintenance_collateral_ratio,
                                                                 bitasset.current_maintenance_collateralization );
        }
-       else if( !before_core_hardfork_834 )
+       else
        {
           usd_to_buy.amount = call_order.get_max_debt_to_cover( call_pays_price,
                                                                 bitasset.current_feed.settlement_price,

@@ -193,15 +193,15 @@ BOOST_AUTO_TEST_CASE( get_signatures_non_immediate_owner )
       BOOST_CHECK( pub_keys.find( pub_key_active ) != pub_keys.end() );
       BOOST_CHECK( pub_keys.find( pub_key_owner ) != pub_keys.end() );
       BOOST_CHECK( pub_keys.find( a_pub_key_active ) != pub_keys.end() );
-      // doesn't work due to https://github.com/bitshares/bitshares-core/issues/584
-      BOOST_CHECK( pub_keys.find( a_pub_key_owner ) == pub_keys.end() );
+      // https://github.com/bitshares/bitshares-core/issues/584
+      BOOST_CHECK( pub_keys.find( a_pub_key_owner ) != pub_keys.end() );
       BOOST_CHECK( pub_keys.find( o_pub_key_active ) != pub_keys.end() );
-      // doesn't work due to https://github.com/bitshares/bitshares-core/issues/584
-      BOOST_CHECK( pub_keys.find( o_pub_key_owner ) == pub_keys.end() );
+      // https://github.com/bitshares/bitshares-core/issues/584
+      BOOST_CHECK( pub_keys.find( o_pub_key_owner ) != pub_keys.end() );
 
       // get required signatures
       pub_keys = db_api.get_required_signatures( trx_a, { a_pub_key_owner, o_pub_key_owner } );
-      BOOST_CHECK( pub_keys.empty() );
+      BOOST_CHECK( !pub_keys.empty() );
 
       // this op requires owner
       signed_transaction trx_o;
@@ -221,15 +221,12 @@ BOOST_AUTO_TEST_CASE( get_signatures_non_immediate_owner )
       // owner authorities should be ok
       BOOST_CHECK( pub_keys.find( pub_key_owner ) != pub_keys.end() );
       BOOST_CHECK( pub_keys.find( o_pub_key_active ) != pub_keys.end() );
-      // doesn't work due to https://github.com/bitshares/bitshares-core/issues/584
-      BOOST_CHECK( pub_keys.find( o_pub_key_owner ) == pub_keys.end() );
+      // https://github.com/bitshares/bitshares-core/issues/584
+      BOOST_CHECK( pub_keys.find( o_pub_key_owner ) != pub_keys.end() );
 
       // get required signatures
       pub_keys = db_api.get_required_signatures( trx_o, { a_pub_key_owner, o_pub_key_owner } );
-      BOOST_CHECK( pub_keys.empty() );
-
-      // go beyond hard fork
-      generate_blocks( HARDFORK_CORE_584_TIME, true );
+      BOOST_CHECK( !pub_keys.empty() );
 
       // for the transaction that requires active
       // get potential signatures

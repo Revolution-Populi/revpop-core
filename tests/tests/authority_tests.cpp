@@ -1438,14 +1438,14 @@ BOOST_FIXTURE_TEST_CASE( parent_owner_test, database_fixture )
 
       auto chk = [&](
          const signed_transaction& tx,
-         bool after_hf_584,
+         bool allow_non_immediate_owner,
          flat_set<public_key_type> available_keys,
          set<public_key_type> ref_set
          ) -> bool
       {
          //wdump( (tx)(available_keys) );
          set<public_key_type> result_set = tx.get_required_signatures(db.get_chain_id(), available_keys,
-                                                                      get_active, get_owner, after_hf_584, false);
+                                                                      get_active, get_owner, allow_non_immediate_owner, false);
          //wdump( (result_set)(ref_set) );
          return result_set == ref_set;
       } ;
@@ -1563,7 +1563,7 @@ BOOST_FIXTURE_TEST_CASE( parent_owner_test, database_fixture )
       sign( tx, alice_owner_key );
       GRAPHENE_REQUIRE_THROW( tx.verify_authority( db.get_chain_id(), get_active, get_owner, make_get_custom(db),
                                                    false, false ), fc::exception );
-      GRAPHENE_REQUIRE_THROW( PUSH_TX( db, tx, database::skip_transaction_dupe_check ), fc::exception );
+      PUSH_TX( db, tx, database::skip_transaction_dupe_check );
       tx.verify_authority( db.get_chain_id(), get_active, get_owner, make_get_custom(db),
                            true, false );
       tx.clear_signatures();
@@ -1589,21 +1589,21 @@ BOOST_FIXTURE_TEST_CASE( parent_owner_test, database_fixture )
       sign( tx, cindy_owner_key );
       GRAPHENE_REQUIRE_THROW( tx.verify_authority( db.get_chain_id(), get_active, get_owner, make_get_custom(db),
                                                    false, false ), fc::exception );
-      GRAPHENE_REQUIRE_THROW( PUSH_TX( db, tx, database::skip_transaction_dupe_check ), fc::exception );
+      PUSH_TX( db, tx, database::skip_transaction_dupe_check );
       tx.verify_authority( db.get_chain_id(), get_active, get_owner, make_get_custom(db), true, false );
       tx.clear_signatures();
 
       sign( tx, cindy_active_key );
       GRAPHENE_REQUIRE_THROW( tx.verify_authority( db.get_chain_id(), get_active, get_owner, make_get_custom(db),
                                                    false, false ), fc::exception );
-      GRAPHENE_REQUIRE_THROW( PUSH_TX( db, tx, database::skip_transaction_dupe_check ), fc::exception );
+      PUSH_TX( db, tx, database::skip_transaction_dupe_check );
       tx.verify_authority( db.get_chain_id(), get_active, get_owner, make_get_custom(db), true, false );
       tx.clear_signatures();
 
       sign( tx, daisy_owner_key );
       GRAPHENE_REQUIRE_THROW( tx.verify_authority( db.get_chain_id(), get_active, get_owner, make_get_custom(db),
                                                    false, false ), fc::exception );
-      GRAPHENE_REQUIRE_THROW( PUSH_TX( db, tx, database::skip_transaction_dupe_check ), fc::exception );
+      PUSH_TX( db, tx, database::skip_transaction_dupe_check );
       tx.verify_authority( db.get_chain_id(), get_active, get_owner, make_get_custom(db), true, false );
       tx.clear_signatures();
 
@@ -1616,7 +1616,7 @@ BOOST_FIXTURE_TEST_CASE( parent_owner_test, database_fixture )
       sign( tx, edwin_owner_key );
       GRAPHENE_REQUIRE_THROW( tx.verify_authority( db.get_chain_id(), get_active, get_owner, make_get_custom(db),
                                                    false, false ), fc::exception );
-      GRAPHENE_REQUIRE_THROW( PUSH_TX( db, tx, database::skip_transaction_dupe_check ), fc::exception );
+      PUSH_TX( db, tx, database::skip_transaction_dupe_check );
       tx.verify_authority( db.get_chain_id(), get_active, get_owner, make_get_custom(db), true, false );
       tx.clear_signatures();
 
@@ -1629,21 +1629,21 @@ BOOST_FIXTURE_TEST_CASE( parent_owner_test, database_fixture )
       sign( tx, frank_owner_key );
       GRAPHENE_REQUIRE_THROW( tx.verify_authority( db.get_chain_id(), get_active, get_owner, make_get_custom(db),
                                                    false, false ), fc::exception );
-      GRAPHENE_REQUIRE_THROW( PUSH_TX( db, tx, database::skip_transaction_dupe_check ), fc::exception );
+      PUSH_TX( db, tx, database::skip_transaction_dupe_check );
       tx.verify_authority( db.get_chain_id(), get_active, get_owner, make_get_custom(db), true, false );
       tx.clear_signatures();
 
       sign( tx, frank_active_key );
       GRAPHENE_REQUIRE_THROW( tx.verify_authority( db.get_chain_id(), get_active, get_owner, make_get_custom(db),
                                                    false, false ), fc::exception );
-      GRAPHENE_REQUIRE_THROW( PUSH_TX( db, tx, database::skip_transaction_dupe_check ), fc::exception );
+      PUSH_TX( db, tx, database::skip_transaction_dupe_check );
       tx.verify_authority( db.get_chain_id(), get_active, get_owner, make_get_custom(db), true, false );
       tx.clear_signatures();
 
       sign( tx, gavin_owner_key );
       GRAPHENE_REQUIRE_THROW( tx.verify_authority( db.get_chain_id(), get_active, get_owner, make_get_custom(db),
                                                    false, false ), fc::exception );
-      GRAPHENE_REQUIRE_THROW( PUSH_TX( db, tx, database::skip_transaction_dupe_check ), fc::exception );
+      PUSH_TX( db, tx, database::skip_transaction_dupe_check );
       tx.verify_authority( db.get_chain_id(), get_active, get_owner, make_get_custom(db), true, false );
       tx.clear_signatures();
 
@@ -1711,11 +1711,11 @@ BOOST_FIXTURE_TEST_CASE( parent_owner_test, database_fixture )
       // Cindy's approval doesn't work
       pid = new_proposal();
       approve_proposal( pid, cindy_id, true, cindy_owner_key );
-      BOOST_CHECK( db.find( pid ) );
+      BOOST_CHECK( !db.find( pid ) );
 
       pid = new_proposal();
       approve_proposal( pid, cindy_id, false, cindy_active_key );
-      BOOST_CHECK( db.find( pid ) );
+      BOOST_CHECK( !db.find( pid ) );
 
       pid = new_proposal();
       approve_proposal( pid, daisy_id, true, daisy_owner_key );
@@ -1736,11 +1736,11 @@ BOOST_FIXTURE_TEST_CASE( parent_owner_test, database_fixture )
       // Frank's approval doesn't work
       pid = new_proposal();
       approve_proposal( pid, frank_id, true, frank_owner_key );
-      BOOST_CHECK( db.find( pid ) );
+      BOOST_CHECK( !db.find( pid ) );
 
       pid = new_proposal();
       approve_proposal( pid, frank_id, false, frank_active_key );
-      BOOST_CHECK( db.find( pid ) );
+      BOOST_CHECK( !db.find( pid ) );
 
       pid = new_proposal();
       approve_proposal( pid, gavin_id, true, gavin_owner_key );
@@ -1751,9 +1751,6 @@ BOOST_FIXTURE_TEST_CASE( parent_owner_test, database_fixture )
       BOOST_CHECK( !db.find( pid ) );
 
       generate_block( database::skip_transaction_dupe_check );
-
-      // pass the hard fork time
-      generate_blocks( HARDFORK_CORE_584_TIME, true, database::skip_transaction_dupe_check );
       set_expiration( db, tx );
 
       // signing tests

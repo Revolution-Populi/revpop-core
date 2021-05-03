@@ -681,7 +681,6 @@ BOOST_AUTO_TEST_CASE( stealth_fba_test )
       // Tom re-enables the permission bits to clear the flags, then clears them again
       // Allowed by #572 when current_supply == 0
       {
-         BOOST_TEST_MESSAGE("----------------- 300 ---------------------");
          asset_update_operation update_op;
          update_op.issuer = tom_id;
          update_op.asset_to_update = stealth_id;

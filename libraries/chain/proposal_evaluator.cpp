@@ -259,9 +259,8 @@ void_result proposal_create_evaluator::do_evaluate( const proposal_create_operat
 object_id_type proposal_create_evaluator::do_apply( const proposal_create_operation& o )
 { try {
    database& d = db();
-   auto chain_time = d.head_block_time();
 
-   const proposal_object& proposal = d.create<proposal_object>( [&o, this, chain_time](proposal_object& proposal) {
+   const proposal_object& proposal = d.create<proposal_object>( [&o, this](proposal_object& proposal) {
       _proposed_trx.expiration = o.expiration_time;
       proposal.proposed_transaction = _proposed_trx;
       proposal.expiration_time = o.expiration_time;
@@ -273,19 +272,8 @@ object_id_type proposal_create_evaluator::do_apply( const proposal_create_operat
       proposal.required_owner_approvals.insert( _required_owner_auths.begin(), _required_owner_auths.end() );
       proposal.required_active_approvals.insert( _required_active_auths.begin(), _required_active_auths.end() );
 
-      if( chain_time > HARDFORK_CORE_1479_TIME )
-         FC_ASSERT( vtor_1479.nested_update_count == 0 || proposal.id.instance() > vtor_1479.max_update_instance,
-                    "Cannot update/delete a proposal with a future id!" );
-      else if( vtor_1479.nested_update_count > 0 && proposal.id.instance() <= vtor_1479.max_update_instance )
-      {
-         // Note: This happened on mainnet, proposal 1.10.17503
-         // prevent approval
-         transfer_operation top;
-         top.from = GRAPHENE_NULL_ACCOUNT;
-         top.to = GRAPHENE_RELAXED_COMMITTEE_ACCOUNT;
-         top.amount = asset( GRAPHENE_MAX_SHARE_SUPPLY );
-         proposal.proposed_transaction.operations.emplace_back( top );
-      }
+      FC_ASSERT( vtor_1479.nested_update_count == 0 || proposal.id.instance() > vtor_1479.max_update_instance,
+                 "Cannot update/delete a proposal with a future id!" );
    });
 
    return proposal.id;

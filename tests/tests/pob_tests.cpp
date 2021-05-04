@@ -39,8 +39,6 @@ BOOST_AUTO_TEST_CASE( hardfork_time_test )
 {
    try {
 
-      // Proceeds to a recent hard fork
-      generate_blocks( HARDFORK_CORE_1270_TIME );
       generate_block();
       set_expiration( db, trx );
 

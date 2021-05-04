@@ -850,20 +850,6 @@ void database::process_bids( const asset_bitasset_data_object& bad )
    _cancel_bids_and_revive_mpa( to_revive, bad );
 }
 
-/// Reset call_price of all call orders to (1,1) since it won't be used in the future.
-/// Update PMs as well.
-void update_call_orders_hf_1270( database& db )
-{
-   // Update call_price
-   for( const auto& call_obj : db.get_index_type<call_order_index>().indices().get<by_id>() )
-   {
-      db.modify( call_obj, []( call_order_object& call ) {
-         call.call_price.base.amount = 1;
-         call.call_price.quote.amount = 1;
-      });
-   }
-}
-
 /// Match call orders for all bitAssets, including PMs.
 void match_call_orders( database& db )
 {
@@ -1286,11 +1272,6 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
       }
    }
 
-   // To reset call_price of all call orders, then match by new rule, for hard fork core-1270
-   bool to_update_and_match_call_orders_for_hf_1270 = false;
-   if( (dgpo.next_maintenance_time <= HARDFORK_CORE_1270_TIME) && (next_maintenance_time > HARDFORK_CORE_1270_TIME) )
-      to_update_and_match_call_orders_for_hf_1270 = true;
-
    // make sure current_supply is less than or equal to max_supply
    if ( dgpo.next_maintenance_time <= HARDFORK_CORE_1465_TIME && next_maintenance_time > HARDFORK_CORE_1465_TIME )
       process_hf_1465(*this);
@@ -1303,14 +1284,6 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
       d.next_maintenance_time = next_maintenance_time;
       d.accounts_registered_this_interval = 0;
    });
-
-   // We need to do it after updated next_maintenance_time, to apply new rules here, for hard fork core-1270.
-   if( to_update_and_match_call_orders_for_hf_1270 )
-   {
-      update_call_orders_hf_1270(*this);
-      update_median_feeds(*this);
-      match_call_orders(*this);
-   }
 
    process_bitassets();
    delete_expired_custom_authorities(*this);

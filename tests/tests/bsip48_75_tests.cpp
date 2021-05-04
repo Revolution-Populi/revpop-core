@@ -40,8 +40,6 @@ BOOST_AUTO_TEST_CASE( hardfork_protection_test )
 {
    try {
 
-      // Proceeds to a recent hard fork
-      generate_blocks( HARDFORK_CORE_1270_TIME );
       generate_block();
       set_expiration( db, trx );
 
@@ -292,8 +290,6 @@ BOOST_AUTO_TEST_CASE( update_max_supply )
 {
    try {
 
-      // Proceeds to a recent hard fork
-      generate_blocks( HARDFORK_CORE_1270_TIME );
       generate_block();
       set_expiration( db, trx );
 
@@ -797,8 +793,6 @@ BOOST_AUTO_TEST_CASE( invalid_flags_in_asset )
 {
    try {
 
-      // Proceeds to a recent hard fork
-      generate_blocks( HARDFORK_CORE_1270_TIME );
       generate_block();
       set_expiration( db, trx );
 

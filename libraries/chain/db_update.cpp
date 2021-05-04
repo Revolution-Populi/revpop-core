@@ -197,34 +197,19 @@ bool database::check_for_blackswan( const asset_object& mia, bool enable_black_s
     asset_id_type debt_asset_id = mia.id;
     auto call_min = price::min( bitasset.options.short_backing_asset, debt_asset_id );
 
-    auto maint_time = get_dynamic_global_properties().next_maintenance_time;
-    bool before_core_hardfork_1270 = ( maint_time <= HARDFORK_CORE_1270_TIME ); // call price caching issue
+    // check with collateralization
+    const auto& call_collateral_index = get_index_type<call_order_index>().indices().get<by_collateral>();
+    auto call_itr = call_collateral_index.lower_bound( call_min );
+    if( call_itr == call_collateral_index.end() ) // no call order
+       return false;
+    call_ptr = &(*call_itr);
 
-    if( before_core_hardfork_1270 ) // before core-1270 hard fork, check with call_price
-    {
-       const auto& call_price_index = get_index_type<call_order_index>().indices().get<by_price>();
-       auto call_itr = call_price_index.lower_bound( call_min );
-       if( call_itr == call_price_index.end() ) // no call order
-          return false;
-       call_ptr = &(*call_itr);
-    }
-    else // after core-1270 hard fork, check with collateralization
-    {
-       const auto& call_collateral_index = get_index_type<call_order_index>().indices().get<by_collateral>();
-       auto call_itr = call_collateral_index.lower_bound( call_min );
-       if( call_itr == call_collateral_index.end() ) // no call order
-          return false;
-       call_ptr = &(*call_itr);
-    }
     if( call_ptr->debt_type() != debt_asset_id ) // no call order
        return false;
 
     price highest = settle_price;
-    if( maint_time > HARDFORK_CORE_1270_TIME )
-       // due to #338, we won't check for black swan on incoming limit order, so need to check with MSSP here
-       highest = bitasset.current_feed.max_short_squeeze_price();
     // due to #338, we won't check for black swan on incoming limit order, so need to check with MSSP here
-    highest = bitasset.current_feed.max_short_squeeze_price_before_hf_1270();
+    highest = bitasset.current_feed.max_short_squeeze_price();
 
     const limit_order_index& limit_index = get_index_type<limit_order_index>();
     const auto& limit_price_index = limit_index.indices().get<by_price>();

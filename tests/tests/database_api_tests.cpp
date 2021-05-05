@@ -792,7 +792,6 @@ BOOST_AUTO_TEST_CASE( subscription_notification_test )
 {
    try {
 
-      generate_blocks(HARDFORK_CORE_1468_TIME);
       set_expiration( db, trx );
       generate_block();
       set_expiration( db, trx );

@@ -902,34 +902,6 @@ void database::process_bitassets()
 }
 
 /****
- * @brief a one-time data process to correct max_supply
- * 
- * NOTE: while exceeding max_supply happened in mainnet, it seemed to have corrected
- * itself before HF 1465. But this method must remain to correct some assets in testnet
- */
-void process_hf_1465( database& db )
-{
-   // for each market issued asset
-   const auto& asset_idx = db.get_index_type<asset_index>().indices().get<by_type>();
-   for( auto asset_itr = asset_idx.lower_bound(true); asset_itr != asset_idx.end(); ++asset_itr )
-   {
-      const auto& current_asset = *asset_itr;
-      graphene::chain::share_type current_supply = current_asset.dynamic_data(db).current_supply;
-      graphene::chain::share_type max_supply = current_asset.options.max_supply;
-      if (current_supply > max_supply && max_supply != GRAPHENE_MAX_SHARE_SUPPLY)
-      {
-         wlog( "Adjusting max_supply of ${asset} because current_supply (${current_supply}) is greater than ${old}.", 
-               ("asset", current_asset.symbol) 
-               ("current_supply", current_supply.value)
-               ("old", max_supply));
-         db.modify<asset_object>( current_asset, [current_supply](asset_object& obj) {
-            obj.options.max_supply = graphene::chain::share_type(std::min(current_supply.value, GRAPHENE_MAX_SHARE_SUPPLY));
-         });
-      }
-   }
-}
-
-/****
  * @brief a one-time data process to correct current_supply of RVP token in the RevPop mainnet
  */
 void process_hf_2103( database& db )
@@ -1271,10 +1243,6 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
          next_maintenance_time += (y+1) * maintenance_interval;
       }
    }
-
-   // make sure current_supply is less than or equal to max_supply
-   if ( dgpo.next_maintenance_time <= HARDFORK_CORE_1465_TIME && next_maintenance_time > HARDFORK_CORE_1465_TIME )
-      process_hf_1465(*this);
 
    // Fix supply issue
    if ( dgpo.next_maintenance_time <= HARDFORK_CORE_2103_TIME && next_maintenance_time > HARDFORK_CORE_2103_TIME )

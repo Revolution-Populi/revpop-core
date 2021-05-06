@@ -50,10 +50,10 @@ BOOST_AUTO_TEST_CASE( hardfork_protection_test )
       fund( feeder, asset(init_amount) );
 
       uint16_t bitmask = ASSET_ISSUER_PERMISSION_ENABLE_BITS_MASK;
-      uint16_t uiamask = DEFAULT_UIA_ASSET_ISSUER_PERMISSION;
+      uint16_t uiamask = UIA_ASSET_ISSUER_PERMISSION_MASK;
 
-      uint16_t bitflag = ~global_settle & ~committee_fed_asset; // high bits are set
-      uint16_t uiaflag = ~(bitmask ^ uiamask); // high bits are set
+      //uint16_t bitflag = ~global_settle & ~committee_fed_asset; // high bits are set
+      //uint16_t uiaflag = ~(bitmask ^ uiamask); // high bits are set
 
       vector<operation> ops;
 
@@ -65,11 +65,21 @@ BOOST_AUTO_TEST_CASE( hardfork_protection_test )
       acop.common_options.core_exchange_rate = price(asset(1,asset_id_type(1)),asset(1));
       acop.common_options.max_supply = GRAPHENE_MAX_SHARE_SUPPLY;
       acop.common_options.market_fee_percent = 100;
-      acop.common_options.flags = uiaflag;
+      //acop.common_options.flags = uiaflag;
       acop.common_options.issuer_permissions = uiamask;
+
+      acop.bitasset_opts = bitasset_options();
+      acop.bitasset_opts->minimum_feeds = 3;
 
       trx.operations.clear();
       trx.operations.push_back( acop );
+
+      // Able to create asset without new data
+      processed_transaction ptx = PUSH_TX(db, trx, ~0);
+      const asset_object& samcoin = db.get<asset_object>(ptx.operation_results[0].get<object_id_type>());
+      asset_id_type samcoin_id = samcoin.id;
+      BOOST_CHECK_EQUAL( samcoin.options.market_fee_percent, 100 );
+      BOOST_CHECK_EQUAL( samcoin.bitasset_data(db).options.minimum_feeds, 3 );
 
       {
          auto& op = trx.operations.front().get<asset_create_operation>();
@@ -85,7 +95,7 @@ BOOST_AUTO_TEST_CASE( hardfork_protection_test )
 
          op.bitasset_opts = bitasset_options();
          op.bitasset_opts->minimum_feeds = 3;
-         op.common_options.flags = bitflag;
+         //op.common_options.flags = bitflag;
 
          op.common_options.issuer_permissions = ( bitmask | disable_mcr_update );
          BOOST_CHECK_THROW( PUSH_TX(db, trx, ~0), fc::exception );
@@ -115,17 +125,9 @@ BOOST_AUTO_TEST_CASE( hardfork_protection_test )
          acop = op;
       }
 
-      // Able to create asset without new data
-      processed_transaction ptx = PUSH_TX(db, trx, ~0);
-      const asset_object& samcoin = db.get<asset_object>(ptx.operation_results[0].get<object_id_type>());
-      asset_id_type samcoin_id = samcoin.id;
-
-      BOOST_CHECK_EQUAL( samcoin.options.market_fee_percent, 100 );
-      BOOST_CHECK_EQUAL( samcoin.bitasset_data(db).options.minimum_feeds, 3 );
-
       // Unable to propose the invalid operations
       for( const operation& op : ops )
-         BOOST_CHECK_THROW( propose( op ), fc::exception );
+         propose( op );
       ops.clear();
       // Able to propose the good operation
       propose( acop );
@@ -146,35 +148,35 @@ BOOST_AUTO_TEST_CASE( hardfork_protection_test )
 
          // Unable to set new permission bits
          op.new_options.issuer_permissions = ( bitmask | lock_max_supply );
-         BOOST_CHECK_THROW( PUSH_TX(db, trx, ~0), fc::exception );
+         PUSH_TX(db, trx, ~0);
          ops.push_back( op );
 
          op.new_options.issuer_permissions = ( bitmask | disable_new_supply );
-         BOOST_CHECK_THROW( PUSH_TX(db, trx, ~0), fc::exception );
+         PUSH_TX(db, trx, ~0);
          ops.push_back( op );
 
          op.new_options.issuer_permissions = ( bitmask | disable_mcr_update );
-         BOOST_CHECK_THROW( PUSH_TX(db, trx, ~0), fc::exception );
+         PUSH_TX(db, trx, ~0);
          ops.push_back( op );
 
          op.new_options.issuer_permissions = ( bitmask | disable_icr_update );
-         BOOST_CHECK_THROW( PUSH_TX(db, trx, ~0), fc::exception );
+         PUSH_TX(db, trx, ~0);
          ops.push_back( op );
 
          op.new_options.issuer_permissions = ( bitmask | disable_mssr_update );
-         BOOST_CHECK_THROW( PUSH_TX(db, trx, ~0), fc::exception );
+         PUSH_TX(db, trx, ~0);
          ops.push_back( op );
 
          op.new_options.issuer_permissions = bitmask;
 
          // Unable to set new extensions
          op.extensions.value.new_precision = 8;
-         BOOST_CHECK_THROW( PUSH_TX(db, trx, ~0), fc::exception );
+         PUSH_TX(db, trx, ~0);
          ops.push_back( op );
          op.extensions.value.new_precision = {};
 
          op.extensions.value.skip_core_exchange_rate = true;
-         BOOST_CHECK_THROW( PUSH_TX(db, trx, ~0), fc::exception );
+         PUSH_TX(db, trx, ~0);
          ops.push_back( op );
          op.extensions.value.skip_core_exchange_rate = {};
 
@@ -188,7 +190,7 @@ BOOST_AUTO_TEST_CASE( hardfork_protection_test )
 
       // Unable to propose the invalid operations
       for( const operation& op : ops )
-         BOOST_CHECK_THROW( propose( op ), fc::exception );
+         propose( op );
       ops.clear();
       // Able to propose the good operation
       propose( auop );
@@ -209,12 +211,12 @@ BOOST_AUTO_TEST_CASE( hardfork_protection_test )
 
          // Unable to set new extensions
          op.new_options.extensions.value.maintenance_collateral_ratio = 1500;
-         BOOST_CHECK_THROW( PUSH_TX(db, trx, ~0), fc::exception );
+         PUSH_TX(db, trx, ~0);
          ops.push_back( op );
          op.new_options.extensions.value.maintenance_collateral_ratio = {};
 
          op.new_options.extensions.value.maximum_short_squeeze_ratio = 1500;
-         BOOST_CHECK_THROW( PUSH_TX(db, trx, ~0), fc::exception );
+         PUSH_TX(db, trx, ~0);
          ops.push_back( op );
          op.new_options.extensions.value.maximum_short_squeeze_ratio = {};
 
@@ -228,7 +230,7 @@ BOOST_AUTO_TEST_CASE( hardfork_protection_test )
 
       // Unable to propose the invalid operations
       for( const operation& op : ops )
-         BOOST_CHECK_THROW( propose( op ), fc::exception );
+         propose( op );
       ops.clear();
       // Able to propose the good operation
       propose( aubop );
@@ -311,7 +313,7 @@ BOOST_AUTO_TEST_CASE( update_max_supply )
       auop.issuer = sam_id;
       auop.asset_to_update = uia_id;
       auop.new_options = uia_id(db).options;
-      auop.new_options.max_supply -= 101;
+      auop.new_options.max_supply -= 90;
 
       trx.operations.clear();
       trx.operations.push_back( auop );
@@ -319,19 +321,17 @@ BOOST_AUTO_TEST_CASE( update_max_supply )
       PUSH_TX(db, trx, ~0);
 
       BOOST_CHECK( uia_id(db).can_update_max_supply() );
-      // max_supply < current_supply
-      BOOST_CHECK_EQUAL( uia_id(db).options.max_supply.value, GRAPHENE_MAX_SHARE_SUPPLY - 101 );
+      BOOST_CHECK_EQUAL( uia_id(db).options.max_supply.value, GRAPHENE_MAX_SHARE_SUPPLY - 90 );
       BOOST_CHECK_EQUAL( uia_id(db).dynamic_data(db).current_supply.value, GRAPHENE_MAX_SHARE_SUPPLY - 100 );
 
-      // advance to bsip48/75 hard fork
-      generate_blocks( HARDFORK_BSIP_48_75_TIME );
+      generate_block();
       set_expiration( db, trx );
 
-      BOOST_CHECK_EQUAL( uia_id(db).dynamic_data(db).current_supply.value, uia_id(db).options.max_supply.value + 1 );
+      BOOST_CHECK_EQUAL( uia_id(db).dynamic_data(db).current_supply.value, uia_id(db).options.max_supply.value - 10 );
       BOOST_CHECK( uia_id(db).can_update_max_supply() );
 
       // able to set max supply to be equal to current supply
-      auop.new_options.max_supply += 1;
+      auop.new_options.max_supply -= 10;
       trx.operations.clear();
       trx.operations.push_back( auop );
       PUSH_TX(db, trx, ~0);
@@ -615,8 +615,6 @@ BOOST_AUTO_TEST_CASE( disable_new_supply_uia )
 {
    try {
 
-      // advance to bsip48/75 hard fork
-      generate_blocks( HARDFORK_BSIP_48_75_TIME );
       set_expiration( db, trx );
 
       ACTORS((sam));
@@ -722,8 +720,6 @@ BOOST_AUTO_TEST_CASE( skip_core_exchange_rate )
 {
    try {
 
-      // advance to bsip48/75 hard fork
-      generate_blocks( HARDFORK_BSIP_48_75_TIME );
       set_expiration( db, trx );
 
       ACTORS((sam));
@@ -803,10 +799,10 @@ BOOST_AUTO_TEST_CASE( invalid_flags_in_asset )
       fund( feeder, asset(init_amount) );
 
       uint16_t bitmask = ASSET_ISSUER_PERMISSION_ENABLE_BITS_MASK;
-      uint16_t uiamask = DEFAULT_UIA_ASSET_ISSUER_PERMISSION;
+      uint16_t uiamask = UIA_ASSET_ISSUER_PERMISSION_MASK & ~lock_max_supply & ~disable_new_supply; // Flag change permissions
 
-      uint16_t bitflag = ~global_settle & ~committee_fed_asset; // high bits are set
-      uint16_t uiaflag = ~(bitmask ^ uiamask); // high bits are set
+      //uint16_t bitflag = ~global_settle & ~committee_fed_asset; // high bits are set
+      //uint16_t uiaflag = ~(bitmask ^ uiamask); // high bits are set
 
       // Able to create UIA with invalid flags
       asset_create_operation acop;
@@ -816,7 +812,7 @@ BOOST_AUTO_TEST_CASE( invalid_flags_in_asset )
       acop.common_options.core_exchange_rate = price(asset(1,asset_id_type(1)),asset(1));
       acop.common_options.max_supply = GRAPHENE_MAX_SHARE_SUPPLY;
       acop.common_options.market_fee_percent = 100;
-      acop.common_options.flags = uiaflag;
+      //acop.common_options.flags = uiaflag;
       acop.common_options.issuer_permissions = uiamask;
 
       trx.operations.clear();
@@ -827,13 +823,13 @@ BOOST_AUTO_TEST_CASE( invalid_flags_in_asset )
       asset_id_type samcoin_id = samcoin.id;
 
       // There are invalid bits in flags
-      BOOST_CHECK( samcoin_id(db).options.flags & ~UIA_VALID_FLAGS_MASK );
+      BOOST_CHECK( !(samcoin_id(db).options.flags & ~UIA_VALID_FLAGS_MASK) );
 
       // Able to create MPA with invalid flags
       asset_create_operation acop2 = acop;
       acop2.symbol = "SAMBIT";
       acop2.bitasset_opts = bitasset_options();
-      acop2.common_options.flags = bitflag;
+      //acop2.common_options.flags = bitflag;
       acop2.common_options.issuer_permissions = bitmask;
 
       trx.operations.clear();
@@ -844,7 +840,7 @@ BOOST_AUTO_TEST_CASE( invalid_flags_in_asset )
       asset_id_type sambit_id = sambit.id;
 
       // There are invalid bits in flags
-      BOOST_CHECK( sambit_id(db).options.flags & ~VALID_FLAGS_MASK );
+      BOOST_CHECK( !(sambit_id(db).options.flags & ~VALID_FLAGS_MASK) );
 
       // Unable to correct the invalid flags of the UIA
       asset_update_operation auop;
@@ -856,7 +852,7 @@ BOOST_AUTO_TEST_CASE( invalid_flags_in_asset )
       trx.operations.clear();
       trx.operations.push_back( auop );
 
-      BOOST_CHECK_THROW( PUSH_TX(db, trx, ~0), fc::exception );
+      PUSH_TX(db, trx, ~0);
 
       // Unable to correct the invalid flags of the MPA
       asset_update_operation auop2;
@@ -868,10 +864,8 @@ BOOST_AUTO_TEST_CASE( invalid_flags_in_asset )
       trx.operations.clear();
       trx.operations.push_back( auop2 );
 
-      BOOST_CHECK_THROW( PUSH_TX(db, trx, ~0), fc::exception );
+      PUSH_TX(db, trx, ~0);
 
-      // advance to bsip48/75 hard fork
-      generate_blocks( HARDFORK_BSIP_48_75_TIME );
       set_expiration( db, trx );
 
       // take a look at flags of UIA
@@ -1007,8 +1001,6 @@ BOOST_AUTO_TEST_CASE( update_asset_precision )
 {
    try {
 
-      // advance to bsip48/75 hard fork
-      generate_blocks( HARDFORK_BSIP_48_75_TIME );
       set_expiration( db, trx );
 
       ACTORS((sam));

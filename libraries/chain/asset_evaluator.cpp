@@ -64,47 +64,6 @@ namespace detail {
       }
    }
 
-   // TODO review and remove code below and links to it after HARDFORK_BSIP_48_75_TIME
-   void check_asset_options_hf_bsip_48_75(const fc::time_point_sec& block_time, const asset_options& options)
-   {
-      if ( !HARDFORK_BSIP_48_75_PASSED( block_time ) )
-      {
-         // new issuer permissions should not be set until activation of BSIP_48_75
-         FC_ASSERT( !(options.issuer_permissions & ~ASSET_ISSUER_PERMISSION_ENABLE_BITS_MASK),
-                    "New asset issuer permission bits should not be set before HARDFORK_BSIP_48_75_TIME" );
-         // Note: no check for flags here because we didn't check in the past
-      }
-   }
-
-   // TODO review and remove code below and links to it after HARDFORK_BSIP_48_75_TIME
-   void check_bitasset_options_hf_bsip_48_75(const fc::time_point_sec& block_time, const bitasset_options& options)
-   {
-      if ( !HARDFORK_BSIP_48_75_PASSED( block_time ) )
-      {
-         // new params should not be set until activation of BSIP_48_75
-         FC_ASSERT( !options.extensions.value.maintenance_collateral_ratio.valid(),
-                    "Maintenance collateral ratio should not be defined by asset owner "
-                    "before HARDFORK_BSIP_48_75_TIME" );
-         FC_ASSERT( !options.extensions.value.maximum_short_squeeze_ratio.valid(),
-                    "Maximum short squeeze ratio should not be defined by asset owner "
-                    "before HARDFORK_BSIP_48_75_TIME" );
-      }
-   }
-
-   // TODO review and remove code below and links to it after HARDFORK_BSIP_48_75_TIME
-   void check_asset_update_extensions_hf_bsip_48_75( const fc::time_point_sec& block_time,
-                                                     const asset_update_operation::ext& extensions )
-   {
-      if ( !HARDFORK_BSIP_48_75_PASSED( block_time ) )
-      {
-         // new extensions should not be set until activation of BSIP_48_75
-         FC_ASSERT( !extensions.new_precision.valid(),
-                    "new_precision should not be set before HARDFORK_BSIP_48_75_TIME" );
-         FC_ASSERT( !extensions.skip_core_exchange_rate.valid(),
-                    "skip_core_exchange_rate should not be set before HARDFORK_BSIP_48_75_TIME" );
-      }
-   }
-
    // TODO review and remove code below and links to it after HARDFORK_BSIP_77_TIME
    void check_asset_publish_feed_extensions_hf_bsip77( const fc::time_point_sec& block_time,
                                                        const asset_publish_feed_operation::ext& extensions )
@@ -154,21 +113,14 @@ void_result asset_create_evaluator::do_evaluate( const asset_create_operation& o
 
    // Hardfork Checks:
    detail::check_asset_options_hf_1774(now, op.common_options);
-   detail::check_asset_options_hf_bsip_48_75(now, op.common_options);
    detail::check_asset_options_hf_bsip81(now, op.common_options);
    if( op.bitasset_opts ) {
-      detail::check_bitasset_options_hf_bsip_48_75( now, *op.bitasset_opts );
       detail::check_bitasset_options_hf_bsip74( now, *op.bitasset_opts ); // HF_REMOVABLE
       detail::check_bitasset_options_hf_bsip77( now, *op.bitasset_opts ); // HF_REMOVABLE
       detail::check_bitasset_options_hf_bsip87( now, *op.bitasset_opts ); // HF_REMOVABLE
    }
 
-   // TODO move as many validations as possible to validate() if not triggered before hardfork
-   if( HARDFORK_BSIP_48_75_PASSED( now ) )
-   {
-      op.common_options.validate_flags( op.bitasset_opts.valid() );
-   }
-
+   op.common_options.validate_flags( op.bitasset_opts.valid() );
    const auto& chain_parameters = d.get_global_properties().parameters;
    FC_ASSERT( op.common_options.whitelist_authorities.size() <= chain_parameters.maximum_asset_whitelist_authorities );
    FC_ASSERT( op.common_options.blacklist_authorities.size() <= chain_parameters.maximum_asset_whitelist_authorities );
@@ -377,11 +329,7 @@ void_result asset_update_evaluator::do_evaluate(const asset_update_operation& o)
 
    // Hardfork Checks:
    detail::check_asset_options_hf_1774(now, o.new_options);
-   detail::check_asset_options_hf_bsip_48_75(now, o.new_options);
    detail::check_asset_options_hf_bsip81(now, o.new_options);
-   detail::check_asset_update_extensions_hf_bsip_48_75( now, o.extensions.value );
-
-   bool hf_bsip_48_75_passed = ( HARDFORK_BSIP_48_75_PASSED( now ) );
 
    const asset_object& a = o.asset_to_update(d);
    auto a_copy = a;
@@ -394,7 +342,7 @@ void_result asset_update_evaluator::do_evaluate(const asset_update_operation& o)
    }
 
    uint16_t enabled_issuer_permissions_mask = a.options.get_enabled_issuer_permissions_mask();
-   if( hf_bsip_48_75_passed && a.is_market_issued() )
+   if( a.is_market_issued() )
    {
       bitasset_data = &a.bitasset_data(d);
       if( bitasset_data->is_prediction_market )
@@ -416,33 +364,19 @@ void_result asset_update_evaluator::do_evaluate(const asset_update_operation& o)
       FC_ASSERT( !o.extensions.value.new_precision.valid(),
                  "Cannot update precision if current supply is non-zero" );
 
-      if( hf_bsip_48_75_passed ) // TODO review after hard fork, probably can assert unconditionally
-      {
-         FC_ASSERT( dyn_data.current_supply <= o.new_options.max_supply,
-                    "Max supply should not be smaller than current supply" );
-      }
+      FC_ASSERT( dyn_data.current_supply <= o.new_options.max_supply,
+                 "Max supply should not be smaller than current supply" );
    }
 
    // TODO move as many validations as possible to validate() if not triggered before hardfork
-   if( hf_bsip_48_75_passed )
-   {
-      o.new_options.validate_flags( a.is_market_issued() );
-   }
-
+   o.new_options.validate_flags( a.is_market_issued() );
+   
    // changed flags must be subset of old issuer permissions
-   if( hf_bsip_48_75_passed )
-   {
-      // Note: if an invalid bit was set, it can be unset regardless of the permissions
-      uint16_t check_bits = ( a.is_market_issued() ? VALID_FLAGS_MASK : UIA_VALID_FLAGS_MASK );
+   // Note: if an invalid bit was set, it can be unset regardless of the permissions
+   uint16_t check_bits = ( a.is_market_issued() ? VALID_FLAGS_MASK : UIA_VALID_FLAGS_MASK );
 
-      FC_ASSERT( !((o.new_options.flags ^ a.options.flags) & check_bits & ~enabled_issuer_permissions_mask),
-                 "Flag change is forbidden by issuer permissions" );
-   }
-   else
-   {
-      FC_ASSERT( !((o.new_options.flags ^ a.options.flags) & ~a.options.issuer_permissions),
-                 "Flag change is forbidden by issuer permissions" );
-   }
+   FC_ASSERT( !((o.new_options.flags ^ a.options.flags) & check_bits & ~enabled_issuer_permissions_mask),
+              "Flag change is forbidden by issuer permissions" );
 
    asset_to_update = &a;
    FC_ASSERT( o.issuer == a.issuer,
@@ -603,7 +537,6 @@ void_result asset_update_bitasset_evaluator::do_evaluate(const asset_update_bita
    const time_point_sec now = d.head_block_time();
 
    // Hardfork Checks:
-   detail::check_bitasset_options_hf_bsip_48_75( now, op.new_options );
    detail::check_bitasset_options_hf_bsip74( now, op.new_options ); // HF_REMOVABLE
    detail::check_bitasset_options_hf_bsip77( now, op.new_options ); // HF_REMOVABLE
    detail::check_bitasset_options_hf_bsip87( now, op.new_options ); // HF_REMOVABLE

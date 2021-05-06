@@ -58,7 +58,7 @@ namespace graphene { namespace protocol {
       share_type max_market_fee = GRAPHENE_MAX_SHARE_SUPPLY;
 
       /// The flags which the issuer has permission to update. See @ref asset_issuer_permission_flags
-      uint16_t issuer_permissions = DEFAULT_UIA_ASSET_ISSUER_PERMISSION;
+      uint16_t issuer_permissions = UIA_ASSET_ISSUER_PERMISSION_MASK;
       /// The currently active flags on this permission. See @ref asset_issuer_permission_flags
       uint16_t flags = 0;
 
@@ -114,9 +114,9 @@ namespace graphene { namespace protocol {
          /// the position will be checked against this parameter.
          /// Unused for prediction markets, although we allow it to be set for simpler implementation
          fc::optional<uint16_t> initial_collateral_ratio;  // BSIP-77
-         /// After BSIP75, the asset owner can update MCR directly
+         /// The asset owner can update MCR directly
          fc::optional<uint16_t> maintenance_collateral_ratio; // BSIP-75
-         /// After BSIP75, the asset owner can update MSSR directly
+         /// The asset owner can update MSSR directly
          fc::optional<uint16_t> maximum_short_squeeze_ratio;  // BSIP-75
          fc::optional<uint16_t> margin_call_fee_ratio; // BSIP 74
          fc::optional<uint16_t> force_settle_fee_percent;  // BSIP-87
@@ -308,10 +308,10 @@ namespace graphene { namespace protocol {
    {
       struct ext
       {
-         /// After BSIP48, the precision of an asset can be updated if no supply is available
+         /// An asset can be updated if no supply is available
          /// @note The parties involved still need to be careful
          fc::optional<uint8_t> new_precision;
-         /// After BSIP48, if this option is set to true, the asset's core_exchange_rate won't be updated.
+         /// If this option is set to true, the asset's core_exchange_rate won't be updated.
          /// This is especially useful for committee-owned bitassets which can not be updated quickly.
          fc::optional<bool> skip_core_exchange_rate;
       };

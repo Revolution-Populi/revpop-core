@@ -31,11 +31,6 @@ namespace graphene { namespace chain {
 namespace detail {
    void check_asset_options_hf_1774(const fc::time_point_sec& block_time, const asset_options& options);
 
-   void check_asset_options_hf_bsip_48_75(const fc::time_point_sec& block_time, const asset_options& options);
-   void check_bitasset_options_hf_bsip_48_75(const fc::time_point_sec& block_time, const bitasset_options& options);
-   void check_asset_update_extensions_hf_bsip_48_75( const fc::time_point_sec& block_time,
-                                                     const asset_update_operation::ext& extensions );
-
    void check_asset_publish_feed_extensions_hf_bsip77( const fc::time_point_sec& block_time,
                                                        const asset_publish_feed_operation::ext& extensions );
    void check_bitasset_options_hf_bsip77(const fc::time_point_sec& block_time, const bitasset_options& options);
@@ -67,39 +62,24 @@ struct proposal_operation_hardfork_visitor
 
    void operator()(const graphene::chain::asset_create_operation &v) const {
       detail::check_asset_options_hf_1774(block_time, v.common_options);
-      detail::check_asset_options_hf_bsip_48_75(block_time, v.common_options);
       detail::check_asset_options_hf_bsip81(block_time, v.common_options);
       if( v.bitasset_opts.valid() ) {
-         detail::check_bitasset_options_hf_bsip_48_75( block_time, *v.bitasset_opts );
          detail::check_bitasset_options_hf_bsip74( block_time, *v.bitasset_opts ); // HF_REMOVABLE
          detail::check_bitasset_options_hf_bsip77( block_time, *v.bitasset_opts ); // HF_REMOVABLE
          detail::check_bitasset_options_hf_bsip87( block_time, *v.bitasset_opts ); // HF_REMOVABLE
       }
 
-      // TODO move as many validations as possible to validate() if not triggered before hardfork
-      if( HARDFORK_BSIP_48_75_PASSED( block_time ) )
-      {
-         v.common_options.validate_flags( v.bitasset_opts.valid() );
-      }
+      v.common_options.validate_flags( v.bitasset_opts.valid() );
    }
 
    void operator()(const graphene::chain::asset_update_operation &v) const {
       detail::check_asset_options_hf_1774(block_time, v.new_options);
-      detail::check_asset_options_hf_bsip_48_75(block_time, v.new_options);
       detail::check_asset_options_hf_bsip81(block_time, v.new_options);
-
-      detail::check_asset_update_extensions_hf_bsip_48_75( block_time, v.extensions.value );
-
-      // TODO move as many validations as possible to validate() if not triggered before hardfork
-      if( HARDFORK_BSIP_48_75_PASSED( block_time ) )
-      {
-         v.new_options.validate_flags( true );
-      }
+      v.new_options.validate_flags( true );
 
    }
 
    void operator()(const graphene::chain::asset_update_bitasset_operation &v) const {
-      detail::check_bitasset_options_hf_bsip_48_75( block_time, v.new_options );
       detail::check_bitasset_options_hf_bsip74( block_time, v.new_options ); // HF_REMOVABLE
       detail::check_bitasset_options_hf_bsip77( block_time, v.new_options ); // HF_REMOVABLE
       detail::check_bitasset_options_hf_bsip87( block_time, v.new_options ); // HF_REMOVABLE

@@ -56,7 +56,9 @@ uint64_t database::get_commit_reveal_seed(const vector<account_id_type>& account
    uint64_t seed = 0;
    for (const auto& acc: accounts){
       auto itr = by_op_idx.lower_bound(acc);
-      if( itr != by_op_idx.end() && itr->account == acc )
+      if( itr != by_op_idx.end() && itr->account == acc
+         && itr->maintenance_time == get_dynamic_global_properties().next_maintenance_time.sec_since_epoch()
+                                           - get_global_properties().parameters.maintenance_interval)
       {
          seed += itr->value;
       }
@@ -72,7 +74,10 @@ vector<account_id_type> database::filter_commit_reveal_participant(const vector<
    vector<account_id_type> result;
    for (const auto& acc: accounts){
       auto itr = by_op_idx.lower_bound(acc);
-      if( itr != by_op_idx.end() && itr->account == acc && itr->value != 0 )
+      if( itr != by_op_idx.end() && itr->account == acc && itr->value != 0
+         && itr->maintenance_time == get_dynamic_global_properties().next_maintenance_time.sec_since_epoch()
+                                           - get_global_properties().parameters.maintenance_interval)
+
       {
          result.push_back(itr->account);
       }

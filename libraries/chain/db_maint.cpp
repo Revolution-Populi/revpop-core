@@ -256,7 +256,7 @@ void database::update_active_witnesses()
       });
       if( !enabled_wits.empty() )
       {
-         wits = enabled_wits;
+         wits.swap(enabled_wits);
       }
       else
       {

@@ -348,51 +348,48 @@ void witness_plugin::commit_reveal_operations() {
    const auto& gpo = db.get_global_properties();
    const auto& dgpo = db.get_dynamic_global_properties();
 
-   // Searching for the maintaince block
-   uint32_t head_block_time_sec = db.head_block_time().sec_since_epoch();
-   uint64_t last_maintenance_sec = dgpo.next_maintenance_time.sec_since_epoch() - gpo.parameters.maintenance_interval;
-   if (head_block_time_sec <= last_maintenance_sec) {
+   // calculate the block number in the current maintenance interval 
+   uint32_t last_maintenance_time = dgpo.next_maintenance_time.sec_since_epoch()
+                                          - gpo.parameters.maintenance_interval;
+   uint32_t maintenance_block_id  = (db.head_block_time().sec_since_epoch() - last_maintenance_time)
+                                          / gpo.parameters.block_interval;
+   //ilog("A block numer since the maintenance interval interval beginning: ${blc}", ("blc", maintenance_block_id));
+
+   if (maintenance_block_id < static_cast<int32_t>(gpo.parameters.maintenance_skip_slots)) {
       // ---------------------//
       // Maintenance interval //
       //----------------------//
       schedule_commit_reveal();
+      return;
    }
 
    uint64_t total_blocks = gpo.parameters.maintenance_interval / gpo.parameters.block_interval;
-   uint64_t commit_reveal_switch = dgpo.next_maintenance_time.sec_since_epoch() - gpo.parameters.maintenance_interval / 2;
-   if (head_block_time_sec < commit_reveal_switch) {
+   if (maintenance_block_id < total_blocks / 2) {
       // --------------- //
       // Commit interval //
       // --------------- //
 
-      uint64_t block_id = (head_block_time_sec - last_maintenance_sec)
-                                           / gpo.parameters.block_interval;
-      //ilog("A block numer since the commit interval begginig: ${blc}", ("blc", block_id));
-
       // Even if the required block was skipped, the operation will be executed.
       for (auto& op: _commit_schedule) {
-         if (get<0>(op) > block_id) return; // block
-         if (get<2>(op)) {                  // requires processing
-            broadcast_commit(get<1>(op));   // witness
+         if (get<0>(op) > maintenance_block_id) return; // block
+         if (get<2>(op)) {                   // requires processing
+            broadcast_commit(get<1>(op));    // witness
             get<2>(op) = false;
          }
       }
-   } else {
-      // --------------- //
-      // Reveal interval //
-      // --------------- //
+      return;
+   }
 
-      uint64_t block_id = (head_block_time_sec - last_maintenance_sec)
-                           / gpo.parameters.block_interval - total_blocks / 2;
-      //ilog("A block numer since the reveal interval begginig: ${blc}", ("blc", block_id));
+   // --------------- //
+   // Reveal interval //
+   // --------------- //
 
-      // Even if the required block was skipped, the operation will be executed.
-      for (auto &op : _reveal_schedule) {
-         if (get<0>(op) > block_id) return; // block
-         if (get<2>(op)) {                  // requires processing
-            broadcast_reveal(get<1>(op));   // witness
-            get<2>(op) = false;
-         }
+   // Even if the required block was skipped, the operation will be executed.
+   for (auto &op : _reveal_schedule) {
+      if (get<0>(op) > maintenance_block_id - total_blocks / 2) return; // block
+      if (get<2>(op)) {                   // requires processing
+         broadcast_reveal(get<1>(op));    // witness
+         get<2>(op) = false;
       }
    }
 
@@ -446,14 +443,14 @@ void witness_plugin::schedule_commit_reveal() {
    sort(_commit_schedule.begin(), _commit_schedule.end());
    sort(_reveal_schedule.begin(), _reveal_schedule.end());
 
-   // DEBUG
    /*
+   // DEBUG
    ilog("Scheduled commits:");
    for (const auto& it: _commit_schedule)
       ilog("    ${blc} -> ${nme}(${acc})", ("blc", it.first)("nme", it.second(db).name)("acc", it.second));
    ilog("Scheduled reveals:");
    for (const auto& it: _reveal_schedule)
-      ilog("    ${blc} -> ${nme}(${acc})", ("blc", it.first)("nme", it.second(db).name)("acc", it.second));
+      ilog("    ${blc} -> ${nme}(${acc})", ("blc", it.first + blocks/2)("nme", it.second(db).name)("acc", it.second));
    */
 }
 
@@ -474,10 +471,25 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
    std::uniform_int_distribution<uint64_t> dis;
    _reveal_value[acc_id] = dis(gen);
 
+
+   // Search for the commit operation
+   const auto& cr_idx = db.get_index_type<commit_reveal_index>();
+   const auto& by_cr_acc = cr_idx.indices().get<by_account>();
+   auto cr_itr = by_cr_acc.lower_bound(acc_id);
+   if (cr_itr != by_cr_acc.end() && cr_itr->account == acc_id
+      && cr_itr->maintenance_time == dgpo.next_maintenance_time.sec_since_epoch())
+   {
+      ilog("[${b}: ${nme}(${acc})] Commit operation for the current maintenance period has already been, value: ${v}",
+         ("b", db.head_block_num() + 1)("nme", acc_id(db).name)
+         ("acc", acc_id(db).get_id())("v", _reveal_value[acc_id]));
+      return;
+   }
+
    // Create the commit operation
    commit_create_operation commit_op;
    commit_op.account = acc_id;
    commit_op.hash = fc::sha512::hash(std::to_string(_reveal_value[acc_id]));
+   commit_op.maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
    tx.operations.push_back(commit_op);
    ilog("[${b}: ${nme}(${acc})] Commit operation was send, value: ${v}, hash: ${h}",
          ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
@@ -518,16 +530,17 @@ void witness_plugin::broadcast_reveal(const chain::account_id_type& acc_id) {
 
    // Search for the corresponding commit operation
    const auto& cr_idx = db.get_index_type<commit_reveal_index>();
-   const auto& by_op_idx = cr_idx.indices().get<by_account>();
-   auto cr_itr = by_op_idx.lower_bound(acc_id);
-   if (cr_itr != by_op_idx.end() && cr_itr->account == acc_id && _reveal_value[acc_id] != 0) {
+   const auto& by_cr_acc = cr_idx.indices().get<by_account>();
+   auto cr_itr = by_cr_acc.lower_bound(acc_id);
+   if (cr_itr != by_cr_acc.end() && cr_itr->account == acc_id && _reveal_value[acc_id] != 0) {
       std::string hash = fc::sha512::hash(std::to_string(_reveal_value[acc_id]));
-      if (cr_itr->hash == hash) {
+      if (cr_itr->hash == hash && cr_itr->maintenance_time == dgpo.next_maintenance_time.sec_since_epoch()) {
 
          // Create the reveal operation
          reveal_create_operation reveal_op;
          reveal_op.account = acc_id;
          reveal_op.value = _reveal_value[acc_id];
+         reveal_op.maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
          tx.operations.push_back(reveal_op);
          ilog("[${b}: ${nme}(${acc})] Reveal operation was send, value: ${v}, hash: ${h}",
                ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
@@ -537,6 +550,7 @@ void witness_plugin::broadcast_reveal(const chain::account_id_type& acc_id) {
          ilog("[${b}: ${nme}(${acc})] Reveal operation was not send, value: ${v}, hash: ${h}",
                ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
                ("v", _reveal_value[acc_id])("h", hash));
+         return;
       }
       _reveal_value[acc_id] = 0;
    }

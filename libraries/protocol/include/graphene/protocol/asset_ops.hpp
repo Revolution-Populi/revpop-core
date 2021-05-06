@@ -110,7 +110,7 @@ namespace graphene { namespace protocol {
 
       struct ext
       {
-         /// After BSIP77, when creating a new debt position or updating an existing position,
+         /// When creating a new debt position or updating an existing position,
          /// the position will be checked against this parameter.
          /// Unused for prediction markets, although we allow it to be set for simpler implementation
          fc::optional<uint16_t> initial_collateral_ratio;  // BSIP-77
@@ -416,7 +416,7 @@ namespace graphene { namespace protocol {
    {
       struct ext
       {
-         /// After BSIP77, price feed producers can feed ICR too
+         /// Price feed producers can feed ICR too
          fc::optional<uint16_t> initial_collateral_ratio;  // BSIP-77
       };
 

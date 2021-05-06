@@ -64,28 +64,6 @@ namespace detail {
       }
    }
 
-   // TODO review and remove code below and links to it after HARDFORK_BSIP_77_TIME
-   void check_asset_publish_feed_extensions_hf_bsip77( const fc::time_point_sec& block_time,
-                                                       const asset_publish_feed_operation::ext& extensions )
-   {
-      if ( !HARDFORK_BSIP_77_PASSED( block_time ) )
-      {
-         // new extensions should not be set until activation of BSIP_77
-         FC_ASSERT( !extensions.initial_collateral_ratio.valid(),
-                   "Initial collateral ratio should not be defined before HARDFORK_BSIP_77_TIME" );
-      }
-   }
-
-   // TODO review and remove code below and links to it after HARDFORK_BSIP_77_TIME
-   void check_bitasset_options_hf_bsip77(const fc::time_point_sec& block_time, const bitasset_options& options)
-   {
-      if ( !HARDFORK_BSIP_77_PASSED( block_time ) ) {
-         // ICR should not be set until activation of BSIP77
-         FC_ASSERT(!options.extensions.value.initial_collateral_ratio.valid(),
-                   "Initial collateral ratio should not be defined before HARDFORK_BSIP_77_TIME");
-      }
-   }
-
    void check_bitasset_options_hf_bsip87(const fc::time_point_sec& block_time, const bitasset_options& options)
    {
       // HF_REMOVABLE: Following hardfork check should be removable after hardfork date passes:
@@ -116,7 +94,6 @@ void_result asset_create_evaluator::do_evaluate( const asset_create_operation& o
    detail::check_asset_options_hf_bsip81(now, op.common_options);
    if( op.bitasset_opts ) {
       detail::check_bitasset_options_hf_bsip74( now, *op.bitasset_opts ); // HF_REMOVABLE
-      detail::check_bitasset_options_hf_bsip77( now, *op.bitasset_opts ); // HF_REMOVABLE
       detail::check_bitasset_options_hf_bsip87( now, *op.bitasset_opts ); // HF_REMOVABLE
    }
 
@@ -538,7 +515,6 @@ void_result asset_update_bitasset_evaluator::do_evaluate(const asset_update_bita
 
    // Hardfork Checks:
    detail::check_bitasset_options_hf_bsip74( now, op.new_options ); // HF_REMOVABLE
-   detail::check_bitasset_options_hf_bsip77( now, op.new_options ); // HF_REMOVABLE
    detail::check_bitasset_options_hf_bsip87( now, op.new_options ); // HF_REMOVABLE
 
    const asset_object& asset_obj = op.asset_to_update(d);
@@ -976,9 +952,6 @@ void_result asset_publish_feeds_evaluator::do_evaluate(const asset_publish_feed_
 { try {
    const database& d = db();
    const time_point_sec now = d.head_block_time();
-
-   // TODO remove check after hard fork
-   detail::check_asset_publish_feed_extensions_hf_bsip77( now, o.extensions.value );
 
    const asset_object& base = o.asset_id(d);
    //Verify that this feed is for a market-issued asset and that asset is backed by the base

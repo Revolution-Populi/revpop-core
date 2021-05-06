@@ -204,7 +204,6 @@ struct database_fixture {
    optional<fc::temp_directory> data_dir;
    bool skip_key_index_test = false;
    uint32_t anon_acct_count;
-   bool bsip77 = false;
 
    database_fixture(const fc::time_point_sec &initial_timestamp =
                         fc::time_point_sec(GRAPHENE_TESTING_GENESIS_TIMESTAMP));

@@ -222,7 +222,7 @@ namespace graphene { namespace chain {
     */
    struct price_feed_with_icr : public price_feed
    {
-      /// After BSIP77, when creating a new debt position or updating an existing position,
+      /// When creating a new debt position or updating an existing position,
       /// the position will be checked against this parameter.
       /// Fixed point between 1.000 and 10.000, implied fixed point denominator is GRAPHENE_COLLATERAL_RATIO_DENOM
       uint16_t initial_collateral_ratio = GRAPHENE_DEFAULT_MAINTENANCE_COLLATERAL_RATIO;
@@ -272,7 +272,7 @@ namespace graphene { namespace chain {
          /// call territory.
          /// This value is derived from @ref current_feed for better performance and should be kept consistent.
          price current_maintenance_collateralization;
-         /// After BSIP77, when creating a new debt position or updating an existing position, the position
+         /// When creating a new debt position or updating an existing position, the position
          /// will be checked against the `initial_collateral_ratio` (ICR) parameter in the bitasset options.
          /// This value is derived from @ref current_feed (which includes `ICR`) for better performance and
          /// should be kept consistent.

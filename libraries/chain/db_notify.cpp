@@ -26,6 +26,7 @@
 #include <graphene/chain/content_vote_object.hpp>
 #include <graphene/chain/vote_master_summary_object.hpp>
 #include <graphene/chain/commit_reveal_object.hpp>
+#include <graphene/chain/commit_reveal_v2_object.hpp>
 
 using namespace fc;
 namespace graphene { namespace chain { namespace detail {
@@ -329,6 +330,16 @@ struct get_impacted_account_visitor
       _impacted.insert( op.fee_payer() );
       _impacted.insert( op.account );
    }
+   void operator()( const commit_create_v2_operation& op )
+   {
+      _impacted.insert( op.fee_payer() );
+      _impacted.insert( op.account );
+   }
+   void operator()( const reveal_create_v2_operation& op )
+   {
+      _impacted.insert( op.fee_payer() );
+      _impacted.insert( op.account );
+   }
 };
 
 } // namespace detail
@@ -467,9 +478,14 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
            accounts.insert( vms_obj->master_account );
            break;
         } case commit_reveal_object_type:{
-           const auto& cv_obj = dynamic_cast<const commit_reveal_object*>(obj);
-           FC_ASSERT( cv_obj != nullptr );
-           accounts.insert( cv_obj->account );
+           const auto& cr_obj = dynamic_cast<const commit_reveal_object*>(obj);
+           FC_ASSERT( cr_obj != nullptr );
+           accounts.insert( cr_obj->account );
+           break;
+        } case commit_reveal_v2_object_type:{
+           const auto& cr_obj = dynamic_cast<const commit_reveal_v2_object*>(obj);
+           FC_ASSERT( cr_obj != nullptr );
+           accounts.insert( cr_obj->account );
            break;
         }
       }

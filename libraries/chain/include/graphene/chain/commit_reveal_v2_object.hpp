@@ -1,6 +1,6 @@
 /**
  * The Revolution Populi Project
- * Copyright (C) 2020 Revolution Populi Limited
+ * Copyright (C) 2021 Revolution Populi Limited
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,35 +34,36 @@ namespace graphene { namespace chain {
          *
          * Commit-reveal data the primary unit to give and store commit-reveal object.
          */
-        class commit_reveal_object : public graphene::db::abstract_object<commit_reveal_object>
+        class commit_reveal_v2_object : public graphene::db::abstract_object<commit_reveal_v2_object>
         {
         public:
             static const uint8_t space_id = protocol_ids;
-            static const uint8_t type_id  = commit_reveal_object_type;
+            static const uint8_t type_id  = commit_reveal_v2_object_type;
 
             account_id_type account;
             string          hash;
             uint64_t        value;
+            uint32_t        maintenance_time;
         };
 
         struct by_account;
 
         typedef multi_index_container<
-               commit_reveal_object,
+               commit_reveal_v2_object,
                indexed_by<
                      ordered_unique< tag<by_id>, member< object, object_id_type, &object::id > >,
                      ordered_unique< tag<by_account>,
-                           composite_key< commit_reveal_object,
-                                 member< commit_reveal_object, account_id_type, &commit_reveal_object::account>
+                           composite_key< commit_reveal_v2_object,
+                                 member< commit_reveal_v2_object, account_id_type, &commit_reveal_v2_object::account>
                            >
                      >
                >
-        > commit_reveal_multi_index_type;
+        > commit_reveal_v2_multi_index_type;
 
-        typedef generic_index<commit_reveal_object, commit_reveal_multi_index_type> commit_reveal_index;
+        typedef generic_index<commit_reveal_v2_object, commit_reveal_v2_multi_index_type> commit_reveal_v2_index;
 
     }}
 
-MAP_OBJECT_ID_TO_TYPE(graphene::chain::commit_reveal_object)
-FC_REFLECT_TYPENAME( graphene::chain::commit_reveal_object )
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::chain::commit_reveal_object )
+MAP_OBJECT_ID_TO_TYPE(graphene::chain::commit_reveal_v2_object)
+FC_REFLECT_TYPENAME( graphene::chain::commit_reveal_v2_object )
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::chain::commit_reveal_v2_object )

@@ -16,19 +16,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <graphene/chain/commit_reveal_object.hpp>
-#include <graphene/chain/database.hpp>
-
-#include <fc/io/raw.hpp>
-#include <fc/uint128.hpp>
+#pragma once
+#include <graphene/chain/evaluator.hpp>
+#include <graphene/chain/commit_reveal_v2_object.hpp>
 
 namespace graphene { namespace chain {
 
+class commit_create_v2_evaluator : public evaluator<commit_create_v2_evaluator>
+{
+public:
+   typedef commit_create_v2_operation operation_type;
+
+   void_result do_evaluate( const commit_create_v2_operation& o );
+   object_id_type do_apply( const commit_create_v2_operation& o ) ;
+};
+
+class reveal_create_v2_evaluator : public evaluator<reveal_create_v2_evaluator>
+{
+public:
+   typedef reveal_create_v2_operation operation_type;
+
+   void_result do_evaluate( const reveal_create_v2_operation& o );
+   object_id_type do_apply( const reveal_create_v2_operation& o ) ;
+};
+
 } } // graphene::chain
-
-FC_REFLECT_DERIVED_NO_TYPENAME( graphene::chain::commit_reveal_object,
-                    (graphene::db::object),
-                    (account)(hash)(value)
-                    )
-
-GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::commit_reveal_object )

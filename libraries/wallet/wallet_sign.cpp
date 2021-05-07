@@ -843,41 +843,83 @@ namespace graphene { namespace wallet { namespace detail {
       return sign_transaction(tx, broadcast);
    } FC_CAPTURE_AND_RETHROW( (account)(value)(broadcast) ) }
 
-   commit_reveal_object wallet_api_impl::get_account_commit_reveal( const string& account ) const
+   commit_reveal_object wallet_api_impl::get_account_commit_reveal(const string &account) const
    {
       auto acc_id = get_account(account).get_id();
       auto cr_opt = _remote_db->get_account_commit_reveal(acc_id);
-      if (cr_opt.valid()) {
-   return *cr_opt;
+      if (cr_opt.valid())
+      {
+         return *cr_opt;
       }
       return commit_reveal_object();
    }
 
-   vector<commit_reveal_object> wallet_api_impl::get_commit_reveals( uint64_t start, uint32_t limit ) const
+   commit_reveal_v2_object wallet_api_impl::get_account_commit_reveal_v2(const string &account) const
+   {
+      auto acc_id = get_account(account).get_id();
+      auto cr_opt = _remote_db->get_account_commit_reveal_v2(acc_id);
+      if (cr_opt.valid())
+      {
+         return *cr_opt;
+      }
+      return commit_reveal_v2_object();
+   }
+
+   vector<commit_reveal_object> wallet_api_impl::get_commit_reveals(uint64_t start, uint32_t limit) const
    {
       auto start_id = commit_reveal_id_type(start);
       auto crs = _remote_db->get_commit_reveals(start_id, limit);
       return crs;
    }
 
-   uint64_t wallet_api_impl::get_commit_reveal_seed(const vector<string>& accounts) const
+   vector<commit_reveal_v2_object> wallet_api_impl::get_commit_reveals_v2(uint64_t start, uint32_t limit) const
+   {
+      auto start_id = commit_reveal_v2_id_type(start);
+      auto crs = _remote_db->get_commit_reveals_v2(start_id, limit);
+      return crs;
+   }
+
+   uint64_t wallet_api_impl::get_commit_reveal_seed(const vector<string> &accounts) const
    {
       vector<account_id_type> acc_ids;
-      for (const auto& acc_name: accounts) {
-   acc_ids.push_back(get_account(acc_name).get_id());
+      for (const auto &acc_name : accounts)
+      {
+         acc_ids.push_back(get_account(acc_name).get_id());
       }
       auto seed = _remote_db->get_commit_reveal_seed(acc_ids);
       return seed;
    }
 
-   vector<account_id_type> wallet_api_impl::filter_commit_reveal_participant(const vector<string>& accounts) const
+   uint64_t wallet_api_impl::get_commit_reveal_seed_v2(const vector<string> &accounts) const
    {
       vector<account_id_type> acc_ids;
-      for (const auto& acc_name: accounts) {
-   acc_ids.push_back(get_account(acc_name).get_id());
+      for (const auto &acc_name : accounts)
+      {
+         acc_ids.push_back(get_account(acc_name).get_id());
+      }
+      auto seed = _remote_db->get_commit_reveal_seed_v2(acc_ids);
+      return seed;
+   }
+
+   vector<account_id_type> wallet_api_impl::filter_commit_reveal_participant(const vector<string> &accounts) const
+   {
+      vector<account_id_type> acc_ids;
+      for (const auto &acc_name : accounts)
+      {
+         acc_ids.push_back(get_account(acc_name).get_id());
       }
       auto filter_accs = _remote_db->filter_commit_reveal_participant(acc_ids);
       return filter_accs;
    }
 
+   vector<account_id_type> wallet_api_impl::filter_commit_reveal_participant_v2(const vector<string> &accounts) const
+   {
+      vector<account_id_type> acc_ids;
+      for (const auto &acc_name : accounts)
+      {
+         acc_ids.push_back(get_account(acc_name).get_id());
+      }
+      auto filter_accs = _remote_db->filter_commit_reveal_participant_v2(acc_ids);
+      return filter_accs;
+   }
 }}} // namespace graphene::wallet::detail

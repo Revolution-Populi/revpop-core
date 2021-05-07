@@ -1,6 +1,6 @@
 /**
  * The Revolution Populi Project
- * Copyright (C) 2020 Revolution Populi Limited
+ * Copyright (C) 2021 Revolution Populi Limited
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,9 +28,9 @@ namespace graphene { namespace protocol {
    /**
     * @brief Create a commit_reveal data object and set hash field
     *
-    * This operation is used to create the commit_reveal_object and set hash field.
+    * This operation is used to create the commit_reveal_v2_object and set hash field.
     */
-   struct commit_create_operation : public base_operation
+   struct commit_create_v2_operation : public base_operation
    {
       struct fee_parameters_type {};
 
@@ -38,6 +38,7 @@ namespace graphene { namespace protocol {
 
       account_id_type account;
       string          hash;
+      uint32_t        maintenance_time;
 
       account_id_type fee_payer()const { return account; }
       void            validate()const;
@@ -53,9 +54,9 @@ namespace graphene { namespace protocol {
    /**
     * @brief Set value field of commit-reveal object
     *
-    * This operation is used to set value field of the commit_reveal_object.
+    * This operation is used to set value field of the commit_reveal_v2_object.
     */
-   struct reveal_create_operation : public base_operation
+   struct reveal_create_v2_operation : public base_operation
    {
       struct fee_parameters_type {};
 
@@ -63,6 +64,7 @@ namespace graphene { namespace protocol {
 
       account_id_type account;
       uint64_t        value;
+      uint32_t        maintenance_time;
 
       account_id_type fee_payer()const { return account; }
       void            validate()const;
@@ -77,17 +79,17 @@ namespace graphene { namespace protocol {
 
 } } // graphene::protocol
 
-FC_REFLECT( graphene::protocol::commit_create_operation::fee_parameters_type,  )
-FC_REFLECT( graphene::protocol::commit_create_operation,
+FC_REFLECT( graphene::protocol::commit_create_v2_operation::fee_parameters_type,  )
+FC_REFLECT( graphene::protocol::commit_create_v2_operation,
             (fee)
-            (account)(hash)
+            (account)(hash)(maintenance_time)
           )
-FC_REFLECT( graphene::protocol::reveal_create_operation::fee_parameters_type,  )
-FC_REFLECT( graphene::protocol::reveal_create_operation,
+FC_REFLECT( graphene::protocol::reveal_create_v2_operation::fee_parameters_type,  )
+FC_REFLECT( graphene::protocol::reveal_create_v2_operation,
             (fee)
-            (account)(value)
+            (account)(value)(maintenance_time)
           )
 
 
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::commit_create_operation )
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::reveal_create_operation )
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::commit_create_v2_operation )
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::reveal_create_v2_operation )

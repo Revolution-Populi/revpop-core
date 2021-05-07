@@ -23,9 +23,12 @@
  */
 #include <graphene/witness/witness.hpp>
 
+#include <graphene/chain/hardfork.hpp>
+
 #include <graphene/chain/database.hpp>
 #include <graphene/chain/witness_object.hpp>
 #include <graphene/chain/commit_reveal_object.hpp>
+#include <graphene/chain/commit_reveal_v2_object.hpp>
 
 #include <graphene/utilities/key_conversion.hpp>
 
@@ -471,29 +474,50 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
    std::uniform_int_distribution<uint64_t> dis;
    _reveal_value[acc_id] = dis(gen);
 
-
-   // Search for the commit operation
-   const auto& cr_idx = db.get_index_type<commit_reveal_index>();
-   const auto& by_cr_acc = cr_idx.indices().get<by_account>();
-   auto cr_itr = by_cr_acc.lower_bound(acc_id);
-   if (cr_itr != by_cr_acc.end() && cr_itr->account == acc_id
-      && cr_itr->maintenance_time == dgpo.next_maintenance_time.sec_since_epoch())
+   if (HARDFORK_REVPOP_11_PASSED(db.head_block_time()))
    {
-      ilog("[${b}: ${nme}(${acc})] Commit operation for the current maintenance period has already been, value: ${v}",
-         ("b", db.head_block_num() + 1)("nme", acc_id(db).name)
-         ("acc", acc_id(db).get_id())("v", _reveal_value[acc_id]));
-      return;
-   }
+      // Search for the commit operation
+      const auto &cr_idx = db.get_index_type<commit_reveal_v2_index>();
+      const auto &by_cr_acc = cr_idx.indices().get<by_account>();
+      auto cr_itr = by_cr_acc.lower_bound(acc_id);
+      if (cr_itr != by_cr_acc.end() && cr_itr->account == acc_id
+         && cr_itr->maintenance_time == dgpo.next_maintenance_time.sec_since_epoch())
+      {
+         ilog("[${b}: ${nme}(${acc})] Commit operation for the current maintenance period has already been, value: ${v}",
+              ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())("v", _reveal_value[acc_id]));
+         return;
+      }
 
-   // Create the commit operation
-   commit_create_operation commit_op;
-   commit_op.account = acc_id;
-   commit_op.hash = fc::sha512::hash(std::to_string(_reveal_value[acc_id]));
-   commit_op.maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
-   tx.operations.push_back(commit_op);
-   ilog("[${b}: ${nme}(${acc})] Commit operation was send, value: ${v}, hash: ${h}",
-         ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
-         ("v", _reveal_value[acc_id])("h", commit_op.hash));
+      // Create the commit operation
+      commit_create_v2_operation commit_op;
+      commit_op.account = acc_id;
+      commit_op.hash = fc::sha512::hash(std::to_string(_reveal_value[acc_id]));
+      commit_op.maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
+      tx.operations.push_back(commit_op);
+      ilog("[${b}: ${nme}(${acc})] Commit operation was send, value: ${v}, hash: ${h}",
+           ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())("v", _reveal_value[acc_id])("h", commit_op.hash));
+   }
+   else
+   {
+      // Search for the commit operation
+      const auto &cr_idx = db.get_index_type<commit_reveal_index>();
+      const auto &by_cr_acc = cr_idx.indices().get<by_account>();
+      auto cr_itr = by_cr_acc.lower_bound(acc_id);
+      if (cr_itr != by_cr_acc.end() && cr_itr->account == acc_id)
+      {
+         ilog("[${b}: ${nme}(${acc})] Commit operation for the current maintenance period has already been, value: ${v}",
+              ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())("v", _reveal_value[acc_id]));
+         return;
+      }
+
+      // Create the commit operation
+      commit_create_operation commit_op;
+      commit_op.account = acc_id;
+      commit_op.hash = fc::sha512::hash(std::to_string(_reveal_value[acc_id]));
+      tx.operations.push_back(commit_op);
+      ilog("[${b}: ${nme}(${acc})] Commit operation was send, value: ${v}, hash: ${h}",
+           ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())("v", _reveal_value[acc_id])("h", commit_op.hash));
+   }
 
    // Broadcast the block transaction
    if (tx.operations.size()){
@@ -528,33 +552,69 @@ void witness_plugin::broadcast_reveal(const chain::account_id_type& acc_id) {
    // Prepare the block transaction
    protocol::signed_transaction tx;
 
-   // Search for the corresponding commit operation
-   const auto& cr_idx = db.get_index_type<commit_reveal_index>();
-   const auto& by_cr_acc = cr_idx.indices().get<by_account>();
-   auto cr_itr = by_cr_acc.lower_bound(acc_id);
-   if (cr_itr != by_cr_acc.end() && cr_itr->account == acc_id && _reveal_value[acc_id] != 0) {
-      std::string hash = fc::sha512::hash(std::to_string(_reveal_value[acc_id]));
-      if (cr_itr->hash == hash && cr_itr->maintenance_time == dgpo.next_maintenance_time.sec_since_epoch()) {
+   if (HARDFORK_REVPOP_11_PASSED(db.head_block_time()))
+   {
+      // Search for the corresponding commit operation
+      const auto &cr_idx = db.get_index_type<commit_reveal_v2_index>();
+      const auto &by_cr_acc = cr_idx.indices().get<by_account>();
+      auto cr_itr = by_cr_acc.lower_bound(acc_id);
+      if (cr_itr != by_cr_acc.end() && cr_itr->account == acc_id && _reveal_value[acc_id] != 0)
+      {
+         std::string hash = fc::sha512::hash(std::to_string(_reveal_value[acc_id]));
+         if (cr_itr->hash == hash && cr_itr->maintenance_time == dgpo.next_maintenance_time.sec_since_epoch())
+         {
 
-         // Create the reveal operation
-         reveal_create_operation reveal_op;
-         reveal_op.account = acc_id;
-         reveal_op.value = _reveal_value[acc_id];
-         reveal_op.maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
-         tx.operations.push_back(reveal_op);
-         ilog("[${b}: ${nme}(${acc})] Reveal operation was send, value: ${v}, hash: ${h}",
-               ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
-               ("v", _reveal_value[acc_id])("h", hash));
-
-      } else {
-         ilog("[${b}: ${nme}(${acc})] Reveal operation was not send, value: ${v}, hash: ${h}",
-               ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
-               ("v", _reveal_value[acc_id])("h", hash));
-         return;
+            // Create the reveal operation
+            reveal_create_v2_operation reveal_op;
+            reveal_op.account = acc_id;
+            reveal_op.value = _reveal_value[acc_id];
+            reveal_op.maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
+            tx.operations.push_back(reveal_op);
+            ilog("[${b}: ${nme}(${acc})] Reveal operation was send, value: ${v}, hash: ${h}",
+                 ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
+                 ("v", _reveal_value[acc_id])("h", hash));
+         }
+         else
+         {
+            ilog("[${b}: ${nme}(${acc})] Reveal operation was not send, value: ${v}, hash: ${h}",
+                 ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
+                 ("v", _reveal_value[acc_id])("h", hash));
+            return;
+         }
+         _reveal_value[acc_id] = 0;
       }
-      _reveal_value[acc_id] = 0;
    }
+   else
+   {
+      // Search for the corresponding commit operation
+      const auto &cr_idx = db.get_index_type<commit_reveal_index>();
+      const auto &by_cr_acc = cr_idx.indices().get<by_account>();
+      auto cr_itr = by_cr_acc.lower_bound(acc_id);
+      if (cr_itr != by_cr_acc.end() && cr_itr->account == acc_id && _reveal_value[acc_id] != 0)
+      {
+         std::string hash = fc::sha512::hash(std::to_string(_reveal_value[acc_id]));
+         if (cr_itr->hash == hash)
+         {
 
+            // Create the reveal operation
+            reveal_create_operation reveal_op;
+            reveal_op.account = acc_id;
+            reveal_op.value = _reveal_value[acc_id];
+            tx.operations.push_back(reveal_op);
+            ilog("[${b}: ${nme}(${acc})] Reveal operation was send, value: ${v}, hash: ${h}",
+                 ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
+                 ("v", _reveal_value[acc_id])("h", hash));
+         }
+         else
+         {
+            ilog("[${b}: ${nme}(${acc})] Reveal operation was not send, value: ${v}, hash: ${h}",
+                 ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
+                 ("v", _reveal_value[acc_id])("h", hash));
+            return;
+         }
+         _reveal_value[acc_id] = 0;
+      }
+   }
 
    // Broadcast the block transaction
    if (tx.operations.size()){

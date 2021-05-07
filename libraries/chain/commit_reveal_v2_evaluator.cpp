@@ -39,7 +39,7 @@ void_result commit_create_v2_evaluator::do_evaluate( const commit_create_v2_oper
    const auto& by_cr_acc = cr_idx.indices().get<by_account>();
    auto cr_itr = by_cr_acc.lower_bound(op.account);
    if (cr_itr != by_cr_acc.end() && cr_itr->account == op.account) {
-      FC_ASSERT(cr_itr -> maintenance_time == dgpo.next_maintenance_time.sec_since_epoch(), "The commit operation for the current maintenance period has already been received.");
+      FC_ASSERT(cr_itr -> maintenance_time != dgpo.next_maintenance_time.sec_since_epoch(), "The commit operation for the current maintenance period has already been received.");
    }
 
    FC_ASSERT(d.head_block_time() < dgpo.next_maintenance_time - gpo.parameters.maintenance_interval / 2,
@@ -76,6 +76,8 @@ object_id_type commit_create_v2_evaluator::do_apply( const commit_create_v2_oper
 void_result reveal_create_v2_evaluator::do_evaluate( const reveal_create_v2_operation& op )
 { try {
    database& d = db();
+   FC_ASSERT(op.value != 0, "Value can not be empty.");
+
    const auto& gpo = d.get_global_properties();
    const auto& dgpo = d.get_dynamic_global_properties();
 
@@ -87,7 +89,7 @@ void_result reveal_create_v2_evaluator::do_evaluate( const reveal_create_v2_oper
    const auto& by_cr_acc = cr_idx.indices().get<by_account>();
    auto cr_itr = by_cr_acc.lower_bound(op.account);
 
-   FC_ASSERT(cr_itr == by_cr_acc.end(), "Commit-reveal object doesn't exist.");
+   FC_ASSERT(cr_itr != by_cr_acc.end(), "Commit-reveal object doesn't exist.");
    FC_ASSERT(cr_itr->account == op.account, "Commit-reveal object doesn't exist.");
    string hash = fc::sha512::hash( std::to_string(op.value) );
    FC_ASSERT(cr_itr->hash == hash, "Hash is broken.");

@@ -450,10 +450,10 @@ void witness_plugin::schedule_commit_reveal() {
    // DEBUG
    ilog("Scheduled commits:");
    for (const auto& it: _commit_schedule)
-      ilog("    ${blc} -> ${nme}(${acc})", ("blc", it.first)("nme", it.second(db).name)("acc", it.second));
+      ilog("    ${blc} -> ${nme}(${acc})", ("blc", get<0>(it))("nme", get<1>(it)(db).name)("acc", get<1>(it)));
    ilog("Scheduled reveals:");
    for (const auto& it: _reveal_schedule)
-      ilog("    ${blc} -> ${nme}(${acc})", ("blc", it.first + blocks/2)("nme", it.second(db).name)("acc", it.second));
+      ilog("    ${blc} -> ${nme}(${acc})", ("blc", get<0>(it) + blocks/2)("nme", get<1>(it)(db).name)("acc", get<1>(it)));
    */
 }
 
@@ -483,7 +483,7 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
       if (cr_itr != by_cr_acc.end() && cr_itr->account == acc_id
          && cr_itr->maintenance_time == dgpo.next_maintenance_time.sec_since_epoch())
       {
-         ilog("[${b}: ${nme}(${acc})] Commit operation for the current maintenance period has already been, value: ${v}",
+         ilog("[${b}: ${nme}(${acc})] Commit operation for the current maintenance period has already been made, value: ${v}",
               ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())("v", _reveal_value[acc_id]));
          return;
       }
@@ -499,17 +499,6 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
    }
    else
    {
-      // Search for the commit operation
-      const auto &cr_idx = db.get_index_type<commit_reveal_index>();
-      const auto &by_cr_acc = cr_idx.indices().get<by_account>();
-      auto cr_itr = by_cr_acc.lower_bound(acc_id);
-      if (cr_itr != by_cr_acc.end() && cr_itr->account == acc_id)
-      {
-         ilog("[${b}: ${nme}(${acc})] Commit operation for the current maintenance period has already been, value: ${v}",
-              ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())("v", _reveal_value[acc_id]));
-         return;
-      }
-
       // Create the commit operation
       commit_create_operation commit_op;
       commit_op.account = acc_id;

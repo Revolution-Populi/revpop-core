@@ -1523,7 +1523,7 @@ BOOST_AUTO_TEST_CASE( commit_reveal_scheme_test )
       commit_create_operation commit_op;
       commit_op.account = acc_id;
       commit_op.hash = hash;
-       signed_transaction trx;
+      signed_transaction trx;
       trx.operations.push_back(commit_op);
       set_expiration(db, trx);
       PUSH_TX(db, trx, skip);

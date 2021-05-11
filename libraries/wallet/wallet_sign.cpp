@@ -28,6 +28,8 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <graphene/chain/hardfork.hpp>
+
 #include "wallet_api_impl.hpp"
 #include <graphene/wallet/wallet.hpp>
 
@@ -816,30 +818,55 @@ namespace graphene { namespace wallet { namespace detail {
    signed_transaction wallet_api_impl::send_commit( const string& account, uint64_t value, bool broadcast )
    { try {
       auto acc_id = get_account(account).get_id();
-
-      commit_create_operation commit_op;
-      commit_op.account = acc_id;
-      commit_op.hash    = fc::sha512::hash( std::to_string(value) );
-
       signed_transaction tx;
-      tx.operations.push_back(commit_op);         
-      tx.validate();
 
+      if (HARDFORK_REVPOP_11_PASSED(fc::time_point_sec(fc::time_point::now())))
+      {
+         commit_create_v2_operation commit_op;
+
+         commit_op.account = acc_id;
+         commit_op.hash    = fc::sha512::hash( std::to_string(value) );
+         auto dynamic_props = get_dynamic_global_properties();
+         commit_op.maintenance_time = dynamic_props.next_maintenance_time.sec_since_epoch();
+
+         tx.operations.push_back(commit_op);
+      } else {
+         commit_create_operation commit_op;
+
+         commit_op.account = acc_id;
+         commit_op.hash    = fc::sha512::hash( std::to_string(value) );
+
+         tx.operations.push_back(commit_op);
+      }
+
+      tx.validate();
       return sign_transaction(tx, broadcast);
    } FC_CAPTURE_AND_RETHROW( (account)(value)(broadcast) ) }
 
    signed_transaction wallet_api_impl::send_reveal( const string& account, uint64_t value, bool broadcast )
    { try {
       auto acc_id = get_account(account).get_id();
-
-      reveal_create_operation reveal_op;
-      reveal_op.account = acc_id;
-      reveal_op.value   = value;
-
       signed_transaction tx;
-      tx.operations.push_back(reveal_op);         
-      tx.validate();
 
+      if (HARDFORK_REVPOP_11_PASSED(fc::time_point_sec(fc::time_point::now())))
+      {
+         reveal_create_v2_operation reveal_op;
+
+         reveal_op.account = acc_id;
+         reveal_op.value   = value;
+         auto dynamic_props = get_dynamic_global_properties();
+         reveal_op.maintenance_time = dynamic_props.next_maintenance_time.sec_since_epoch();
+
+         tx.operations.push_back(reveal_op);
+      } else {
+         reveal_create_operation reveal_op;
+         reveal_op.account = acc_id;
+         reveal_op.value   = value;
+
+         tx.operations.push_back(reveal_op);
+      }
+
+      tx.validate();
       return sign_transaction(tx, broadcast);
    } FC_CAPTURE_AND_RETHROW( (account)(value)(broadcast) ) }
 

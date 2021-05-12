@@ -237,12 +237,12 @@ void database::update_active_witnesses()
    // RevPop: seed maintenance PRNG from commit-reveal scheme or chain_id + head block number
    if (HARDFORK_REVPOP_11_PASSED(head_block_time()))
    {
-      uint64_t prng_seed = wits_acc.empty() ?
-               // Fallback: seed PRNG from chain_id + head block num
-               ((*(const uint64_t *)get_chain_id().data()) + dpo.head_block_number)
-               :
-               // Normal: seed PRNG from commit-reveal scheme
-               get_commit_reveal_seed_v2(wits_acc);
+      uint64_t prng_seed = get_commit_reveal_seed_v2(wits_acc);
+      if (prng_seed == 0)
+      {
+         // Fallback: seed PRNG from chain_id + head block num
+         prng_seed = ((*(const uint64_t *)get_chain_id().data()) + dpo.head_block_number);
+      }
       _maintenance_prng.seed(prng_seed);
    }
    else

@@ -91,6 +91,7 @@ void_result reveal_create_v2_evaluator::do_evaluate( const reveal_create_v2_oper
 
    FC_ASSERT(cr_itr != by_cr_acc.end(), "Commit-reveal object doesn't exist.");
    FC_ASSERT(cr_itr->account == op.account, "Commit-reveal object doesn't exist.");
+   FC_ASSERT(cr_itr->value == 0, "The reveal operation for the current maintenance period has already been received.");
    string hash = fc::sha512::hash( std::to_string(op.value) );
    FC_ASSERT(cr_itr->hash == hash, "Hash is broken.");
 

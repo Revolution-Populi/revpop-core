@@ -471,7 +471,8 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
    uint64_t seed = static_cast<uint64_t>(
       std::chrono::high_resolution_clock::now().time_since_epoch().count()) + acc_id.instance.value;
    gen.seed(seed);
-   std::uniform_int_distribution<uint64_t> dis;
+   // 0 is not possible secret value
+   std::uniform_int_distribution<uint64_t> dis(1);
    _reveal_value[acc_id] = dis(gen);
 
    if (HARDFORK_REVPOP_11_PASSED(db.head_block_time()))
@@ -550,7 +551,7 @@ void witness_plugin::broadcast_reveal(const chain::account_id_type& acc_id) {
       if (cr_itr != by_cr_acc.end() && cr_itr->account == acc_id && _reveal_value[acc_id] != 0)
       {
          std::string hash = fc::sha512::hash(std::to_string(_reveal_value[acc_id]));
-         if (cr_itr->hash == hash && cr_itr->maintenance_time == dgpo.next_maintenance_time.sec_since_epoch())
+         if (cr_itr->hash == hash && cr_itr->maintenance_time == dgpo.next_maintenance_time.sec_since_epoch() && cr_itr->value == 0)
          {
 
             // Create the reveal operation
@@ -562,15 +563,21 @@ void witness_plugin::broadcast_reveal(const chain::account_id_type& acc_id) {
             ilog("[${b}: ${nme}(${acc})] Reveal operation was send, value: ${v}, hash: ${h}",
                  ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
                  ("v", _reveal_value[acc_id])("h", hash));
+            _reveal_value[acc_id] = 0;
          }
          else
          {
-            ilog("[${b}: ${nme}(${acc})] Reveal operation was not send, value: ${v}, hash: ${h}",
+            ilog("[${b}: ${nme}(${acc})] Double reveal operations is prohibited, value: ${v}, hash: ${h}",
                  ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
                  ("v", _reveal_value[acc_id])("h", hash));
             return;
          }
-         _reveal_value[acc_id] = 0;
+      }
+      else
+      {
+         ilog("[${b}: ${nme}(${acc})] Reveal operation can't find the corresponding commit operation, value: ${v}",
+               ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id()));
+         return;
       }
    }
    else

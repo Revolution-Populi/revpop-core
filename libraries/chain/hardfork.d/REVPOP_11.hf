@@ -1,0 +1,5 @@
+// REVPOP 11 (Maintenance stamp for the commit/reveal operations) hardfork check
+#ifndef HARDFORK_REVPOP_11_TIME
+#define HARDFORK_REVPOP_11_TIME (fc::time_point_sec( 1620864000 )) // Thursday, May 13, 2021 12:00:00 AM
+#define HARDFORK_REVPOP_11_PASSED(now) (now >= HARDFORK_REVPOP_11_TIME)
+#endif

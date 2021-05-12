@@ -55,6 +55,7 @@
 #include <graphene/chain/content_vote_object.hpp>
 #include <graphene/chain/vote_master_summary_object.hpp>
 #include <graphene/chain/commit_reveal_object.hpp>
+#include <graphene/chain/commit_reveal_v2_object.hpp>
 
 #include <graphene/chain/account_evaluator.hpp>
 #include <graphene/chain/asset_evaluator.hpp>
@@ -75,6 +76,7 @@
 #include <graphene/chain/permission_evaluator.hpp>
 #include <graphene/chain/content_vote_evaluator.hpp>
 #include <graphene/chain/commit_reveal_evaluator.hpp>
+#include <graphene/chain/commit_reveal_v2_evaluator.hpp>
 
 #include <fc/crypto/digest.hpp>
 
@@ -160,6 +162,9 @@ const uint8_t vote_master_summary_object::type_id;
 const uint8_t commit_reveal_object::space_id;
 const uint8_t commit_reveal_object::type_id;
 
+const uint8_t commit_reveal_v2_object::space_id;
+const uint8_t commit_reveal_v2_object::type_id;
+
 void database::initialize_evaluators()
 {
    _operation_evaluators.resize(255);
@@ -219,6 +224,8 @@ void database::initialize_evaluators()
    register_evaluator<vote_counter_update_evaluator>();
    register_evaluator<commit_create_evaluator>();
    register_evaluator<reveal_create_evaluator>();
+   register_evaluator<commit_create_v2_evaluator>();
+   register_evaluator<reveal_create_v2_evaluator>();
 }
 
 void database::initialize_indexes()
@@ -271,6 +278,7 @@ void database::initialize_indexes()
    add_index< primary_index< content_vote_index,                        20> >();
    add_index< primary_index< vote_master_summary_index,                 20> >();
    add_index< primary_index< commit_reveal_index,                       20> >();
+   add_index< primary_index< commit_reveal_v2_index,                    20> >();
 }
 
 void database::init_genesis(const genesis_state_type& genesis_state)

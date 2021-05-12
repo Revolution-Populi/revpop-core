@@ -44,6 +44,7 @@
 #include <graphene/protocol/permission.hpp>
 #include <graphene/protocol/content_vote.hpp>
 #include <graphene/protocol/commit_reveal.hpp>
+#include <graphene/protocol/commit_reveal_v2.hpp>
 
 namespace graphene { namespace protocol {
 
@@ -111,7 +112,9 @@ namespace graphene { namespace protocol {
             content_vote_remove_operation,
             vote_counter_update_operation,
             commit_create_operation,        // VIRTUAL
-            reveal_create_operation         // VIRTUAL
+            reveal_create_operation,         // VIRTUAL
+            commit_create_v2_operation,        // VIRTUAL
+            reveal_create_v2_operation         // VIRTUAL
          > operation;
 
    /// @} // operations group

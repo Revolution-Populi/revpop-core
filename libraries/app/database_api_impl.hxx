@@ -165,6 +165,10 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
       vector<commit_reveal_object> get_commit_reveals( const commit_reveal_id_type start, uint32_t limit ) const;
       uint64_t get_commit_reveal_seed(const vector<account_id_type>& accounts) const;
       vector<account_id_type> filter_commit_reveal_participant(const vector<account_id_type>& accounts) const;
+      fc::optional<commit_reveal_v2_object> get_account_commit_reveal_v2( const account_id_type account ) const;
+      vector<commit_reveal_v2_object> get_commit_reveals_v2( const commit_reveal_v2_id_type start, uint32_t limit ) const;
+      uint64_t get_commit_reveal_seed_v2(const vector<account_id_type>& accounts) const;
+      vector<account_id_type> filter_commit_reveal_participant_v2(const vector<account_id_type>& accounts) const;
 
    //private:
 

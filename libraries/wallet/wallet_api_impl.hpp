@@ -425,12 +425,16 @@ public:
    signed_transaction send_reveal( const string& account, uint64_t value, bool broadcast );
 
    commit_reveal_object get_account_commit_reveal( const string& account ) const;
+   commit_reveal_v2_object get_account_commit_reveal_v2( const string& account ) const;
 
    vector<commit_reveal_object> get_commit_reveals( uint64_t start, uint32_t limit ) const;
+   vector<commit_reveal_v2_object> get_commit_reveals_v2( uint64_t start, uint32_t limit ) const;
 
    uint64_t get_commit_reveal_seed(const vector<string>& accounts) const;
+   uint64_t get_commit_reveal_seed_v2(const vector<string>& accounts) const;
 
    vector<account_id_type> filter_commit_reveal_participant(const vector<string>& accounts) const;
+   vector<account_id_type> filter_commit_reveal_participant_v2(const vector<string>& accounts) const;
 
    void dbg_make_uia(string creator, string symbol);
 

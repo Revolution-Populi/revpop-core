@@ -23,9 +23,12 @@
  */
 #include <graphene/witness/witness.hpp>
 
+#include <graphene/chain/hardfork.hpp>
+
 #include <graphene/chain/database.hpp>
 #include <graphene/chain/witness_object.hpp>
 #include <graphene/chain/commit_reveal_object.hpp>
+#include <graphene/chain/commit_reveal_v2_object.hpp>
 
 #include <graphene/utilities/key_conversion.hpp>
 
@@ -37,6 +40,7 @@
 #include <iostream>
 #include <cmath>
 #include <random>
+#include <chrono>
 
 using namespace graphene::chain;
 using namespace graphene::witness_plugin;
@@ -199,6 +203,25 @@ void witness_plugin::plugin_startup()
    }
 
    // RevPop
+   o_v = std::make_shared< operation_visitor >();
+   o_v->plugin = shared_from_this();
+   check_resources();
+
+   _network_broadcast_api = std::make_shared< app::network_broadcast_api >( std::ref( app() ) );
+
+   database().applied_block.connect([this](const signed_block &b) {
+      if (!process_master_operations(b)) {
+         FC_THROW_EXCEPTION(plugin_exception, "Error populating ES database, we are going to keep trying.");
+      }
+      commit_reveal_operations();
+   });
+
+   ilog("witness plugin:  plugin_startup() end");
+} FC_CAPTURE_AND_RETHROW() }
+
+void witness_plugin::check_resources() {
+   // Every maintenance period check for the witnesses update:
+   // old witnesses may lose votes, while new ones can collect them.
    auto& db = database();
    const auto& wit_idx = db.get_index_type<witness_index>();
    const auto& wit_op_idx = wit_idx.indices().get<by_id>();
@@ -207,24 +230,11 @@ void witness_plugin::plugin_startup()
       const auto& wit_itr = wit_op_idx.lower_bound(wit_id);
       if (wit_itr != wit_op_idx.end()) {
          masters.push_back(wit_itr->witness_account);
-         _witness_accounts.push_back(wit_itr->witness_account);
       }
    }
-   o_v = std::make_shared< operation_visitor >();
    o_v->set_master_accounts(masters);
-   o_v->plugin = shared_from_this();
-
-   _network_broadcast_api = std::make_shared< app::network_broadcast_api >( std::ref( app() ) );
-
-   database().applied_block.connect([this](const signed_block &b) {
-      if (!process_master_operations(b)) {
-         FC_THROW_EXCEPTION(plugin_exception, "Error populating ES database, we are going to keep trying.");
-      }
-      send_commit_reveal_operations();
-   });
-
-   ilog("witness plugin:  plugin_startup() end");
-} FC_CAPTURE_AND_RETHROW() }
+   _witness_accounts.swap(masters);
+}
 
 void witness_plugin::plugin_shutdown()
 {
@@ -276,6 +286,9 @@ void witness_plugin::schedule_production_loop()
 }
 
 bool witness_plugin::process_master_operations( const chain::signed_block& b ) {
+   if (o_v->no_master_accounts())
+      return true;
+
    auto& db = database();
    const vector<fc::optional< operation_history_object > >& hist = db.get_applied_operations();
    for( const fc::optional< operation_history_object >& o_op : hist ) {
@@ -330,99 +343,295 @@ bool witness_plugin::process_master_operations( const chain::signed_block& b ) {
    return true;
 }
 
-void witness_plugin::send_commit_reveal_operations() {
+void witness_plugin::commit_reveal_operations() {
+   if (_witness_accounts.empty() || !_production_enabled )
+      return;
+
    auto& db = database();
    const auto& gpo = db.get_global_properties();
    const auto& dgpo = db.get_dynamic_global_properties();
+
+   // calculate the block number in the current maintenance interval 
+   uint32_t last_maintenance_time = dgpo.next_maintenance_time.sec_since_epoch()
+                                          - gpo.parameters.maintenance_interval;
+   uint32_t maintenance_block_id  = (db.head_block_time().sec_since_epoch() - last_maintenance_time)
+                                          / gpo.parameters.block_interval;
+   //ilog("A block numer since the maintenance interval interval beginning: ${blc}", ("blc", maintenance_block_id));
+
+   if (maintenance_block_id < static_cast<int32_t>(gpo.parameters.maintenance_skip_slots)) {
+      // ---------------------//
+      // Maintenance interval //
+      //----------------------//
+      schedule_commit_reveal();
+      return;
+   }
+
+   uint64_t total_blocks = gpo.parameters.maintenance_interval / gpo.parameters.block_interval;
+   if (maintenance_block_id < total_blocks / 2) {
+      // --------------- //
+      // Commit interval //
+      // --------------- //
+
+      // Even if the required block was skipped, the operation will be executed.
+      for (auto& op: _commit_schedule) {
+         if (get<0>(op) > maintenance_block_id) return; // block
+         if (get<2>(op)) {                   // requires processing
+            broadcast_commit(get<1>(op));    // witness
+            get<2>(op) = false;
+         }
+      }
+      return;
+   }
+
+   // --------------- //
+   // Reveal interval //
+   // --------------- //
+
+   // Even if the required block was skipped, the operation will be executed.
+   for (auto &op : _reveal_schedule) {
+      if (get<0>(op) > maintenance_block_id - total_blocks / 2) return; // block
+      if (get<2>(op)) {                   // requires processing
+         broadcast_reveal(get<1>(op));    // witness
+         get<2>(op) = false;
+      }
+   }
+
+}
+
+void witness_plugin::schedule_commit_reveal() {
+   check_resources();
+   if (_witness_accounts.empty() || !_production_enabled )
+      return;
+
+   auto& db = database();
+   const auto& gpo = db.get_global_properties();
+
+   // numer of blocks between 2 maintenances
+   int32_t blocks = static_cast<int32_t>(gpo.parameters.maintenance_interval / gpo.parameters.block_interval);
+
+   // Random init
+   std::random_device rd;
+   std::mt19937 gen{rd()};
+   uint64_t seed = static_cast<uint64_t>(
+      std::chrono::high_resolution_clock::now().time_since_epoch().count());
+   gen.seed(seed);
+
+   // Use uniform distribution for the commit operations.
+   // For:
+   // {
+   //    "block_interval": 5,
+   //    "maintenance_interval": 300,
+   //    "maintenance_skip_slots": 3,
+   // }
+   // commit interval shoud be from the 3-th to the 29-th blocks
+   int32_t skip_blocks = static_cast<int32_t>(gpo.parameters.maintenance_skip_slots);
+   std::uniform_int_distribution<int32_t> unidist {skip_blocks, blocks/2 - 1};
+
+   // Use binomial distribution for the reveal operations.
+   // For:
+   // {
+   //    "block_interval": 5,
+   //    "maintenance_interval": 300,
+   //    "maintenance_skip_slots": 3,
+   // }
+   // reveal interval shoud be from the 30-th to the 59-th blocks
+   std::binomial_distribution<> bindist{blocks/2 - 1, 0.8};
+
+   _commit_schedule.clear();
+   _reveal_schedule.clear();
+   for (const auto& acc_id: _witness_accounts){
+      _commit_schedule.emplace_back(unidist(gen), acc_id, true);
+      _reveal_schedule.emplace_back(bindist(gen), acc_id, true);
+   }
+   sort(_commit_schedule.begin(), _commit_schedule.end());
+   sort(_reveal_schedule.begin(), _reveal_schedule.end());
+
+   /*
+   // DEBUG
+   ilog("Scheduled commits:");
+   for (const auto& it: _commit_schedule)
+      ilog("    ${blc} -> ${nme}(${acc})", ("blc", get<0>(it))("nme", get<1>(it)(db).name)("acc", get<1>(it)));
+   ilog("Scheduled reveals:");
+   for (const auto& it: _reveal_schedule)
+      ilog("    ${blc} -> ${nme}(${acc})", ("blc", get<0>(it) + blocks/2)("nme", get<1>(it)(db).name)("acc", get<1>(it)));
+   */
+}
+
+void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
+   auto& db = database();
+   const auto& dgpo = db.get_dynamic_global_properties();
    const auto& chain_props = db.get_chain_properties();
 
-   const auto& cr_idx = db.get_index_type<commit_reveal_index>();
-   const auto& by_op_idx = cr_idx.indices().get<by_account>();
-   const auto& acc_idx = db.get_index_type<account_index>();
-   const auto& by_id_idx = acc_idx.indices().get<by_id>();
+   // Prepare the block transaction
+   protocol::signed_transaction tx;
 
-   uint32_t head_block_time_sec = db.head_block_time().sec_since_epoch();
-   uint64_t interval_sec = gpo.parameters.maintenance_interval / 2;
-   uint64_t maintenance_time_sec = dgpo.next_maintenance_time.sec_since_epoch();
-   uint64_t commit_interval_end_sec = maintenance_time_sec - interval_sec;
-   uint64_t expired_sec = interval_sec - (maintenance_time_sec - head_block_time_sec);
-   if (head_block_time_sec < commit_interval_end_sec) {
-      expired_sec = interval_sec - (commit_interval_end_sec - head_block_time_sec);
-   }
-   expired_sec += gpo.parameters.block_interval;
+   // Generate a bet
+   std::random_device rd;
+   std::mt19937 gen(rd());
+   uint64_t seed = static_cast<uint64_t>(
+      std::chrono::high_resolution_clock::now().time_since_epoch().count()) + acc_id.instance.value;
+   gen.seed(seed);
+   // 0 is not possible secret value
+   std::uniform_int_distribution<uint64_t> dis(1);
+   _reveal_value[acc_id] = dis(gen);
 
-   uint32_t acc_num = 0;
-   for (const auto& acc_id: _witness_accounts){
-      ++acc_num;
-      auto cr_itr = by_op_idx.lower_bound(acc_id);
-      auto acc_itr = by_id_idx.lower_bound(acc_id);
-      if (acc_itr == by_id_idx.end() || acc_itr->id != acc_id){
-         continue;
+   if (HARDFORK_REVPOP_11_PASSED(db.head_block_time()))
+   {
+      // Search for the commit operation
+      const auto &cr_idx = db.get_index_type<commit_reveal_v2_index>();
+      const auto &by_cr_acc = cr_idx.indices().get<by_account>();
+      auto cr_itr = by_cr_acc.lower_bound(acc_id);
+      if (cr_itr != by_cr_acc.end() && cr_itr->account == acc_id
+         && cr_itr->maintenance_time == dgpo.next_maintenance_time.sec_since_epoch())
+      {
+         ilog("[${b}: ${nme}(${acc})] Commit operation for the current maintenance period has already been made, value: ${v}",
+              ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())("v", _reveal_value[acc_id]));
+         return;
       }
-      if (_reveal_value.find(acc_id) == _reveal_value.end()){
+
+      // Create the commit operation
+      commit_create_v2_operation commit_op;
+      commit_op.account = acc_id;
+      commit_op.hash = fc::sha512::hash(std::to_string(_reveal_value[acc_id]));
+      commit_op.maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
+      tx.operations.push_back(commit_op);
+      ilog("[${b}: ${nme}(${acc})] Commit operation was send, value: ${v}, hash: ${h}",
+           ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())("v", _reveal_value[acc_id])("h", commit_op.hash));
+   }
+   else
+   {
+      // Create the commit operation
+      commit_create_operation commit_op;
+      commit_op.account = acc_id;
+      commit_op.hash = fc::sha512::hash(std::to_string(_reveal_value[acc_id]));
+      tx.operations.push_back(commit_op);
+      ilog("[${b}: ${nme}(${acc})] Commit operation was send, value: ${v}, hash: ${h}",
+           ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())("v", _reveal_value[acc_id])("h", commit_op.hash));
+   }
+
+   // Broadcast the block transaction
+   if (tx.operations.size()){
+      tx.validate();
+      tx.set_reference_block(dgpo.head_block_id);
+      tx.set_expiration(dgpo.time + fc::seconds(30));
+      tx.clear_signatures();
+
+      const auto& acc_idx = db.get_index_type<account_index>();
+      const auto& by_id_idx = acc_idx.indices().get<by_id>();
+      auto acc_itr = by_id_idx.lower_bound(acc_id);
+      const auto &pkey = get_witness_private_key(*acc_itr);
+      if (pkey.valid()) {
+         tx.sign(*pkey, chain_props.chain_id);
+         try {
+            _network_broadcast_api->broadcast_transaction(tx);
+         }
+         catch (const fc::exception &e) {
+            elog("Caught exception while broadcasting tx ${id}:  ${e}",
+                  ("id", tx.id().str())("e", e.to_detail_string()));
+            throw;
+         }
+      }
+   }
+}
+
+void witness_plugin::broadcast_reveal(const chain::account_id_type& acc_id) {
+   auto& db = database();
+   const auto& dgpo = db.get_dynamic_global_properties();
+   const auto& chain_props = db.get_chain_properties();
+
+   // Prepare the block transaction
+   protocol::signed_transaction tx;
+
+   if (HARDFORK_REVPOP_11_PASSED(db.head_block_time()))
+   {
+      // Search for the corresponding commit operation
+      const auto &cr_idx = db.get_index_type<commit_reveal_v2_index>();
+      const auto &by_cr_acc = cr_idx.indices().get<by_account>();
+      auto cr_itr = by_cr_acc.lower_bound(acc_id);
+      if (cr_itr != by_cr_acc.end() && cr_itr->account == acc_id && _reveal_value[acc_id] != 0)
+      {
+         std::string hash = fc::sha512::hash(std::to_string(_reveal_value[acc_id]));
+         if (cr_itr->hash == hash && cr_itr->maintenance_time == dgpo.next_maintenance_time.sec_since_epoch() && cr_itr->value == 0)
+         {
+
+            // Create the reveal operation
+            reveal_create_v2_operation reveal_op;
+            reveal_op.account = acc_id;
+            reveal_op.value = _reveal_value[acc_id];
+            reveal_op.maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
+            tx.operations.push_back(reveal_op);
+            ilog("[${b}: ${nme}(${acc})] Reveal operation was send, value: ${v}, hash: ${h}",
+                 ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
+                 ("v", _reveal_value[acc_id])("h", hash));
+            _reveal_value[acc_id] = 0;
+         }
+         else
+         {
+            ilog("[${b}: ${nme}(${acc})] Double reveal operations is prohibited, value: ${v}, hash: ${h}",
+                 ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
+                 ("v", _reveal_value[acc_id])("h", hash));
+            return;
+         }
+      }
+      else
+      {
+         ilog("[${b}: ${nme}(${acc})] Reveal operation can't find the corresponding commit operation, value: ${v}",
+               ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id()));
+         return;
+      }
+   }
+   else
+   {
+      // Search for the corresponding commit operation
+      const auto &cr_idx = db.get_index_type<commit_reveal_index>();
+      const auto &by_cr_acc = cr_idx.indices().get<by_account>();
+      auto cr_itr = by_cr_acc.lower_bound(acc_id);
+      if (cr_itr != by_cr_acc.end() && cr_itr->account == acc_id && _reveal_value[acc_id] != 0)
+      {
+         std::string hash = fc::sha512::hash(std::to_string(_reveal_value[acc_id]));
+         if (cr_itr->hash == hash)
+         {
+
+            // Create the reveal operation
+            reveal_create_operation reveal_op;
+            reveal_op.account = acc_id;
+            reveal_op.value = _reveal_value[acc_id];
+            tx.operations.push_back(reveal_op);
+            ilog("[${b}: ${nme}(${acc})] Reveal operation was send, value: ${v}, hash: ${h}",
+                 ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
+                 ("v", _reveal_value[acc_id])("h", hash));
+         }
+         else
+         {
+            ilog("[${b}: ${nme}(${acc})] Reveal operation was not send, value: ${v}, hash: ${h}",
+                 ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
+                 ("v", _reveal_value[acc_id])("h", hash));
+            return;
+         }
          _reveal_value[acc_id] = 0;
       }
+   }
 
-      protocol::signed_transaction tx;
+   // Broadcast the block transaction
+   if (tx.operations.size()){
+      tx.validate();
+      tx.set_reference_block(dgpo.head_block_id);
+      tx.set_expiration(dgpo.time + fc::seconds(30));
+      tx.clear_signatures();
 
-      if (db.head_block_time() < dgpo.next_maintenance_time - gpo.parameters.maintenance_interval / 2) { // commit interval
-         // param = 5, between 8568 - 8640 block to the interval end
-         if (operation_possibility(interval_sec, expired_sec, 5, head_block_time_sec)) {
-            // commit-reveal object exist and don't need to be updated
-            if (cr_itr != by_op_idx.end() && cr_itr->account == acc_id && _reveal_value[acc_id] != 0) {
-               std::string hash = fc::sha512::hash(std::to_string(_reveal_value[acc_id]));
-               if (cr_itr->hash == hash) {
-                  continue;
-               }
-            }
-
-            // new or update commit
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            gen.seed(head_block_time_sec + acc_num);
-            std::uniform_int_distribution<uint64_t> dis;
-            _reveal_value[acc_id] = dis(gen);
-
-            commit_create_operation commit_op;
-            commit_op.account = acc_id;
-            commit_op.hash = fc::sha512::hash(std::to_string(_reveal_value[acc_id]));
-            tx.operations.push_back(commit_op);
-            ilog("Commit operation was send, value: ${v}, hash: ${h}", ("v", _reveal_value[acc_id])("h", commit_op.hash));
+      const auto& acc_idx = db.get_index_type<account_index>();
+      const auto& by_id_idx = acc_idx.indices().get<by_id>();
+      auto acc_itr = by_id_idx.lower_bound(acc_id);
+      const auto &pkey = get_witness_private_key(*acc_itr);
+      if (pkey.valid()) {
+         tx.sign(*pkey, chain_props.chain_id);
+         try {
+            _network_broadcast_api->broadcast_transaction(tx);
          }
-      } else { // reveal interval
-         // param = 500, between 56 - 212 block to the interval end
-         if (operation_possibility(interval_sec, expired_sec, 50, head_block_time_sec)) {
-            if (cr_itr != by_op_idx.end() && cr_itr->account == acc_id && _reveal_value[acc_id] != 0) {
-               std::string hash = fc::sha512::hash(std::to_string(_reveal_value[acc_id]));
-               if (cr_itr->hash == hash) {
-                  reveal_create_operation reveal_op;
-                  reveal_op.account = acc_id;
-                  reveal_op.value = _reveal_value[acc_id];
-                  tx.operations.push_back(reveal_op);
-                  _reveal_value[acc_id] = 0;
-                  ilog("Reveal operation was send, hash: ${h}", ("h", hash));
-               }
-            }
-         }
-      }
-
-      if (tx.operations.size()){
-         tx.validate();
-         tx.set_reference_block(dgpo.head_block_id);
-         tx.set_expiration(dgpo.time + fc::seconds(30));
-         tx.clear_signatures();
-
-         const auto &pkey = get_witness_private_key(*acc_itr);
-         if (pkey.valid()) {
-            tx.sign(*pkey, chain_props.chain_id);
-            try {
-               _network_broadcast_api->broadcast_transaction(tx);
-            }
-            catch (const fc::exception &e) {
-               elog("Caught exception while broadcasting tx ${id}:  ${e}",
-                    ("id", tx.id().str())("e", e.to_detail_string()));
-               throw;
-            }
+         catch (const fc::exception &e) {
+            elog("Caught exception while broadcasting tx ${id}:  ${e}",
+                  ("id", tx.id().str())("e", e.to_detail_string()));
+            throw;
          }
       }
    }
@@ -437,74 +646,6 @@ fc::optional<fc::ecc::private_key> witness_plugin::get_witness_private_key(const
       }
    }
    return fc::optional<fc::ecc::private_key>();
-}
-
-bool witness_plugin::operation_possibility(uint32_t interval_sec, uint64_t expired_sec, uint16_t param, uint64_t seed) {
-   auto exp_param = static_cast<double>(interval_sec - expired_sec) / (static_cast<double>(interval_sec) / param);
-   double probability = exp(param - exp_param) / exp(param);
-
-   std::default_random_engine generator(seed);
-   std::exponential_distribution<double> dis(3.5);
-
-   double chance = dis(generator);
-   return chance <= probability;
-}
-
-void witness_plugin::test_operation_possibility() {
-   auto& db = database();
-   const auto& gpo = db.get_global_properties();
-
-   uint32_t maintenance_interval = gpo.parameters.maintenance_interval;
-   uint32_t interval_sec = maintenance_interval / 2;
-   uint8_t block_interval = gpo.parameters.block_interval;
-   uint16_t param = 500;
-   time_point_sec head_block_time = db.head_block_time();
-   time_point_sec next_maintenance_time = head_block_time + maintenance_interval;
-
-   uint32_t block_min = 0;
-   uint32_t block_max = 0;
-
-   bool commit_was_send = false;
-   for (size_t i = 0; i < 100'000'000; ++i) {
-      head_block_time += block_interval;
-      uint32_t head_block_time_sec = head_block_time.sec_since_epoch();
-
-      if (next_maintenance_time <= head_block_time){
-         next_maintenance_time += maintenance_interval;
-         commit_was_send = false;
-      }
-
-      uint64_t maintenance_time_sec = next_maintenance_time.sec_since_epoch();
-      uint64_t commit_interval_end_sec = maintenance_time_sec - maintenance_interval / 2;
-      uint64_t expired_sec = interval_sec - (maintenance_time_sec - head_block_time_sec);
-      if (head_block_time_sec < commit_interval_end_sec) {
-         expired_sec = interval_sec - (commit_interval_end_sec - head_block_time_sec);
-      }
-      expired_sec += gpo.parameters.block_interval;
-
-      if (!commit_was_send && head_block_time_sec < commit_interval_end_sec) {
-         if (operation_possibility(interval_sec, expired_sec, param, head_block_time_sec)) {
-            auto block_before_interval_end = (commit_interval_end_sec - head_block_time_sec) / block_interval;
-            commit_was_send = true;
-
-            std::cout << "block: " << block_before_interval_end << std::endl;
-
-            if (block_min == 0 && block_max == 0) {
-               block_min = block_before_interval_end;
-               block_max = block_before_interval_end;
-            }
-            if (block_min > block_before_interval_end) {
-               block_min = block_before_interval_end;
-            }
-            if (block_max < block_before_interval_end) {
-               block_max = block_before_interval_end;
-            }
-         } else {
-
-         }
-      }
-   }
-   std::cout << "block_min: " << block_min << " block_max: " << block_max << std::endl;
 }
 
 fc::optional< fc::ecc::private_key > witness_plugin::get_witness_private_key( const public_key_type& public_key ) const {
@@ -592,7 +733,13 @@ block_production_condition::block_production_condition_enum witness_plugin::mayb
    if( !_production_enabled )
    {
       if( db.get_slot_time(1) >= now )
+      {
          _production_enabled = true;
+         ilog("Blockchain is synchronized, we have a recent block");
+
+         // run scheduling even if we are far from the maintenance
+         schedule_commit_reveal();
+      }
       else
          return block_production_condition::not_synced;
    }

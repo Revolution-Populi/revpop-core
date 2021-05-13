@@ -30,6 +30,7 @@
 #include <graphene/chain/account_object.hpp>
 #include <graphene/chain/asset_object.hpp>
 #include <graphene/chain/commit_reveal_object.hpp>
+#include <graphene/chain/commit_reveal_v2_object.hpp>
 #include <graphene/chain/fork_database.hpp>
 #include <graphene/chain/block_database.hpp>
 #include <graphene/chain/genesis_state.hpp>
@@ -266,6 +267,10 @@ namespace graphene { namespace chain {
          uint64_t get_commit_reveal_seed(const vector<account_id_type>& accounts) const;
          vector<account_id_type> filter_commit_reveal_participant(const vector<account_id_type>& accounts) const;
 
+         fc::optional<commit_reveal_v2_object> get_account_commit_reveal_v2( const account_id_type account ) const;
+         vector<commit_reveal_v2_object> get_commit_reveals_v2( const commit_reveal_v2_id_type start, uint32_t limit ) const;
+         uint64_t get_commit_reveal_seed_v2(const vector<account_id_type>& accounts) const;
+         vector<account_id_type> filter_commit_reveal_participant_v2(const vector<account_id_type>& accounts) const;
          //////////////////// db_getter.cpp ////////////////////
 
          const chain_id_type&                   get_chain_id()const;

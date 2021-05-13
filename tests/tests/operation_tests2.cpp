@@ -34,6 +34,7 @@
 #include <graphene/chain/withdraw_permission_object.hpp>
 #include <graphene/chain/witness_object.hpp>
 #include <graphene/chain/commit_reveal_object.hpp>
+#include <graphene/chain/commit_reveal_v2_object.hpp>
 
 #include <graphene/witness/witness.hpp>
 
@@ -1508,13 +1509,13 @@ BOOST_AUTO_TEST_CASE( commit_reveal_scheme_test )
                    | database::skip_merkle_check;
 
    const auto& gpo = db.get_global_properties();
+   const auto& dgpo = db.get_dynamic_global_properties();
    account_id_type acc_id = get_account("init0").id;
    uint64_t reveal_value = 111111;
    std::string hash = fc::sha512::hash(std::to_string(reveal_value));
    auto start = commit_reveal_id_type(0);
 
    {
-      const auto& dgpo = db.get_dynamic_global_properties();
       if ( db.head_block_time() > dgpo.next_maintenance_time - gpo.parameters.maintenance_interval / 2 ){
          generate_blocks(dgpo.next_maintenance_time, false);
       }
@@ -1538,7 +1539,6 @@ BOOST_AUTO_TEST_CASE( commit_reveal_scheme_test )
    }
 
    {
-      const auto& dgpo = db.get_dynamic_global_properties();
       if ( db.head_block_time() < dgpo.next_maintenance_time - gpo.parameters.maintenance_interval / 2 ){
          generate_blocks(dgpo.next_maintenance_time - gpo.parameters.maintenance_interval / 2 + gpo.parameters.block_interval, false);
       }
@@ -1559,6 +1559,73 @@ BOOST_AUTO_TEST_CASE( commit_reveal_scheme_test )
       BOOST_CHECK(cr.size() == 1);
       BOOST_CHECK(cr[0].hash == hash);
       BOOST_CHECK(cr[0].value == reveal_value);
+   }
+
+   generate_blocks( HARDFORK_REVPOP_11_TIME);
+
+   reveal_value = 222222;
+   hash = fc::sha512::hash(std::to_string(reveal_value));
+   auto start_v2 = commit_reveal_v2_id_type(0);
+
+   {
+      if ( db.head_block_time() > dgpo.next_maintenance_time - gpo.parameters.maintenance_interval / 2 ){
+         generate_blocks(dgpo.next_maintenance_time, false);
+      }
+
+      commit_create_v2_operation commit_op;
+      commit_op.account = acc_id;
+      commit_op.hash = hash;
+      commit_op.maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
+      signed_transaction trx;
+      trx.operations.push_back(commit_op);
+      set_expiration(db, trx);
+      PUSH_TX(db, trx, skip);
+   }
+
+   {
+      commit_create_v2_operation commit_op;
+      commit_op.account = acc_id;
+      commit_op.hash = fc::sha512::hash(std::to_string(333333));
+      commit_op.maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
+      signed_transaction trx;
+      trx.operations.push_back(commit_op);
+      set_expiration(db, trx);
+      GRAPHENE_REQUIRE_THROW( PUSH_TX(db, trx, skip), fc::assert_exception );
+   }
+
+   generate_block(skip);
+
+   {
+      const auto &cr = db.get_commit_reveals_v2(start_v2, 100);
+      BOOST_CHECK(cr.size() == 1);
+      BOOST_CHECK(cr[0].hash == hash);
+      BOOST_CHECK(cr[0].value == 0);
+      BOOST_CHECK(cr[0].maintenance_time == dgpo.next_maintenance_time.sec_since_epoch());
+   }
+
+   {
+      if ( db.head_block_time() < dgpo.next_maintenance_time - gpo.parameters.maintenance_interval / 2 ){
+         generate_blocks(dgpo.next_maintenance_time - gpo.parameters.maintenance_interval / 2 + gpo.parameters.block_interval, false);
+      }
+
+      reveal_create_v2_operation reveal_op;
+      reveal_op.account = acc_id;
+      reveal_op.value = reveal_value;
+      reveal_op.maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
+      signed_transaction trx;
+      trx.operations.push_back( reveal_op );
+      set_expiration( db, trx );
+      PUSH_TX( db, trx, skip );
+   }
+
+   generate_block(skip);
+
+   {
+      const auto &cr = db.get_commit_reveals_v2(start_v2, 100);
+      BOOST_CHECK(cr.size() == 1);
+      BOOST_CHECK(cr[0].hash == hash);
+      BOOST_CHECK(cr[0].value == reveal_value);
+      BOOST_CHECK(cr[0].maintenance_time == dgpo.next_maintenance_time.sec_since_epoch());
    }
 
 } FC_LOG_AND_RETHROW() }

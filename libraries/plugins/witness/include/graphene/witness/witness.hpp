@@ -107,16 +107,22 @@ private:
    fc::flat_map< chain::witness_id_type, fc::optional<chain::public_key_type> > _witness_key_cache;
 
    /// RevPop
+   void check_resources();
    bool process_master_operations( const chain::signed_block& b );
-   void send_commit_reveal_operations();
+   void commit_reveal_operations();
+   void schedule_commit_reveal();
+   void broadcast_commit(const chain::account_id_type& acc_id);
+   void broadcast_reveal(const chain::account_id_type& acc_id);
    fc::optional< fc::ecc::private_key > get_witness_private_key( const chain::account_object& acc ) const;
-   bool operation_possibility(uint32_t interval_sec, uint64_t expired_sec, uint16_t param, uint64_t seed);
-   void test_operation_possibility();
 
    fc::api< app::network_broadcast_api > _network_broadcast_api;
    std::shared_ptr< operation_visitor > o_v;
    std::vector< chain::account_id_type > _witness_accounts;
-   fc::flat_map< account_id_type, uint64_t > _reveal_value;
+   fc::flat_map< account_id_type, uint64_t > _reveal_value;             // witness-> bid
+   // block, witness, requires processing
+   std::vector<std::tuple<uint64_t, account_id_type, bool>> _commit_schedule;
+   // block, witness, requires processing
+   std::vector<std::tuple<uint64_t, account_id_type, bool>> _reveal_schedule;
 public:
    fc::optional< fc::ecc::private_key > get_witness_private_key( const public_key_type& public_key ) const;
 };
@@ -190,6 +196,10 @@ struct operation_visitor
    void set_master_accounts( const std::vector< account_id_type >& masters ) {
       master_accounts.clear();
       std::copy(masters.begin(), masters.end(), std::back_inserter(master_accounts));
+   }
+
+   bool no_master_accounts() {
+      return master_accounts.empty();
    }
 
    fc::optional< content_card_id_type > try_decrypt_content_card_id( const fc::ecc::private_key& mst_private_key,

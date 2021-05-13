@@ -42,6 +42,7 @@
 #include <graphene/chain/content_vote_object.hpp>
 #include <graphene/chain/vote_master_summary_object.hpp>
 #include <graphene/chain/commit_reveal_object.hpp>
+#include <graphene/chain/commit_reveal_v2_object.hpp>
 #include <graphene/chain/witness_schedule_object.hpp>
 
 #include <fc/api.hpp>
@@ -729,6 +730,7 @@ class database_api
        * @return The commit-reveal object
        */
       fc::optional<commit_reveal_object> get_account_commit_reveal( const account_id_type account ) const;
+      fc::optional<commit_reveal_v2_object> get_account_commit_reveal_v2( const account_id_type account ) const;
 
       /**
        * @brief Allow get all commit-reveal objects fro database
@@ -737,6 +739,7 @@ class database_api
        * @return The list of commit-reveal objects
        */
       vector<commit_reveal_object> get_commit_reveals( const commit_reveal_id_type start, uint32_t limit ) const;
+      vector<commit_reveal_v2_object> get_commit_reveals_v2( const commit_reveal_v2_id_type start, uint32_t limit ) const;
 
       /**
        * @brief Get commit reveal seed
@@ -744,6 +747,7 @@ class database_api
        * @return The seed number
        */
       uint64_t get_commit_reveal_seed(const vector<account_id_type>& accounts) const;
+      uint64_t get_commit_reveal_seed_v2(const vector<account_id_type>& accounts) const;
 
       /**
        * @brief Get list of account id which reveals are filled
@@ -751,6 +755,7 @@ class database_api
        * @return The list of account ids
        */
       vector<account_id_type> filter_commit_reveal_participant(const vector<account_id_type>& accounts) const;
+      vector<account_id_type> filter_commit_reveal_participant_v2(const vector<account_id_type>& accounts) const;
 
 private:
       std::shared_ptr< database_api_impl > my;
@@ -865,4 +870,8 @@ FC_API(graphene::app::database_api,
    (get_commit_reveals)
    (get_commit_reveal_seed)
    (filter_commit_reveal_participant)
+   (get_account_commit_reveal_v2)
+   (get_commit_reveals_v2)
+   (get_commit_reveal_seed_v2)
+   (filter_commit_reveal_participant_v2)
 )

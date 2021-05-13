@@ -33,3 +33,4 @@
 #include "db_witness_schedule.cpp"
 #include "db_notify.cpp"
 #include "db_commit_reveal.cpp"
+#include "db_commit_reveal_v2.cpp"

@@ -1696,6 +1696,7 @@ class wallet_api
        * @returns The commit-reveal object
        */
       commit_reveal_object get_account_commit_reveal( const string& account ) const;
+      commit_reveal_v2_object get_account_commit_reveal_v2( const string& account ) const;
 
       /**
        * Allow get all commit-reveal objects fro database
@@ -1705,6 +1706,7 @@ class wallet_api
        * @returns The list of commit-reveal objects
        */
       vector<commit_reveal_object> get_commit_reveals( uint64_t start, uint32_t limit ) const;
+      vector<commit_reveal_v2_object> get_commit_reveals_v2( uint64_t start, uint32_t limit ) const;
 
       /**
        * Get commit reveal seed
@@ -1713,6 +1715,7 @@ class wallet_api
        * @returns The seed number
        */
       uint64_t get_commit_reveal_seed(const vector<string>& accounts) const;
+      uint64_t get_commit_reveal_seed_v2(const vector<string>& accounts) const;
 
       /**
        * Get list of account id which reveals are filled
@@ -1721,6 +1724,7 @@ class wallet_api
        * @returns The list of account ids
        */
       vector<account_id_type> filter_commit_reveal_participant(const vector<string>& accounts) const;
+      vector<account_id_type> filter_commit_reveal_participant_v2(const vector<string>& accounts) const;
 
       void dbg_make_uia(string creator, string symbol);
       void dbg_make_mia(string creator, string symbol);
@@ -1928,4 +1932,8 @@ FC_API( graphene::wallet::wallet_api,
         (get_commit_reveals)
         (get_commit_reveal_seed)
         (filter_commit_reveal_participant)
+        (get_account_commit_reveal_v2)
+        (get_commit_reveals_v2)
+        (get_commit_reveal_seed_v2)
+        (filter_commit_reveal_participant_v2)
       )

@@ -500,6 +500,17 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
    }
    else
    {
+      // Search for the commit operation
+      const auto &cr_idx = db.get_index_type<commit_reveal_index>();
+      const auto &by_cr_acc = cr_idx.indices().get<by_account>();
+      auto cr_itr = by_cr_acc.lower_bound(acc_id);
+      if (cr_itr != by_cr_acc.end() && cr_itr->account == acc_id)
+      {
+         ilog("[${b}: ${nme}(${acc})] Commit operation for the current maintenance period has already been, value: ${v}",
+              ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())("v", _reveal_value[acc_id]));
+         return;
+      }
+
       // Create the commit operation
       commit_create_operation commit_op;
       commit_op.account = acc_id;

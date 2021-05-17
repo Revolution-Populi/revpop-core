@@ -54,16 +54,6 @@ namespace detail {
             "A BitAsset's MCFR cannot be set before Hardfork BSIP74" );
    }
 
-   // TODO review and remove code below and links to it after HARDFORK_BSIP_81_TIME
-   void check_asset_options_hf_bsip81(const fc::time_point_sec& block_time, const asset_options& options)
-   {
-      if (block_time < HARDFORK_BSIP_81_TIME) {
-         // Taker fees should not be set until activation of BSIP81
-         FC_ASSERT(!options.extensions.value.taker_fee_percent.valid(),
-                   "Taker fee percent should not be defined before HARDFORK_BSIP_81_TIME");
-      }
-   }
-
    void check_bitasset_options_hf_bsip87(const fc::time_point_sec& block_time, const bitasset_options& options)
    {
       // HF_REMOVABLE: Following hardfork check should be removable after hardfork date passes:
@@ -91,7 +81,6 @@ void_result asset_create_evaluator::do_evaluate( const asset_create_operation& o
 
    // Hardfork Checks:
    detail::check_asset_options_hf_1774(now, op.common_options);
-   detail::check_asset_options_hf_bsip81(now, op.common_options);
    if( op.bitasset_opts ) {
       detail::check_bitasset_options_hf_bsip74( now, *op.bitasset_opts ); // HF_REMOVABLE
       detail::check_bitasset_options_hf_bsip87( now, *op.bitasset_opts ); // HF_REMOVABLE
@@ -306,7 +295,6 @@ void_result asset_update_evaluator::do_evaluate(const asset_update_operation& o)
 
    // Hardfork Checks:
    detail::check_asset_options_hf_1774(now, o.new_options);
-   detail::check_asset_options_hf_bsip81(now, o.new_options);
 
    const asset_object& a = o.asset_to_update(d);
    auto a_copy = a;
@@ -951,7 +939,6 @@ operation_result asset_settle_evaluator::do_apply(const asset_settle_evaluator::
 void_result asset_publish_feeds_evaluator::do_evaluate(const asset_publish_feed_operation& o)
 { try {
    const database& d = db();
-   const time_point_sec now = d.head_block_time();
 
    const asset_object& base = o.asset_id(d);
    //Verify that this feed is for a market-issued asset and that asset is backed by the base

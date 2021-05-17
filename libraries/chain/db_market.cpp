@@ -808,7 +808,6 @@ bool database::fill_call_order( const call_order_object& order, const asset& pay
    // TODO pass in mia and bitasset_data for better performance
    const asset_object& mia = receives.asset_id(*this);
    FC_ASSERT( mia.is_market_issued() );
-   const asset_bitasset_data_object& bitasset = mia.bitasset_data(*this);
 
    optional<asset> collateral_freed;
    // adjust the order
@@ -988,14 +987,11 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
        return false;
 
     const call_order_index& call_index = get_index_type<call_order_index>();
-    const auto& call_price_index = call_index.indices().get<by_price>();
     const auto& call_collateral_index = call_index.indices().get<by_collateral>();
 
     auto call_min = price::min( bitasset.options.short_backing_asset, mia.id );
     auto call_max = price::max( bitasset.options.short_backing_asset, mia.id );
 
-    auto call_price_itr = call_price_index.begin();
-    auto call_price_end = call_price_itr;
     auto call_collateral_itr = call_collateral_index.begin();
     auto call_collateral_end = call_collateral_itr;
 

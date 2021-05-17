@@ -264,8 +264,6 @@ void database::clear_expired_orders()
          while( !limit_index.empty() && limit_index.begin()->expiration <= head_time )
          {
             const limit_order_object& order = *limit_index.begin();
-            auto base_asset = order.sell_price.base.asset_id;
-            auto quote_asset = order.sell_price.quote.asset_id;
             cancel_limit_order( order );
          }
 

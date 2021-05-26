@@ -1876,66 +1876,11 @@ BOOST_FIXTURE_TEST_CASE( parent_owner_test, database_fixture )
    }
 }
 
-BOOST_AUTO_TEST_CASE( custom_operation_required_auths_before_fork ) {
-   try {
-      ACTORS((alice)(bob));
-      fund(alice, asset(10000000));
-      enable_fees();
-
-      // Unable to test custom_operation required auths before fork if hardfork already passed
-      BOOST_REQUIRE(db.head_block_time() < HARDFORK_CORE_210_TIME);
-
-      signed_transaction trx;
-      custom_operation op;
-      op.payer = alice_id;
-      op.required_auths.insert(bob_id);
-      op.fee = op.calculate_fee(db.current_fee_schedule().get<custom_operation>());
-      trx.operations.emplace_back(op);
-      trx.set_expiration(db.head_block_time() + 30);
-      sign(trx, alice_private_key);
-      // Op requires bob's authorization, but only alice signed. We're before the fork, so this should work anyways.
-      db.push_transaction(trx);
-
-      // Now try the same thing, but with a proposal
-      proposal_create_operation pcop;
-      pcop.fee_paying_account = alice_id;
-      pcop.proposed_ops = {op_wrapper(op)};
-      pcop.expiration_time = db.head_block_time() + 10;
-      pcop.fee = pcop.calculate_fee(db.current_fee_schedule().get<proposal_create_operation>());
-      trx.operations = {pcop};
-      trx.signatures.clear();
-      sign(trx, alice_private_key);
-      proposal_id_type pid = db.push_transaction(trx).operation_results[0].get<object_id_type>();
-
-      // Check bob is not listed as a required approver
-      BOOST_REQUIRE_EQUAL(pid(db).required_active_approvals.count(bob_id), 0);
-
-      // Add alice's approval
-      proposal_update_operation puop;
-      puop.fee_paying_account = alice_id;
-      puop.proposal = pid;
-      puop.active_approvals_to_add = {alice_id};
-      puop.fee = puop.calculate_fee(db.current_fee_schedule().get<proposal_update_operation>());
-      trx.operations = {puop};
-      trx.signatures.clear();
-      sign(trx, alice_private_key);
-      db.push_transaction(trx);
-
-      // The proposal should have processed. Check it's not still in the database
-      BOOST_REQUIRE(db.find(pid) == nullptr);
-   } catch (fc::exception& e) {
-      edump((e.to_detail_string()));
-      throw;
-   }
-}
-
 BOOST_AUTO_TEST_CASE( custom_operation_required_auths_after_fork ) {
    try {
       ACTORS((alice)(bob));
       fund(alice, asset(10000000));
-
-      if (db.head_block_time() < HARDFORK_CORE_210_TIME)
-         generate_blocks(HARDFORK_CORE_210_TIME + 10);
+      generate_block();
 
       enable_fees();
 

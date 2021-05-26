@@ -180,8 +180,7 @@ void_result proposal_create_evaluator::do_evaluate( const proposal_create_operat
    vector<authority> other;
    for( auto& op : o.proposed_ops )
    {
-      operation_get_required_authorities( op.op, tmp_required_active_auths, _required_owner_auths, other,
-                                          MUST_IGNORE_CUSTOM_OP_REQD_AUTHS( block_time ) );
+      operation_get_required_authorities( op.op, tmp_required_active_auths, _required_owner_auths, other, false );
    }
    // All accounts which must provide both owner and active authority should be omitted from the 
    // active authority set; owner authority approval implies active authority approval.

@@ -1281,7 +1281,7 @@ set<public_key_type> database_api_impl::get_required_signatures( const signed_tr
 {
    auto chain_time = _db.head_block_time();
    bool allow_non_immediate_owner = true;
-   bool ignore_custom_op_reqd_auths = MUST_IGNORE_CUSTOM_OP_REQD_AUTHS( chain_time );
+   bool ignore_custom_op_reqd_auths = false;
 
    auto result = trx.get_required_signatures( _db.get_chain_id(),
                                        available_keys,
@@ -1306,7 +1306,7 @@ set<public_key_type> database_api_impl::get_potential_signatures( const signed_t
 {
    auto chain_time = _db.head_block_time();
    bool allow_non_immediate_owner = true;
-   bool ignore_custom_op_reqd_auths = MUST_IGNORE_CUSTOM_OP_REQD_AUTHS( chain_time );
+   bool ignore_custom_op_reqd_auths = false;
 
    set<public_key_type> result;
    auto get_active = [this, &result]( account_id_type id ){
@@ -1345,7 +1345,7 @@ set<address> database_api_impl::get_potential_address_signatures( const signed_t
 {
    auto chain_time = _db.head_block_time();
    bool allow_non_immediate_owner = true;
-   bool ignore_custom_op_reqd_auths = MUST_IGNORE_CUSTOM_OP_REQD_AUTHS( chain_time );
+   bool ignore_custom_op_reqd_auths = false;
 
    set<address> result;
    auto get_active = [this, &result]( account_id_type id ){
@@ -1410,7 +1410,7 @@ bool database_api_impl::verify_account_authority( const string& account_name_or_
             [this]( account_id_type id ){ return &id(_db).owner; },
             // Use a no-op lookup for custom authorities; we don't want it even if one does apply for our dummy op
             [](auto, auto, auto*) { return vector<authority>(); },
-            true, MUST_IGNORE_CUSTOM_OP_REQD_AUTHS(_db.head_block_time()) );
+            true, false );
    }
    catch (fc::exception& ex)
    {

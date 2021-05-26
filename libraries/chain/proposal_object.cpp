@@ -44,7 +44,7 @@ bool proposal_object::is_authorized_to_execute( database& db ) const
                         [&db]( account_id_type id, const operation& op, rejected_predicate_map* rejects ){
                            return db.get_viable_custom_authorities(id, op, rejects); },
                         allow_non_immediate_owner,
-                        MUST_IGNORE_CUSTOM_OP_REQD_AUTHS( db.head_block_time() ),
+                        false,
                         db.get_global_properties().parameters.max_authority_depth,
                         true, /* allow committee */
                         available_active_approvals,

@@ -959,7 +959,7 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
     // if check_for_blackswan never triggered a black swan on a prediction market.
     // NOTE: check_for_blackswan returning true does not always mean a black
     // swan was triggered.
-    if ( maint_time >= HARDFORK_CORE_460_TIME && bitasset.is_prediction_market )
+    if ( bitasset.is_prediction_market )
        return false;
 
     if( check_for_blackswan( mia, enable_black_swan, &bitasset ) )

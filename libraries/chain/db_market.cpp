@@ -56,19 +56,8 @@ namespace detail {
 */
 void database::globally_settle_asset( const asset_object& mia, const price& settlement_price )
 {
-   auto maint_time = get_dynamic_global_properties().next_maintenance_time;
-   bool before_core_hardfork_1669 = ( maint_time <= HARDFORK_CORE_1669_TIME ); // whether to use call_price
-
-   if( before_core_hardfork_1669 )
-   {
-      globally_settle_asset_impl( mia, settlement_price,
-                                  get_index_type<call_order_index>().indices().get<by_price>() );
-   }
-   else
-   {
-      globally_settle_asset_impl( mia, settlement_price,
-                                  get_index_type<call_order_index>().indices().get<by_collateral>() );
-   }
+   globally_settle_asset_impl( mia, settlement_price,
+                               get_index_type<call_order_index>().indices().get<by_collateral>() );
 }
 
 template<typename IndexType>
@@ -946,7 +935,6 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
                                   const asset_bitasset_data_object* bitasset_ptr )
 { try {
     const auto& dyn_prop = get_dynamic_global_properties();
-    auto maint_time = dyn_prop.next_maintenance_time;
     if( for_new_limit_order )
        FC_ASSERT( false, "`for_new_limit_order` is only true before HF 338 / 625");
 

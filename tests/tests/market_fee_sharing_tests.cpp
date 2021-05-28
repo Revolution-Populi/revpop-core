@@ -90,13 +90,6 @@ struct reward_database_fixture : database_fixture
       PUSH_TX( db, tx);
    }
 
-   void generate_blocks_past_hf1774()
-   {
-      generate_blocks( HARDFORK_1774_TIME );
-      generate_block();
-      set_expiration(db, trx);
-   }
-
    void generate_blocks_past_hf1800()
    {
       database_fixture::generate_blocks( HARDFORK_CORE_1800_TIME );
@@ -122,93 +115,11 @@ struct reward_database_fixture : database_fixture
 
 BOOST_FIXTURE_TEST_SUITE( fee_sharing_tests, reward_database_fixture )
 
-BOOST_AUTO_TEST_CASE(cannot_create_asset_with_reward_percent_of_100_before_hf1774)
-{
-   try
-   {
-      ACTOR(issuer);
-
-      uint16_t reward_percent = GRAPHENE_100_PERCENT + 1; // 100.01%
-      flat_set<account_id_type> whitelist = {issuer_id};
-      price price(asset(1, asset_id_type(1)), asset(1));
-      uint16_t market_fee_percent = 100;
-
-      additional_asset_options_t options;
-      options.value.reward_percent = reward_percent;
-      options.value.whitelist_market_fee_sharing = whitelist;
-
-      GRAPHENE_CHECK_THROW(create_user_issued_asset("USD",
-                                                    issuer,
-                                                    charge_market_fee,
-                                                    price,
-                                                    2,
-                                                    market_fee_percent,
-                                                    options),
-                           fc::assert_exception);
-
-      reward_percent = GRAPHENE_100_PERCENT; // 100%
-      options.value.reward_percent = reward_percent;
-      GRAPHENE_CHECK_THROW(create_user_issued_asset("USD",
-                                                    issuer,
-                                                    charge_market_fee,
-                                                    price,
-                                                    2,
-                                                    market_fee_percent,
-                                                    options),
-                           fc::assert_exception);
-
-      reward_percent = GRAPHENE_100_PERCENT - 1; // 99.99%
-      options.value.reward_percent = reward_percent;
-      asset_object usd_asset = create_user_issued_asset("USD",
-                                                        issuer,
-                                                        charge_market_fee,
-                                                        price,
-                                                        2,
-                                                        market_fee_percent,
-                                                        options);
-
-      additional_asset_options usd_options = usd_asset.options.extensions.value;
-      BOOST_CHECK_EQUAL(reward_percent, *usd_options.reward_percent);
-      BOOST_CHECK(whitelist == *usd_options.whitelist_market_fee_sharing);
-   }
-   FC_LOG_AND_RETHROW()
-}
-
-BOOST_AUTO_TEST_CASE(cannot_set_reward_percent_to_100_before_hf1774)
-{
-   try
-   {
-      ACTOR(issuer);
-
-      asset_object usd_asset = create_user_issued_asset("USD", issuer, charge_market_fee);
-
-      uint16_t reward_percent = GRAPHENE_100_PERCENT + 1; // 100.01%
-      flat_set<account_id_type> whitelist = {issuer_id};
-      GRAPHENE_CHECK_THROW(
-                  update_asset(issuer_id, issuer_private_key, usd_asset.get_id(), reward_percent, whitelist),
-                  fc::assert_exception );
-
-      reward_percent = GRAPHENE_100_PERCENT; // 100%
-      GRAPHENE_CHECK_THROW(
-                  update_asset(issuer_id, issuer_private_key, usd_asset.get_id(), reward_percent, whitelist),
-                  fc::assert_exception );
-
-      reward_percent = GRAPHENE_100_PERCENT - 1; // 99.99%
-      update_asset(issuer_id, issuer_private_key, usd_asset.get_id(), reward_percent, whitelist);
-
-      asset_object updated_asset = usd_asset.get_id()(db);
-      additional_asset_options options = updated_asset.options.extensions.value;
-      BOOST_CHECK_EQUAL(reward_percent, *options.reward_percent);
-      BOOST_CHECK(whitelist == *options.whitelist_market_fee_sharing);
-   }
-   FC_LOG_AND_RETHROW()
-}
-
 BOOST_AUTO_TEST_CASE(create_asset_with_reward_percent_of_100_after_hf1774)
 {
    try
    {
-      generate_blocks_past_hf1774();
+      generate_block();
 
       ACTOR(issuer);
 
@@ -244,7 +155,7 @@ BOOST_AUTO_TEST_CASE(set_reward_percent_to_100_after_hf1774)
 
       asset_object usd_asset = create_user_issued_asset("USD", issuer, charge_market_fee); // make a copy
 
-      generate_blocks_past_hf1774();
+      generate_block();
 
       uint16_t reward_percent = GRAPHENE_100_PERCENT; // 100.00%
       flat_set<account_id_type> whitelist = {issuer_id};

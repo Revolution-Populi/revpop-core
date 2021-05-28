@@ -934,7 +934,6 @@ bool database::fill_settle_order( const force_settlement_object& settle, const a
 bool database::check_call_orders( const asset_object& mia, bool enable_black_swan, bool for_new_limit_order,
                                   const asset_bitasset_data_object* bitasset_ptr )
 { try {
-    const auto& dyn_prop = get_dynamic_global_properties();
     if( for_new_limit_order )
        FC_ASSERT( false, "`for_new_limit_order` is only true before HF 338 / 625");
 
@@ -1176,13 +1175,7 @@ asset database::pay_market_fees(const account_object* seller, const asset_object
             if ( reward_value > 0 && is_authorized_asset(*this, seller->registrar(*this), recv_asset) )
             {
                reward = recv_asset.amount(reward_value);
-               // TODO after hf_1774, remove the `if` check, keep the code in `else`
-               if( head_block_time() < HARDFORK_1774_TIME ){
-                  FC_ASSERT( reward < issuer_fees, "Market reward should be less than issuer fees");
-               }
-               else{
-                  FC_ASSERT( reward <= issuer_fees, "Market reward should not be greater than issuer fees");
-               }
+               FC_ASSERT( reward <= issuer_fees, "Market reward should not be greater than issuer fees");
                // cut referrer percent from reward
                auto registrar_reward = reward;
 

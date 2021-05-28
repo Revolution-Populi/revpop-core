@@ -35,17 +35,6 @@
 namespace graphene { namespace chain {
 namespace detail {
 
-   // TODO review and remove code below and links to it after hf_1774
-   void check_asset_options_hf_1774(const fc::time_point_sec& block_time, const asset_options& options)
-   {
-      if( block_time < HARDFORK_1774_TIME )
-      {
-         FC_ASSERT( !options.extensions.value.reward_percent.valid() ||
-                    *options.extensions.value.reward_percent < GRAPHENE_100_PERCENT,
-            "Asset extension reward percent must be less than 100% till HARDFORK_1774_TIME!");
-      }
-   }
-
    void check_bitasset_options_hf_bsip74( const fc::time_point_sec& block_time, const bitasset_options& options)
    {
       // HF_REMOVABLE: Following hardfork check should be removable after hardfork date passes:
@@ -80,7 +69,6 @@ void_result asset_create_evaluator::do_evaluate( const asset_create_operation& o
    const time_point_sec now = d.head_block_time();
 
    // Hardfork Checks:
-   detail::check_asset_options_hf_1774(now, op.common_options);
    if( op.bitasset_opts ) {
       detail::check_bitasset_options_hf_bsip74( now, *op.bitasset_opts ); // HF_REMOVABLE
       detail::check_bitasset_options_hf_bsip87( now, *op.bitasset_opts ); // HF_REMOVABLE
@@ -291,10 +279,6 @@ static void validate_new_issuer( const database& d, const asset_object& a, accou
 void_result asset_update_evaluator::do_evaluate(const asset_update_operation& o)
 { try {
    const database& d = db();
-   const time_point_sec now = d.head_block_time();
-
-   // Hardfork Checks:
-   detail::check_asset_options_hf_1774(now, o.new_options);
 
    const asset_object& a = o.asset_to_update(d);
    auto a_copy = a;

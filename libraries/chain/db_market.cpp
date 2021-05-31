@@ -1177,14 +1177,11 @@ asset database::pay_market_fees(const account_object* seller, const asset_object
                auto registrar = seller->registrar;
                auto referrer = seller->referrer;
 
-               // After HF core-1800, for funds going to temp-account, redirect to committee-account
-               if( head_block_time() >= HARDFORK_CORE_1800_TIME )
-               {
-                  if( registrar == GRAPHENE_TEMP_ACCOUNT )
-                     registrar = GRAPHENE_COMMITTEE_ACCOUNT;
-                  if( referrer == GRAPHENE_TEMP_ACCOUNT )
-                     referrer = GRAPHENE_COMMITTEE_ACCOUNT;
-               }
+               // for funds going to temp-account, redirect to committee-account
+               if( registrar == GRAPHENE_TEMP_ACCOUNT )
+                  registrar = GRAPHENE_COMMITTEE_ACCOUNT;
+               if( referrer == GRAPHENE_TEMP_ACCOUNT )
+                  referrer = GRAPHENE_COMMITTEE_ACCOUNT;
 
                if( referrer != registrar )
                {

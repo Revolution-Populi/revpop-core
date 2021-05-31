@@ -90,13 +90,6 @@ struct reward_database_fixture : database_fixture
       PUSH_TX( db, tx);
    }
 
-   void generate_blocks_past_hf1800()
-   {
-      database_fixture::generate_blocks( HARDFORK_CORE_1800_TIME );
-      database_fixture::generate_block();
-      set_expiration(db, trx);
-   }
-
    asset core_asset(int64_t x )
    {
        return asset( x*core_precision );

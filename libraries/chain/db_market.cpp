@@ -875,12 +875,7 @@ bool database::fill_settle_order( const force_settlement_object& settle, const a
    // The owner of the settle order pays market fees to the issuer of the collateral asset.
    // After HF core-1780, these fees are shared to the referral program, which is flagged to
    // pay_market_fees by setting settle_owner_ptr non-null.
-   //
-   // TODO Check whether the HF check can be removed after the HF.
-   //      Note: even if logically it can be removed, perhaps the removal will lead to a small performance
-   //            loss. Needs testing.
-   if( head_block_time() >= HARDFORK_CORE_1780_TIME )
-      settle_owner_ptr = &settle.owner(*this);
+   settle_owner_ptr = &settle.owner(*this);
    // Compute and pay the market fees:
    asset market_fees = pay_market_fees( settle_owner_ptr, get(receives.asset_id), receives, is_maker );
 

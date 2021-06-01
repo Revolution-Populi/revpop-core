@@ -469,8 +469,7 @@ BOOST_AUTO_TEST_CASE( bitasset_secondary_index )
 
 
          /**
-          * Claim any amount of collateral asset fees.  This should fail because claiming such fees are prohibited
-          * before the HARDFORK_CORE_BSIP_87_74_COLLATFEE_TIME.
+          * Claim any amount of collateral asset fees.
           */
          trx.clear();
          asset_claim_fees_operation claim_op;
@@ -479,12 +478,11 @@ BOOST_AUTO_TEST_CASE( bitasset_secondary_index )
          claim_op.amount_to_claim = jillcoin.amount(5 * jillcoin_unit);
          trx.operations.push_back(claim_op);
          sign(trx, smartissuer_private_key);
-         REQUIRE_EXCEPTION_WITH_TEXT(PUSH_TX(db, trx), "Collateral-denominated fees are not yet active");
+         REQUIRE_EXCEPTION_WITH_TEXT(PUSH_TX(db, trx), "Attempt to claim more backing-asset fees than have accumulated within asset SMARTBIT");
 
 
          /**
           * Propose to claim any amount of collateral asset fees.
-          * This should fail because claiming such fees are prohibited before HARDFORK_CORE_BSIP_87_74_COLLATFEE_TIME.
           */
          proposal_create_operation cop;
          cop.review_period_seconds = 86400;
@@ -496,13 +494,12 @@ BOOST_AUTO_TEST_CASE( bitasset_secondary_index )
          trx.clear();
          trx.operations.push_back(cop);
          // sign(trx, smartissuer_private_key);
-         REQUIRE_EXCEPTION_WITH_TEXT(PUSH_TX(db, trx), "Collateral-denominated fees are not yet active");
+         PUSH_TX( db, trx );
 
 
          /**
           * Advance to when the collateral fee container is activated
           */
-         generate_blocks(HARDFORK_CORE_BSIP_87_74_COLLATFEE_TIME);
          generate_block(); trx.clear(); set_expiration(db, trx);
 
 

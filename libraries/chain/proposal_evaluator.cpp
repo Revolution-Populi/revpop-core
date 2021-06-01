@@ -34,9 +34,6 @@ namespace detail {
 
    void check_bitasset_options_hf_bsip87(const fc::time_point_sec& block_time,
                                          const bitasset_options& options); // HF_REMOVABLE
-
-   void check_asset_claim_fees_hardfork_87_74_collatfee(const fc::time_point_sec& block_time,
-                                                        const asset_claim_fees_operation& op); // HF_REMOVABLE
 }
 
 struct proposal_operation_hardfork_visitor
@@ -72,7 +69,6 @@ struct proposal_operation_hardfork_visitor
    }
 
    void operator()(const graphene::chain::asset_claim_fees_operation &v) const {
-      detail::check_asset_claim_fees_hardfork_87_74_collatfee(block_time, v); // HF_REMOVABLE
    }
 
    void operator()(const graphene::chain::asset_publish_feed_operation &v) const {

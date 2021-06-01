@@ -286,7 +286,7 @@ BOOST_FIXTURE_TEST_SUITE(force_settle_tests, force_settle_database_fixture)
          claim_op.amount_to_claim = core.amount(5);
          trx.operations.push_back(claim_op);
          sign(trx, assetowner_private_key);
-         REQUIRE_EXCEPTION_WITH_TEXT(PUSH_TX(db, trx), "Collateral-denominated fees are not yet active");
+         REQUIRE_EXCEPTION_WITH_TEXT(PUSH_TX(db, trx), "Attempt to claim more backing-asset fees than have accumulated within asset USDBIT");
 
 
          ///////
@@ -302,7 +302,7 @@ BOOST_FIXTURE_TEST_SUITE(force_settle_tests, force_settle_database_fixture)
          trx.clear();
          trx.operations.push_back(cop);
          // sign(trx, assetowner_private_key);
-         REQUIRE_EXCEPTION_WITH_TEXT(PUSH_TX(db, trx), "Collateral-denominated fees are not yet active");
+         PUSH_TX(db, trx);
 
 
 

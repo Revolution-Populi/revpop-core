@@ -51,15 +51,6 @@ namespace detail {
                  "A BitAsset's FSFP cannot be set before Hardfork BSIP87" );
    }
 
-   void check_asset_claim_fees_hardfork_87_74_collatfee(const fc::time_point_sec& block_time,
-                                                        const asset_claim_fees_operation& op)
-   {
-      // HF_REMOVABLE: Following hardfork check should be removable after hardfork date passes:
-      FC_ASSERT( !op.extensions.value.claim_from_asset_id.valid() ||
-                 block_time >= HARDFORK_CORE_BSIP_87_74_COLLATFEE_TIME,
-                 "Collateral-denominated fees are not yet active and therefore cannot be claimed." );
-   }
-
 } // graphene::chain::detail
 
 void_result asset_create_evaluator::do_evaluate( const asset_create_operation& op )
@@ -1019,8 +1010,6 @@ void_result asset_publish_feeds_evaluator::do_apply(const asset_publish_feed_ope
 void_result asset_claim_fees_evaluator::do_evaluate( const asset_claim_fees_operation& o )
 { try {
    const database& d = db();
-
-   detail::check_asset_claim_fees_hardfork_87_74_collatfee(d.head_block_time(), o); // HF_REMOVABLE
 
    container_asset = o.extensions.value.claim_from_asset_id.valid() ?
       &(*o.extensions.value.claim_from_asset_id)(d) : &o.amount_to_claim.asset_id(d);

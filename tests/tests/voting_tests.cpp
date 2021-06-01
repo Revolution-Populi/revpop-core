@@ -574,7 +574,7 @@ BOOST_AUTO_TEST_CASE( witness_votes_calculation )
          wit_ids.push_back( wit_object->id );
       }
 
-      generate_blocks( HARDFORK_CORE_2103_TIME - 750 * 86400 );
+      auto cblock = db.head_block_time();
       set_expiration( db, trx );
 
       // refresh last_vote_time
@@ -602,12 +602,7 @@ BOOST_AUTO_TEST_CASE( witness_votes_calculation )
          set_expiration( db, trx );
       }
 
-      for( size_t i = 0; i < total; ++i )
-      {
-         BOOST_CHECK_EQUAL( wit_ids[i](db).total_votes, 110u + i );
-      }
-
-      generate_blocks( HARDFORK_CORE_2103_TIME );
+      generate_blocks( cblock + 750 * 86400 );
       generate_blocks( db.get_dynamic_global_properties().next_maintenance_time );
       set_expiration( db, trx );
 
@@ -830,7 +825,7 @@ BOOST_AUTO_TEST_CASE( committee_votes_calculation )
          com_ids.push_back( com_object->id );
       }
 
-      generate_blocks( HARDFORK_CORE_2103_TIME - 750 * 86400 );
+      auto cblock = db.head_block_time();
       set_expiration( db, trx );
 
       // refresh last_vote_time
@@ -858,12 +853,7 @@ BOOST_AUTO_TEST_CASE( committee_votes_calculation )
          set_expiration( db, trx );
       }
 
-      for( size_t i = 0; i < total; ++i )
-      {
-         BOOST_CHECK_EQUAL( com_ids[i](db).total_votes, 110u + i );
-      }
-
-      generate_blocks( HARDFORK_CORE_2103_TIME );
+      generate_blocks( cblock + 750 * 86400 );
       generate_blocks( db.get_dynamic_global_properties().next_maintenance_time );
       set_expiration( db, trx );
 

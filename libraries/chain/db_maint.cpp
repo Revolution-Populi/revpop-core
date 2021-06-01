@@ -901,22 +901,6 @@ void database::process_bitassets()
    }
 }
 
-/****
- * @brief a one-time data process to correct current_supply of RVP token in the RevPop mainnet
- */
-void process_hf_2103( database& db )
-{
-   const balance_object* bal = db.find( balance_id_type( HARDFORK_CORE_2103_BALANCE_ID ) );
-   if( bal != nullptr && bal->balance.amount < 0 )
-   {
-      const asset_dynamic_data_object& ddo = bal->balance.asset_id(db).dynamic_data(db);
-      db.modify<asset_dynamic_data_object>( ddo, [bal](asset_dynamic_data_object& obj) {
-         obj.current_supply -= bal->balance.amount;
-      });
-      db.remove( *bal );
-   }
-}
-
 void update_median_feeds(database& db)
 {
    time_point_sec head_time = db.head_block_time();
@@ -1031,7 +1015,6 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
       const global_property_object& props;
       const dynamic_global_property_object& dprops;
       const time_point_sec now;
-      const bool hf2103_passed;
       const bool pob_activated;
 
       optional<detail::vote_recalc_times> witness_recalc_times;
@@ -1041,7 +1024,7 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
 
       vote_tally_helper( database& db )
          : d(db), props( d.get_global_properties() ), dprops( d.get_dynamic_global_properties() ),
-           now( d.head_block_time() ), hf2103_passed( HARDFORK_CORE_2103_PASSED( now ) ),
+           now( d.head_block_time() ),
            pob_activated( dprops.total_pob > 0 || dprops.total_inactive > 0 )
       {
          d._vote_tally_buffer.resize( props.next_available_vote_id, 0 );
@@ -1049,13 +1032,10 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
          d._committee_count_histogram_buffer.resize( props.parameters.maximum_committee_count / 2 + 1, 0 );
          d._total_voting_stake[0] = 0;
          d._total_voting_stake[1] = 0;
-         if( hf2103_passed )
-         {
-            witness_recalc_times   = detail::vote_recalc_options::witness().get_vote_recalc_times( now );
-            committee_recalc_times = detail::vote_recalc_options::committee().get_vote_recalc_times( now );
-            worker_recalc_times    = detail::vote_recalc_options::worker().get_vote_recalc_times( now );
-            delegator_recalc_times = detail::vote_recalc_options::delegator().get_vote_recalc_times( now );
-         }
+         witness_recalc_times   = detail::vote_recalc_options::witness().get_vote_recalc_times( now );
+         committee_recalc_times = detail::vote_recalc_options::committee().get_vote_recalc_times( now );
+         worker_recalc_times    = detail::vote_recalc_options::worker().get_vote_recalc_times( now );
+         delegator_recalc_times = detail::vote_recalc_options::delegator().get_vote_recalc_times( now );
       }
 
       void operator()( const account_object& stake_account, const account_statistics_object& stats )
@@ -1129,31 +1109,22 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
                return;
 
             // Recalculate votes
-            if( !hf2103_passed )
+            if( !directly_voting )
             {
-               voting_stake[0] = voting_stake[2];
-               voting_stake[1] = voting_stake[2];
-               num_committee_voting_stake = voting_stake[2];
+               voting_stake[2] = detail::vote_recalc_options::delegator().get_recalced_voting_stake(
+                                       voting_stake[2], stats.last_vote_time, *delegator_recalc_times );
             }
-            else
-            {
-               if( !directly_voting )
-               {
-                  voting_stake[2] = detail::vote_recalc_options::delegator().get_recalced_voting_stake(
-                                          voting_stake[2], stats.last_vote_time, *delegator_recalc_times );
-               }
-               const account_statistics_object& opinion_account_stats = ( directly_voting ? stats
-                                          : opinion_account.statistics( d ) );
-               voting_stake[1] = detail::vote_recalc_options::witness().get_recalced_voting_stake(
-                                    voting_stake[2], opinion_account_stats.last_vote_time, *witness_recalc_times );
-               voting_stake[0] = detail::vote_recalc_options::committee().get_recalced_voting_stake(
-                                    voting_stake[2], opinion_account_stats.last_vote_time, *committee_recalc_times );
-               num_committee_voting_stake = voting_stake[0];
-               if( opinion_account.num_committee_voted > 1 )
-                  voting_stake[0] /= opinion_account.num_committee_voted;
-               voting_stake[2] = detail::vote_recalc_options::worker().get_recalced_voting_stake(
-                                    voting_stake[2], opinion_account_stats.last_vote_time, *worker_recalc_times );
-            }
+            const account_statistics_object& opinion_account_stats = ( directly_voting ? stats
+                                       : opinion_account.statistics( d ) );
+            voting_stake[1] = detail::vote_recalc_options::witness().get_recalced_voting_stake(
+                                 voting_stake[2], opinion_account_stats.last_vote_time, *witness_recalc_times );
+            voting_stake[0] = detail::vote_recalc_options::committee().get_recalced_voting_stake(
+                                 voting_stake[2], opinion_account_stats.last_vote_time, *committee_recalc_times );
+            num_committee_voting_stake = voting_stake[0];
+            if( opinion_account.num_committee_voted > 1 )
+               voting_stake[0] /= opinion_account.num_committee_voted;
+            voting_stake[2] = detail::vote_recalc_options::worker().get_recalced_voting_stake(
+                                 voting_stake[2], opinion_account_stats.last_vote_time, *worker_recalc_times );
 
             for( vote_id_type id : opinion_account.options.votes )
             {
@@ -1243,10 +1214,6 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
          next_maintenance_time += (y+1) * maintenance_interval;
       }
    }
-
-   // Fix supply issue
-   if ( dgpo.next_maintenance_time <= HARDFORK_CORE_2103_TIME && next_maintenance_time > HARDFORK_CORE_2103_TIME )
-      process_hf_2103(*this);
 
    modify(dgpo, [next_maintenance_time](dynamic_global_property_object& d) {
       d.next_maintenance_time = next_maintenance_time;

@@ -35,11 +35,6 @@ namespace graphene { namespace chain {
 
 void_result ticket_create_evaluator::do_evaluate(const ticket_create_operation& op)
 { try {
-   const database& d = db();
-   const auto block_time = d.head_block_time();
-
-   FC_ASSERT( HARDFORK_CORE_2103_PASSED(block_time), "Not allowed until hardfork 2103" );
-
    return void_result();
 } FC_CAPTURE_AND_RETHROW( (op) ) }
 

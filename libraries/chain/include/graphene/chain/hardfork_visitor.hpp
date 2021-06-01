@@ -69,7 +69,7 @@ struct hardfork_visitor {
    visit() { return HARDFORK_BSIP_40_PASSED(now); }
    template<typename Op>
    std::enable_if_t<TL::contains<hf2103_ops, Op>(), bool>
-   visit() { return HARDFORK_CORE_2103_PASSED(now); }
+   visit() { return true; }
    template<typename Op>
    std::enable_if_t<TL::contains<RevPop_40_ops, Op>(), bool>
    visit() { return HARDFORK_REVPOP_40_PASSED(now); }

@@ -35,41 +35,10 @@ using namespace graphene::chain::test;
 
 BOOST_FIXTURE_TEST_SUITE( pob_tests, database_fixture )
 
-BOOST_AUTO_TEST_CASE( hardfork_time_test )
-{
-   try {
-
-      generate_block();
-      set_expiration( db, trx );
-
-      ACTORS((sam));
-
-      auto init_amount = 10000000 * GRAPHENE_BLOCKCHAIN_PRECISION;
-      fund( sam, asset(init_amount) );
-
-      // Before the hard fork, unable to create a ticket or update a ticket, or do any of them with proposals
-      BOOST_CHECK_THROW( create_ticket( sam_id, lock_180_days, asset(1) ), fc::exception );
-      ticket_object tmp_ticket;
-      tmp_ticket.account = sam_id;
-      BOOST_CHECK_THROW( update_ticket( tmp_ticket, lock_360_days, asset(1) ), fc::exception );
-
-      ticket_create_operation cop = make_ticket_create_op( sam_id, lock_720_days, asset(2) );
-      BOOST_CHECK_THROW( propose( cop ), fc::exception );
-
-      ticket_update_operation uop = make_ticket_update_op( tmp_ticket, lock_720_days, {} );
-      BOOST_CHECK_THROW( propose( uop ), fc::exception );
-
-   } catch (fc::exception& e) {
-      edump((e.to_detail_string()));
-      throw;
-   }
-}
-
 BOOST_AUTO_TEST_CASE( validation_and_basic_logic_test )
 { try {
 
-      // Pass the hard fork time
-      generate_blocks( HARDFORK_CORE_2103_TIME );
+      generate_block();
       set_expiration( db, trx );
 
       ACTORS((sam)(ted));
@@ -276,8 +245,7 @@ BOOST_AUTO_TEST_CASE( validation_and_basic_logic_test )
 BOOST_AUTO_TEST_CASE( one_lock_180_ticket )
 { try {
 
-      // Pass the hard fork time
-      generate_blocks( HARDFORK_CORE_2103_TIME );
+      generate_block();
       set_expiration( db, trx );
 
       ACTORS((sam));
@@ -371,8 +339,7 @@ BOOST_AUTO_TEST_CASE( one_lock_180_ticket )
 BOOST_AUTO_TEST_CASE( one_lock_360_ticket )
 { try {
 
-      // Pass the hard fork time
-      generate_blocks( HARDFORK_CORE_2103_TIME );
+      generate_block();
       set_expiration( db, trx );
 
       ACTORS((sam));
@@ -502,8 +469,7 @@ BOOST_AUTO_TEST_CASE( one_lock_360_ticket )
 BOOST_AUTO_TEST_CASE( one_lock_720_ticket )
 { try {
 
-      // Pass the hard fork time
-      generate_blocks( HARDFORK_CORE_2103_TIME );
+      generate_block();
       set_expiration( db, trx );
 
       ACTORS((sam));
@@ -669,8 +635,7 @@ BOOST_AUTO_TEST_CASE( one_lock_720_ticket )
 BOOST_AUTO_TEST_CASE( one_lock_720_ticket_if_blocks_missed )
 { try {
 
-      // Pass the hard fork time
-      generate_blocks( HARDFORK_CORE_2103_TIME );
+      generate_block();
       set_expiration( db, trx );
 
       ACTORS((sam));
@@ -726,8 +691,7 @@ BOOST_AUTO_TEST_CASE( one_lock_720_ticket_if_blocks_missed )
 BOOST_AUTO_TEST_CASE( one_lock_forever_ticket )
 { try {
 
-      // Pass the hard fork time
-      generate_blocks( HARDFORK_CORE_2103_TIME );
+      generate_block();
       set_expiration( db, trx );
 
       ACTORS((sam));
@@ -915,8 +879,7 @@ BOOST_AUTO_TEST_CASE( one_lock_forever_ticket )
 BOOST_AUTO_TEST_CASE( one_lock_forever_ticket_if_blocks_missed )
 { try {
 
-      // Pass the hard fork time
-      generate_blocks( HARDFORK_CORE_2103_TIME );
+      generate_block();
       set_expiration( db, trx );
 
       ACTORS((sam));
@@ -978,8 +941,7 @@ BOOST_AUTO_TEST_CASE( one_lock_forever_ticket_if_blocks_missed )
 BOOST_AUTO_TEST_CASE( one_lock_forever_ticket_if_too_many_blocks_missed )
 { try {
 
-      // Pass the hard fork time
-      generate_blocks( HARDFORK_CORE_2103_TIME );
+      generate_block();
       set_expiration( db, trx );
 
       ACTORS((sam));
@@ -2182,8 +2144,7 @@ BOOST_AUTO_TEST_CASE( forever_ticket_auto_update_if_blocks_missed )
 BOOST_AUTO_TEST_CASE( cancel_charging_from_liquid )
 { try {
 
-      // Pass the hard fork time
-      generate_blocks( HARDFORK_CORE_2103_TIME );
+      generate_block();
       set_expiration( db, trx );
 
       ACTORS((sam));
@@ -2892,8 +2853,7 @@ BOOST_AUTO_TEST_CASE( update_from_withdrawing_to_charging_then_withdraw_again )
 BOOST_AUTO_TEST_CASE( multiple_tickets )
 { try {
 
-      // Pass the hard fork time
-      generate_blocks( HARDFORK_CORE_2103_TIME );
+      generate_block();
       set_expiration( db, trx );
 
       ACTORS((sam)(ted));

@@ -90,12 +90,6 @@ struct proposal_operation_hardfork_visitor
          FC_ASSERT(!op.new_parameters.current_fees->exists<custom_authority_delete_operation>(),
                    "Unable to define fees for custom authority operations prior to hardfork BSIP 40");
       }
-      if (!HARDFORK_CORE_2103_PASSED(block_time)) {
-         FC_ASSERT(!op.new_parameters.current_fees->exists<ticket_create_operation>(),
-                   "Unable to define fees for ticket operations prior to hardfork 2103");
-         FC_ASSERT(!op.new_parameters.current_fees->exists<ticket_update_operation>(),
-                   "Unable to define fees for ticket operations prior to hardfork 2103");
-      }
    }
    void operator()(const graphene::chain::custom_authority_create_operation&) const {
       FC_ASSERT( HARDFORK_BSIP_40_PASSED(block_time), "Not allowed until hardfork BSIP 40" );
@@ -105,12 +99,6 @@ struct proposal_operation_hardfork_visitor
    }
    void operator()(const graphene::chain::custom_authority_delete_operation&) const {
       FC_ASSERT( HARDFORK_BSIP_40_PASSED(block_time), "Not allowed until hardfork BSIP 40" );
-   }
-   void operator()(const graphene::chain::ticket_create_operation &op) const {
-      FC_ASSERT( HARDFORK_CORE_2103_PASSED(block_time), "Not allowed until hardfork 2103" );
-   }
-   void operator()(const graphene::chain::ticket_update_operation &op) const {
-      FC_ASSERT( HARDFORK_CORE_2103_PASSED(block_time), "Not allowed until hardfork 2103" );
    }
 
    // loop and self visit in proposals

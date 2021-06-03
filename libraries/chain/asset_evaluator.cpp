@@ -35,14 +35,6 @@
 namespace graphene { namespace chain {
 namespace detail {
 
-   void check_bitasset_options_hf_bsip74( const fc::time_point_sec& block_time, const bitasset_options& options)
-   {
-      // HF_REMOVABLE: Following hardfork check should be removable after hardfork date passes:
-      FC_ASSERT( block_time >= HARDFORK_CORE_BSIP74_TIME
-            || !options.extensions.value.margin_call_fee_ratio.valid(),
-            "A BitAsset's MCFR cannot be set before Hardfork BSIP74" );
-   }
-
    void check_bitasset_options_hf_bsip87(const fc::time_point_sec& block_time, const bitasset_options& options)
    {
       // HF_REMOVABLE: Following hardfork check should be removable after hardfork date passes:
@@ -61,7 +53,6 @@ void_result asset_create_evaluator::do_evaluate( const asset_create_operation& o
 
    // Hardfork Checks:
    if( op.bitasset_opts ) {
-      detail::check_bitasset_options_hf_bsip74( now, *op.bitasset_opts ); // HF_REMOVABLE
       detail::check_bitasset_options_hf_bsip87( now, *op.bitasset_opts ); // HF_REMOVABLE
    }
 
@@ -477,7 +468,6 @@ void_result asset_update_bitasset_evaluator::do_evaluate(const asset_update_bita
    const time_point_sec now = d.head_block_time();
 
    // Hardfork Checks:
-   detail::check_bitasset_options_hf_bsip74( now, op.new_options ); // HF_REMOVABLE
    detail::check_bitasset_options_hf_bsip87( now, op.new_options ); // HF_REMOVABLE
 
    const asset_object& asset_obj = op.asset_to_update(d);

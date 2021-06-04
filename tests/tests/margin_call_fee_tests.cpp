@@ -292,9 +292,6 @@ BOOST_FIXTURE_TEST_SUITE(margin_call_fee_tests, bitasset_database_fixture)
          uint64_t initial_balance_core = 10000000;
          transfer(committee_account, assetowner_id, asset(initial_balance_core));
 
-         // Confirm before hardfork activation
-         BOOST_CHECK(db.head_block_time() < HARDFORK_CORE_BSIP74_TIME);
-
 
          ///////
          // 1. Asset owner fails to create the smart coin called bitUSD with a MCFR

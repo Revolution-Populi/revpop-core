@@ -30,8 +30,6 @@ namespace graphene { namespace chain {
 
 namespace detail {
 
-   void check_bitasset_options_hf_bsip87(const fc::time_point_sec& block_time,
-                                         const bitasset_options& options); // HF_REMOVABLE
 }
 
 struct proposal_operation_hardfork_visitor
@@ -48,10 +46,6 @@ struct proposal_operation_hardfork_visitor
    void operator()(const T &v) const {}
 
    void operator()(const graphene::chain::asset_create_operation &v) const {
-      if( v.bitasset_opts.valid() ) {
-         detail::check_bitasset_options_hf_bsip87( block_time, *v.bitasset_opts ); // HF_REMOVABLE
-      }
-
       v.common_options.validate_flags( v.bitasset_opts.valid() );
    }
 
@@ -61,7 +55,6 @@ struct proposal_operation_hardfork_visitor
    }
 
    void operator()(const graphene::chain::asset_update_bitasset_operation &v) const {
-      detail::check_bitasset_options_hf_bsip87( block_time, v.new_options ); // HF_REMOVABLE
    }
 
    void operator()(const graphene::chain::asset_claim_fees_operation &v) const {

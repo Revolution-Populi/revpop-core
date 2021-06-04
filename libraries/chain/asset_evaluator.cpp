@@ -35,14 +35,6 @@
 namespace graphene { namespace chain {
 namespace detail {
 
-   void check_bitasset_options_hf_bsip87(const fc::time_point_sec& block_time, const bitasset_options& options)
-   {
-      // HF_REMOVABLE: Following hardfork check should be removable after hardfork date passes:
-      FC_ASSERT( !options.extensions.value.force_settle_fee_percent.valid()
-                 || block_time >= HARDFORK_CORE_BSIP87_TIME,
-                 "A BitAsset's FSFP cannot be set before Hardfork BSIP87" );
-   }
-
 } // graphene::chain::detail
 
 void_result asset_create_evaluator::do_evaluate( const asset_create_operation& op )
@@ -50,11 +42,6 @@ void_result asset_create_evaluator::do_evaluate( const asset_create_operation& o
 
    const database& d = db();
    const time_point_sec now = d.head_block_time();
-
-   // Hardfork Checks:
-   if( op.bitasset_opts ) {
-      detail::check_bitasset_options_hf_bsip87( now, *op.bitasset_opts ); // HF_REMOVABLE
-   }
 
    op.common_options.validate_flags( op.bitasset_opts.valid() );
    const auto& chain_parameters = d.get_global_properties().parameters;
@@ -466,9 +453,6 @@ void_result asset_update_bitasset_evaluator::do_evaluate(const asset_update_bita
 { try {
    const database& d = db();
    const time_point_sec now = d.head_block_time();
-
-   // Hardfork Checks:
-   detail::check_bitasset_options_hf_bsip87( now, op.new_options ); // HF_REMOVABLE
 
    const asset_object& asset_obj = op.asset_to_update(d);
 

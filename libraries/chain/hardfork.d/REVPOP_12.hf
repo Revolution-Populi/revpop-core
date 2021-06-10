@@ -1,0 +1,5 @@
+// REVPOP 11 (The commit/reveal operations can be signed by the witness key) hardfork check
+#ifndef HARDFORK_REVPOP_12_TIME
+#define HARDFORK_REVPOP_12_TIME (fc::time_point_sec( 1623369600 )) // Friday, June 11, 2021 12:00:00 AM
+#define HARDFORK_REVPOP_12_PASSED(now) (now >= HARDFORK_REVPOP_12_TIME)
+#endif

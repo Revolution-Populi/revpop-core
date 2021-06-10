@@ -340,6 +340,16 @@ struct get_impacted_account_visitor
       _impacted.insert( op.fee_payer() );
       _impacted.insert( op.account );
    }
+   void operator()( const commit_create_v3_operation& op )
+   {
+      _impacted.insert( op.fee_payer() );
+      _impacted.insert( op.account );
+   }
+   void operator()( const reveal_create_v3_operation& op )
+   {
+      _impacted.insert( op.fee_payer() );
+      _impacted.insert( op.account );
+   }
 };
 
 } // namespace detail

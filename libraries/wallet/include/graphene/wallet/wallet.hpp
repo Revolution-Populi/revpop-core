@@ -1680,6 +1680,17 @@ class wallet_api
       signed_transaction send_commit( const string& account, uint64_t value, bool broadcast = false );
 
       /**
+       * Send a commit hash.
+       * 
+       * @param account An owner account of commit-reveal object
+       * @param value A value to calculate hash
+       * @param witness_key A witness private key for signing the transaction
+       * @param broadcast true if you wish to broadcast the transaction.
+       * @returns the signed version of the transaction
+       */
+      signed_transaction send_commit2( const string& account, uint64_t value, const string& witness_key, bool broadcast = false );
+
+      /**
        * Send a reveal value.
        * 
        * @param account An owner account of commit-reveal object
@@ -1688,6 +1699,17 @@ class wallet_api
        * @returns the signed version of the transaction
        */
       signed_transaction send_reveal( const string& account, uint64_t value, bool broadcast = false );
+
+      /**
+       * Send a reveal value.
+       * 
+       * @param account An owner account of commit-reveal object
+       * @param value A value to store in commit-reveal object
+       * @param witness_key A witness private key for signing the transaction
+       * @param broadcast true if you wish to broadcast the transaction.
+       * @returns the signed version of the transaction
+       */
+      signed_transaction send_reveal2( const string& account, uint64_t value, const string& witness_key, bool broadcast = false );
 
       /**
        * Get commit-reveal object by account
@@ -1936,4 +1958,6 @@ FC_API( graphene::wallet::wallet_api,
         (get_commit_reveals_v2)
         (get_commit_reveal_seed_v2)
         (filter_commit_reveal_participant_v2)
+        (send_commit2)
+        (send_reveal2)
       )

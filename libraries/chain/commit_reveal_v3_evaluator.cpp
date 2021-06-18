@@ -20,6 +20,7 @@
 #include <graphene/chain/database.hpp>
 #include <graphene/chain/exceptions.hpp>
 #include <graphene/chain/special_authority_object.hpp>
+#include <graphene/chain/witness_object.hpp>
 
 #include <algorithm>
 
@@ -39,8 +40,15 @@ void_result commit_create_v3_evaluator::do_evaluate( const commit_create_v3_oper
    const auto& by_cr_acc = cr_idx.indices().get<by_account>();
    auto cr_itr = by_cr_acc.lower_bound(op.account);
    if (cr_itr != by_cr_acc.end() && cr_itr->account == op.account) {
-      FC_ASSERT(cr_itr -> maintenance_time != dgpo.next_maintenance_time.sec_since_epoch(), "The commit operation for the current maintenance period has already been received.");
+      FC_ASSERT(cr_itr -> maintenance_time != dgpo.next_maintenance_time.sec_since_epoch(),
+         "The commit operation for the current maintenance period has already been received.");
    }
+
+   const auto& idx = d.get_index_type<witness_index>().indices().get<by_account>();
+   auto wit = idx.find(op.account);
+   FC_ASSERT( wit != idx.end(), "Can't find the witness for the provided account ${acc}",
+      ("acc", op.account) );
+   FC_ASSERT( wit->signing_key == op.witness_key, "Incorrect witness key");
 
    FC_ASSERT(d.head_block_time() < dgpo.next_maintenance_time - gpo.parameters.maintenance_interval / 2,
          "Commit interval has finished.");
@@ -94,6 +102,12 @@ void_result reveal_create_v3_evaluator::do_evaluate( const reveal_create_v3_oper
    FC_ASSERT(cr_itr->value == 0, "The reveal operation for the current maintenance period has already been received.");
    string hash = fc::sha512::hash( std::to_string(op.value) );
    FC_ASSERT(cr_itr->hash == hash, "Hash is broken.");
+
+   const auto& idx = d.get_index_type<witness_index>().indices().get<by_account>();
+   auto wit = idx.find(op.account);
+   FC_ASSERT( wit != idx.end(), "Can't find the witness for the provided account ${acc}",
+      ("acc", op.account) );
+   FC_ASSERT( wit->signing_key == op.witness_key, "Incorrect witness key");
 
    FC_ASSERT(op.maintenance_time == dgpo.next_maintenance_time.sec_since_epoch(), "Incorrect maintenance time.");
 

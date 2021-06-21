@@ -91,15 +91,9 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
 
    genesis_state.initial_timestamp = initial_timestamp;
 
-   if(current_test_name == "hf_1270_test")
-   {
-      genesis_state.initial_active_witnesses = 20;
-   }
-   else {
-      genesis_state.initial_active_witnesses = 10;
-      genesis_state.immutable_parameters.min_committee_member_count = INITIAL_COMMITTEE_MEMBER_COUNT;
-      genesis_state.immutable_parameters.min_witness_count = INITIAL_WITNESS_COUNT;
-   }
+   genesis_state.initial_active_witnesses = 10;
+   genesis_state.immutable_parameters.min_committee_member_count = INITIAL_COMMITTEE_MEMBER_COUNT;
+   genesis_state.immutable_parameters.min_witness_count = INITIAL_WITNESS_COUNT;
 
    for( unsigned int i = 0; i < genesis_state.initial_active_witnesses; ++i )
    {
@@ -792,7 +786,6 @@ const asset_object& database_fixture::create_user_issued_asset( const string& na
    creator.issuer = issuer.id;
    creator.fee = asset();
    creator.symbol = name;
-   creator.common_options.max_supply = 0;
    creator.precision = precision;
    creator.common_options.core_exchange_rate = core_exchange_rate;
    creator.common_options.max_supply = GRAPHENE_MAX_SHARE_SUPPLY;
@@ -1060,8 +1053,7 @@ void database_fixture::publish_feed( const asset_object& mia, const account_obje
    if( op.feed.core_exchange_rate.is_null() )
    {
       op.feed.core_exchange_rate = op.feed.settlement_price;
-      if( db.head_block_time() > HARDFORK_480_TIME )
-         op.feed.core_exchange_rate.quote.asset_id = asset_id_type();
+      op.feed.core_exchange_rate.quote.asset_id = asset_id_type();
    }
    op.extensions.value.initial_collateral_ratio = icr;
    trx.operations.emplace_back( std::move(op) );

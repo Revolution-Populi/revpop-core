@@ -180,7 +180,7 @@ BOOST_AUTO_TEST_CASE( issue_whitelist_uia )
       GRAPHENE_REQUIRE_THROW( PUSH_TX( db, trx, ~0 ), fc::exception );
 
       // committee-account is blocked as well
-      BOOST_CHECK( !is_authorized_asset( db, account_id_type()(db), uia_id(db) ) );
+      BOOST_CHECK( is_authorized_asset( db, account_id_type()(db), uia_id(db) ) );
 
       account_whitelist_operation wop;
       wop.authorizing_account = izzy_id;
@@ -209,7 +209,7 @@ BOOST_AUTO_TEST_CASE( issue_whitelist_uia )
       BOOST_CHECK_EQUAL(get_balance(nathan_id, uia_id), 2000);
 
       // committee-account is still blocked
-      BOOST_CHECK( !is_authorized_asset( db, account_id_type()(db), uia_id(db) ) );
+      BOOST_CHECK( is_authorized_asset( db, account_id_type()(db), uia_id(db) ) );
       // izzy is still blocked
       BOOST_CHECK( !is_authorized_asset( db, izzy_id(db), uia_id(db) ) );
 
@@ -348,12 +348,9 @@ BOOST_AUTO_TEST_CASE( transfer_whitelist_uia )
       BOOST_CHECK_EQUAL(get_balance(dan, advanced), 40);
 
       // committee-account is still blocked
-      BOOST_CHECK( !is_authorized_asset( db, account_id_type()(db), uia_id(db) ) );
+      BOOST_CHECK( is_authorized_asset( db, account_id_type()(db), uia_id(db) ) );
       // izzy is still blocked
       BOOST_CHECK( !is_authorized_asset( db, izzy_id(db), uia_id(db) ) );
-
-      // Pass BSIP 86 hardfork
-      generate_blocks( HARDFORK_BSIP_86_TIME );
 
       // committee-account is now unblocked
       BOOST_CHECK( is_authorized_asset( db, account_id_type()(db), uia_id(db) ) );
@@ -527,7 +524,6 @@ BOOST_AUTO_TEST_CASE( asset_name_test )
       GRAPHENE_REQUIRE_THROW( create_user_issued_asset( "ALPHA", alice_id(db), 0 ), fc::exception );
       BOOST_CHECK(  has_asset("ALPHA") );    BOOST_CHECK( !has_asset("ALPHA.ONE") );
 
-      generate_blocks( HARDFORK_385_TIME );
       generate_block();
 
       // Bob can't create ALPHA.ONE

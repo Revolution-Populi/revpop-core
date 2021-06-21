@@ -722,10 +722,21 @@ BOOST_AUTO_TEST_CASE( mia_feeds )
       const asset_object& obj = bit_usd_id(db);
       op.asset_to_update = bit_usd_id;
       op.issuer = obj.issuer;
-      op.new_issuer = nathan_id;
+      //op.new_issuer = nathan_id;
       op.new_options = obj.options;
       op.new_options.flags &= ~witness_fed_asset;
       trx.operations.push_back(op);
+      PUSH_TX( db, trx, ~0 );
+      generate_block();
+      trx.clear();
+   }
+   {
+      asset_update_issuer_operation upd_op;
+      const asset_object& obj = bit_usd_id(db);
+      upd_op.asset_to_update = bit_usd_id;
+      upd_op.issuer = obj.issuer;
+      upd_op.new_issuer = nathan_id;
+      trx.operations.push_back(upd_op);
       PUSH_TX( db, trx, ~0 );
       generate_block();
       trx.clear();

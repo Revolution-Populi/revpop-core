@@ -38,30 +38,8 @@ BOOST_FIXTURE_TEST_SUITE( bsip86_tests, database_fixture )
 BOOST_AUTO_TEST_CASE( hardfork_time_test )
 { try {
 
-   {
-      // The network fee percent is 0 by default
-      BOOST_CHECK_EQUAL( db.get_global_properties().parameters.get_market_fee_network_percent(), 0 );
-
-      // Try to set new committee parameter before hardfork
-      proposal_create_operation cop = proposal_create_operation::committee_proposal(
-            db.get_global_properties().parameters, db.head_block_time() );
-      cop.fee_paying_account = GRAPHENE_TEMP_ACCOUNT;
-      cop.expiration_time = db.head_block_time() + *cop.review_period_seconds + 10;
-      committee_member_update_global_parameters_operation cmuop;
-      cmuop.new_parameters.extensions.value.market_fee_network_percent = 1;
-      cop.proposed_ops.emplace_back( cmuop );
-      trx.operations.push_back( cop );
-
-      // It should fail
-      GRAPHENE_CHECK_THROW( PUSH_TX(db, trx, ~0), fc::exception );
-      trx.clear();
-
-      // The percent should still be 0
-      BOOST_CHECK_EQUAL( db.get_global_properties().parameters.get_market_fee_network_percent(), 0 );
-   }
-
    // Pass the hardfork
-   generate_blocks( HARDFORK_BSIP_86_TIME );
+   generate_block();
    set_expiration( db, trx );
 
    {

@@ -81,8 +81,6 @@ BOOST_AUTO_TEST_CASE( broadcast_transaction_too_large ) {
 
       auto nb_api = std::make_shared< graphene::app::network_broadcast_api >( app );
 
-      generate_blocks( HARDFORK_CORE_1573_TIME + 10 );
-
       set_expiration( db, trx );
       transfer_operation trans;
       trans.from = cid_id;

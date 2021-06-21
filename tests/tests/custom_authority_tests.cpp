@@ -1935,8 +1935,8 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
          // Initialize: Create user-issued assets
          //////
          upgrade_to_lifetime_member(alice);
-         create_user_issued_asset("ALICECOIN", alice, DEFAULT_UIA_ASSET_ISSUER_PERMISSION);
-         create_user_issued_asset( "SPECIALCOIN", alice,  DEFAULT_UIA_ASSET_ISSUER_PERMISSION);
+         create_user_issued_asset("ALICECOIN", alice, UIA_ASSET_ISSUER_PERMISSION_MASK & ~lock_max_supply & ~disable_new_supply);
+         create_user_issued_asset( "SPECIALCOIN", alice, UIA_ASSET_ISSUER_PERMISSION_MASK & ~lock_max_supply & ~disable_new_supply);
          generate_blocks(1);
          const asset_object &alicecoin = *db.get_index_type<asset_index>().indices().get<by_symbol>().find("ALICECOIN");
          const asset_object &specialcoin
@@ -3630,7 +3630,7 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
          // Initialize: Create user-issued assets
          //////
          upgrade_to_lifetime_member(assetissuer);
-         create_user_issued_asset("SPECIALCOIN", assetissuer,  DEFAULT_UIA_ASSET_ISSUER_PERMISSION);
+         create_user_issued_asset("SPECIALCOIN", assetissuer,  UIA_ASSET_ISSUER_PERMISSION_MASK & ~lock_max_supply & ~disable_new_supply);
          generate_blocks(1);
          const asset_object &specialcoin
                  = *db.get_index_type<asset_index>().indices().get<by_symbol>().find("SPECIALCOIN");

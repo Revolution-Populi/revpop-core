@@ -345,18 +345,7 @@ processed_transaction database::push_proposal(const proposal_object& proposal)
       remove(proposal);
       session.merge();
    } catch ( const fc::exception& e ) {
-      if( head_block_time() <= HARDFORK_483_TIME )
-      {
-         for( size_t i=old_applied_ops_size,n=_applied_ops.size(); i<n; i++ )
-         {
-            ilog( "removing failed operation from applied_ops: ${op}", ("op", *(_applied_ops[i])) );
-            _applied_ops[i].reset();
-         }
-      }
-      else
-      {
-         _applied_ops.resize( old_applied_ops_size );
-      }
+      _applied_ops.resize( old_applied_ops_size );
       wlog( "${e}", ("e",e.to_detail_string() ) );
       throw;
    }
@@ -604,8 +593,6 @@ void database::_apply_block( const signed_block& next_block )
    _current_block_num    = next_block_num;
    _current_trx_in_block = 0;
 
-   _issue_453_affected_assets.clear();
-
    for( const auto& trx : next_block.transactions )
    {
       /* We do not need to push the undo state for each transaction
@@ -691,7 +678,7 @@ processed_transaction database::_apply_transaction(const signed_transaction& trx
 
    if( !(skip & skip_transaction_signatures) )
    {
-      bool allow_non_immediate_owner = ( head_block_time() >= HARDFORK_CORE_584_TIME );
+      bool allow_non_immediate_owner = true;
       auto get_active = [this]( account_id_type id ) { return &id(*this).active; };
       auto get_owner  = [this]( account_id_type id ) { return &id(*this).owner;  };
       auto get_custom = [this]( account_id_type id, const operation& op, rejected_predicate_map* rejects ) {
@@ -699,8 +686,7 @@ processed_transaction database::_apply_transaction(const signed_transaction& trx
       };
 
       trx.verify_authority(chain_id, get_active, get_owner, get_custom, allow_non_immediate_owner,
-                           MUST_IGNORE_CUSTOM_OP_REQD_AUTHS(head_block_time()),
-                           get_global_properties().parameters.max_authority_depth);
+                           false, get_global_properties().parameters.max_authority_depth);
    }
 
    //Skip all manner of expiration and TaPoS checking if we're on block 1; It's impossible that the transaction is
@@ -721,8 +707,7 @@ processed_transaction database::_apply_transaction(const signed_transaction& trx
                  ("trx.expiration",trx.expiration)("now",now)("max_til_exp",chain_parameters.maximum_time_until_expiration));
       FC_ASSERT( now <= trx.expiration, "", ("now",now)("trx.exp",trx.expiration) );
       if ( !(skip & skip_block_size_check ) ) // don't waste time on replay
-         FC_ASSERT( head_block_time() <= HARDFORK_CORE_1573_TIME
-               || trx.get_packed_size() <= chain_parameters.maximum_transaction_size,
+         FC_ASSERT( trx.get_packed_size() <= chain_parameters.maximum_transaction_size,
                "Transaction exceeds maximum transaction size." );
    }
 

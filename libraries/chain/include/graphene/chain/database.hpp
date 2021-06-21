@@ -406,7 +406,6 @@ namespace graphene { namespace chain {
           * already on the books.
           */
          ///@{
-         bool apply_order_before_hardfork_625(const limit_order_object& new_order_object, bool allow_black_swan = true);
          bool apply_order(const limit_order_object& new_order_object, bool allow_black_swan = true);
          ///@}
 
@@ -682,9 +681,6 @@ namespace graphene { namespace chain {
 
          // Counts nested proposal updates
          uint32_t                           _push_proposal_nesting_depth = 0;
-
-         /// Tracks assets affected by bitshares-core issue #453 before hard fork #615 in one block
-         flat_set<asset_id_type>           _issue_453_affected_assets;
 
          /// Pointers to core asset object and global objects who will have immutable addresses after created
          ///@{

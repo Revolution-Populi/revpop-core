@@ -149,8 +149,7 @@ class call_order_object : public abstract_object<call_order_object>
        *  @param match_price the matching price if this call order is margin called
        *  @param feed_price median settlement price of debt asset
        *  @param maintenance_collateral_ratio median maintenance collateral ratio of debt asset
-       *  @param maintenance_collateralization maintenance collateralization of debt asset,
-       *                                       should only be valid after core-1270 hard fork
+       *  @param maintenance_collateralization maintenance collateralization of debt asset
        *  @return maximum amount of debt that can be called
        */
       share_type get_max_debt_to_cover( price match_price,

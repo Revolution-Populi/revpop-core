@@ -47,7 +47,6 @@ share_type asset_bitasset_data_object::max_force_settlement_volume(share_type cu
 void graphene::chain::asset_bitasset_data_object::update_median_feeds( time_point_sec current_time,
                                                                        time_point_sec next_maintenance_time )
 {
-   bool after_core_hardfork_1270 = ( next_maintenance_time > HARDFORK_CORE_1270_TIME ); // call price caching issue
    current_feed_publication_time = current_time;
    vector<std::reference_wrapper<const price_feed_with_icr>> current_feeds;
    // find feeds that were alive at current_time
@@ -68,11 +67,8 @@ void graphene::chain::asset_bitasset_data_object::update_median_feeds( time_poin
       feed_cer_updated = false; // new median cer is null, won't update asset_object anyway, set to false for better performance
       current_feed_publication_time = current_time;
       current_feed = price_feed_with_icr();
-      if( after_core_hardfork_1270 )
-      {
-         // update data derived from MCR, ICR and etc
-         refresh_cache();
-      }
+      // update data derived from MCR, ICR and etc
+      refresh_cache();
       return;
    }
    if( current_feeds.size() == 1 )
@@ -81,18 +77,15 @@ void graphene::chain::asset_bitasset_data_object::update_median_feeds( time_poin
          feed_cer_updated = true;
       current_feed = current_feeds.front();
       // Note: perhaps can defer updating current_maintenance_collateralization for better performance
-      if( after_core_hardfork_1270 )
-      {
-         const auto& exts = options.extensions.value;
-         if( exts.maintenance_collateral_ratio.valid() )
-            current_feed.maintenance_collateral_ratio = *exts.maintenance_collateral_ratio;
-         if( exts.maximum_short_squeeze_ratio.valid() )
-            current_feed.maximum_short_squeeze_ratio = *exts.maximum_short_squeeze_ratio;
-         if( exts.initial_collateral_ratio.valid() )
-            current_feed.initial_collateral_ratio = *exts.initial_collateral_ratio;
-         // update data derived from MCR, ICR and etc
-         refresh_cache();
-      }
+      const auto& exts = options.extensions.value;
+      if( exts.maintenance_collateral_ratio.valid() )
+         current_feed.maintenance_collateral_ratio = *exts.maintenance_collateral_ratio;
+      if( exts.maximum_short_squeeze_ratio.valid() )
+         current_feed.maximum_short_squeeze_ratio = *exts.maximum_short_squeeze_ratio;
+      if( exts.initial_collateral_ratio.valid() )
+         current_feed.initial_collateral_ratio = *exts.initial_collateral_ratio;
+      // update data derived from MCR, ICR and etc
+      refresh_cache();
       return;
    }
 
@@ -124,11 +117,8 @@ void graphene::chain::asset_bitasset_data_object::update_median_feeds( time_poin
       feed_cer_updated = true;
    current_feed = median_feed;
    // Note: perhaps can defer updating current_maintenance_collateralization for better performance
-   if( after_core_hardfork_1270 )
-   {
-      // update data derived from MCR, ICR and etc
-      refresh_cache();
-   }
+   // update data derived from MCR, ICR and etc
+   refresh_cache();
 }
 
 void asset_bitasset_data_object::refresh_cache()

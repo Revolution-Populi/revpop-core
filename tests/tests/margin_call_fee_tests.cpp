@@ -75,8 +75,6 @@ BOOST_FIXTURE_TEST_SUITE(margin_call_fee_tests, bitasset_database_fixture)
          ACTORS((charlie))
          const asset_id_type core_id;
 
-         BOOST_TEST_MESSAGE("Advancing past Hardfork BSIP74");
-         generate_blocks(HARDFORK_CORE_BSIP74_TIME);
          generate_block();
          set_expiration(db, trx);
 
@@ -294,9 +292,6 @@ BOOST_FIXTURE_TEST_SUITE(margin_call_fee_tests, bitasset_database_fixture)
          uint64_t initial_balance_core = 10000000;
          transfer(committee_account, assetowner_id, asset(initial_balance_core));
 
-         // Confirm before hardfork activation
-         BOOST_CHECK(db.head_block_time() < HARDFORK_CORE_BSIP74_TIME);
-
 
          ///////
          // 1. Asset owner fails to create the smart coin called bitUSD with a MCFR
@@ -306,63 +301,16 @@ BOOST_FIXTURE_TEST_SUITE(margin_call_fee_tests, bitasset_database_fixture)
          const uint16_t mcfr_5 = 50; // 5% expressed in terms of GRAPHENE_COLLATERAL_RATIO_DENOM
          optional<uint16_t> mcfr_opt = mcfr_5;
 
-         // Attempt to create the smart asset with a MCFR
-         // The attempt should fail because it is before HARDFORK_CORE_BSIP74_TIME
-         {
-            const asset_create_operation create_op = make_bitasset("USDBIT", assetowner_id, market_fee_percent,
-                                                                   charge_market_fee, 4, core_id,
-                                                                   GRAPHENE_MAX_SHARE_SUPPLY, icr_opt, mcfr_opt);
-            trx.clear();
-            trx.operations.push_back(create_op);
-            sign(trx, assetowner_private_key);
-            REQUIRE_EXCEPTION_WITH_TEXT(PUSH_TX(db, trx), "cannot be set before Hardfork BSIP74");
-         }
 
          ///////
          // 2. Asset owner fails to create the smart coin called bitUSD with a MCFR in a proposal
          ///////
-         {
-            const asset_create_operation create_op = make_bitasset("USDBIT", assetowner_id, market_fee_percent,
-                                                                   charge_market_fee, 4, core_id,
-                                                                   GRAPHENE_MAX_SHARE_SUPPLY, icr_opt, mcfr_opt);
-            proposal_create_operation cop;
-            cop.review_period_seconds = 86400;
-            uint32_t buffer_seconds = 60 * 60;
-            cop.expiration_time = db.head_block_time() + *cop.review_period_seconds + buffer_seconds;
-            cop.fee_paying_account = GRAPHENE_TEMP_ACCOUNT;
-            cop.proposed_ops.emplace_back(create_op);
-
-            trx.clear();
-            trx.operations.push_back(cop);
-            // sign(trx, assetowner_private_key);
-            REQUIRE_EXCEPTION_WITH_TEXT(PUSH_TX(db, trx), "cannot be set before Hardfork BSIP74");
-         }
 
 
          ///////
          // 3. Asset owner succeeds to create the smart coin called bitUSD without a MCFR
          ///////
          const optional<uint16_t> mcfr_null_opt = {};
-         {
-            const asset_create_operation create_op = make_bitasset("USDBIT", assetowner_id, market_fee_percent,
-                                                                   charge_market_fee, 4, core_id,
-                                                                   GRAPHENE_MAX_SHARE_SUPPLY, icr_opt, mcfr_null_opt);
-
-            trx.clear();
-            trx.operations.push_back(create_op);
-            sign(trx, assetowner_private_key);
-            PUSH_TX(db, trx); // No exception should be thrown
-         }
-
-         generate_block();
-         set_expiration(db, trx);
-         trx.clear();
-
-         const asset_object &bitusd = get_asset("USDBIT");
-         core = core_id(db);
-
-         // The force MCFR should not be set
-         BOOST_CHECK(!bitusd.bitasset_data(db).options.extensions.value.margin_call_fee_ratio.valid());
 
 
          ///////
@@ -370,48 +318,17 @@ BOOST_FIXTURE_TEST_SUITE(margin_call_fee_tests, bitasset_database_fixture)
          ///////
          const uint16_t mcfr_3 = 30; // 3% MCFR (BSIP74)
          asset_update_bitasset_operation uop;
-         uop.issuer = assetowner_id;
-         uop.asset_to_update = bitusd.get_id();
-         uop.new_options = bitusd.bitasset_data(db).options;
-         uop.new_options.extensions.value.margin_call_fee_ratio = mcfr_3;
-
-         trx.clear();
-         trx.operations.push_back(uop);
-         db.current_fee_schedule().set_fee(trx.operations.back());
-         sign(trx, assetowner_private_key);
-         REQUIRE_EXCEPTION_WITH_TEXT(PUSH_TX(db, trx), "cannot be set before Hardfork BSIP74");
-
-         // The MCFR should not be set
-         BOOST_CHECK(!bitusd.bitasset_data(db).options.extensions.value.margin_call_fee_ratio.valid());
 
 
          ///////
          // 5. Asset owner fails to update the smart coin with a MCFR in a proposal
          ///////
-         {
-            proposal_create_operation cop;
-            cop.review_period_seconds = 86400;
-            uint32_t buffer_seconds = 60 * 60;
-            cop.expiration_time = db.head_block_time() + *cop.review_period_seconds + buffer_seconds;
-            cop.fee_paying_account = GRAPHENE_TEMP_ACCOUNT;
-            cop.proposed_ops.emplace_back(uop);
-
-            trx.clear();
-            trx.operations.push_back(cop);
-            // sign(trx, assetowner_private_key);
-            REQUIRE_EXCEPTION_WITH_TEXT(PUSH_TX(db, trx), "cannot be set before Hardfork BSIP74");
-
-            // The MCFR should not be set
-            BOOST_CHECK(!bitusd.bitasset_data(db).options.extensions.value.margin_call_fee_ratio.valid());
-         }
 
 
          ///////
          // 6. Activate HARDFORK_CORE_BSIP74_TIME
          ///////
-         BOOST_CHECK(db.head_block_time() < HARDFORK_CORE_BSIP74_TIME); // Confirm still before hardfork activation
-         BOOST_TEST_MESSAGE("Advancing past Hardfork BSIP74");
-         generate_blocks(HARDFORK_CORE_BSIP74_TIME);
+         generate_block();
          generate_block();
          set_expiration(db, trx);
          trx.clear();

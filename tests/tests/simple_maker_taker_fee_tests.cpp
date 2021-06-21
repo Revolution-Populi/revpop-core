@@ -90,7 +90,7 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
                                                                 market_fee_percent);
 
          //////
-         // Before HF, test inability to set taker fees
+         // Test inability to set taker fees
          //////
          asset_update_operation uop;
          uop.issuer = issuer_id;
@@ -102,73 +102,12 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          trx.operations.push_back(uop);
          db.current_fee_schedule().set_fee(trx.operations.back());
          sign(trx, issuer_private_key);
-         GRAPHENE_CHECK_THROW(PUSH_TX(db, trx), fc::exception);
-         // TODO: Check the specific exception?
+         PUSH_TX(db, trx);
 
          // Check the taker fee
          asset_object updated_asset = jillcoin.get_id()(db);
-         BOOST_CHECK(!updated_asset.options.extensions.value.taker_fee_percent.valid());
+         BOOST_CHECK(updated_asset.options.extensions.value.taker_fee_percent.valid());
 
-
-         //////
-         // Before HF, test inability to set taker fees with an asset update operation inside of a proposal
-         //////
-         {
-            trx.clear();
-            set_expiration(db, trx);
-
-            uint64_t alternate_taker_fee_percent = new_taker_fee_percent * 2;
-            uop.new_options.extensions.value.taker_fee_percent = alternate_taker_fee_percent;
-
-            proposal_create_operation cop;
-            cop.review_period_seconds = 86400;
-            uint32_t buffer_seconds = 60 * 60;
-            cop.expiration_time = db.head_block_time() + *cop.review_period_seconds + buffer_seconds;
-            cop.fee_paying_account = GRAPHENE_TEMP_ACCOUNT;
-            cop.proposed_ops.emplace_back(uop);
-
-            trx.operations.push_back(cop);
-            // sign(trx, issuer_private_key);
-            GRAPHENE_CHECK_THROW(PUSH_TX(db, trx), fc::exception);
-
-            // Check the taker fee is not changed because the proposal has not been approved
-            updated_asset = jillcoin.get_id()(db);
-            BOOST_CHECK(!updated_asset.options.extensions.value.taker_fee_percent.valid());
-         }
-
-
-         //////
-         // Before HF, test inability to set taker fees with an asset create operation inside of a proposal
-         //////
-         {
-            trx.clear();
-            set_expiration(db, trx);
-
-            uint64_t maker_fee_percent = 10 * GRAPHENE_1_PERCENT;
-            uint64_t taker_fee_percent = 2 * GRAPHENE_1_PERCENT;
-            asset_create_operation ac_op = create_user_issued_asset_operation("JCOIN2", jill, charge_market_fee, price,
-                                                                              2,
-                                                                              maker_fee_percent, taker_fee_percent);
-
-            proposal_create_operation cop;
-            cop.review_period_seconds = 86400;
-            uint32_t buffer_seconds = 60 * 60;
-            cop.expiration_time = db.head_block_time() + *cop.review_period_seconds + buffer_seconds;
-            cop.fee_paying_account = GRAPHENE_TEMP_ACCOUNT;
-            cop.proposed_ops.emplace_back(ac_op);
-
-            trx.operations.push_back(cop);
-            // sign(trx, issuer_private_key);
-
-            GRAPHENE_CHECK_THROW(PUSH_TX(db, trx), fc::exception); // The proposal should be rejected
-
-         }
-
-
-         //////
-         // Advance to activate hardfork
-         //////
-         generate_blocks(HARDFORK_BSIP_81_TIME);
          generate_block();
          trx.clear();
          set_expiration(db, trx);
@@ -180,7 +119,7 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          //////
          updated_asset = jillcoin.get_id()(db);
          uint16_t expected_taker_fee_percent = updated_asset.options.market_fee_percent;
-         BOOST_CHECK(!updated_asset.options.extensions.value.taker_fee_percent.valid());
+         BOOST_CHECK(updated_asset.options.extensions.value.taker_fee_percent.valid());
 
 
          //////
@@ -346,7 +285,6 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          generate_block();
          const asset_object &bitsmart = get_asset("SMARTBIT");
 
-         generate_blocks(HARDFORK_615_TIME); // get around Graphene issue #615 feed expiration bug
          generate_block();
 
 
@@ -363,21 +301,11 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          trx.operations.push_back(uop);
          db.current_fee_schedule().set_fee(trx.operations.back());
          sign(trx, smartissuer_private_key);
-         GRAPHENE_CHECK_THROW(PUSH_TX(db, trx), fc::exception); // An exception should be thrown indicating the reason
-         // TODO: Check the specific exception?
+         PUSH_TX(db, trx);
 
          // Check the taker fee
          asset_object updated_asset = bitsmart.get_id()(db);
-         BOOST_CHECK(!updated_asset.options.extensions.value.taker_fee_percent.valid());
-
-
-         //////
-         // Advance to activate hardfork
-         //////
-         generate_blocks(HARDFORK_BSIP_81_TIME);
-         generate_block();
-         trx.clear();
-         set_expiration(db, trx);
+         BOOST_CHECK(updated_asset.options.extensions.value.taker_fee_percent.valid());
 
 
          //////
@@ -386,7 +314,7 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          //////
          updated_asset = bitsmart.get_id()(db);
          uint16_t expected_taker_fee_percent = updated_asset.options.market_fee_percent;
-         BOOST_CHECK(!updated_asset.options.extensions.value.taker_fee_percent.valid());
+         BOOST_CHECK(updated_asset.options.extensions.value.taker_fee_percent.valid());
 
 
          //////
@@ -404,6 +332,7 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          //////
          // After HF, test that new values can be set
          //////
+         new_taker_fee_percent = uop.new_options.market_fee_percent / 4;
          uop.new_options.extensions.value.taker_fee_percent = new_taker_fee_percent;
          trx.clear();
          trx.operations.push_back(uop);
@@ -550,7 +479,6 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          //////
          // Advance to activate hardfork
          //////
-         generate_blocks(HARDFORK_BSIP_81_TIME);
          generate_block();
          trx.clear();
          set_expiration(db, trx);
@@ -665,7 +593,6 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          //////
          // Advance to activate hardfork
          //////
-         generate_blocks(HARDFORK_BSIP_81_TIME);
          generate_block();
          trx.clear();
          set_expiration(db, trx);
@@ -759,7 +686,6 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          //////
          // Advance to activate hardfork
          //////
-         generate_blocks(HARDFORK_BSIP_81_TIME);
          generate_block();
          trx.clear();
          set_expiration(db, trx);
@@ -855,7 +781,6 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          //////
          // Advance to activate hardfork
          //////
-         generate_blocks(HARDFORK_BSIP_81_TIME);
          generate_block();
          trx.clear();
          set_expiration(db, trx);
@@ -951,7 +876,6 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          //////
          // Advance to activate hardfork
          //////
-         generate_blocks(HARDFORK_BSIP_81_TIME);
          generate_block();
          trx.clear();
          set_expiration(db, trx);
@@ -1037,7 +961,6 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          //////
          // Advance to activate hardfork
          //////
-         generate_blocks(HARDFORK_BSIP_81_TIME);
          generate_block();
          trx.clear();
          set_expiration(db, trx);
@@ -1157,7 +1080,6 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          //////
          // Advance to activate hardfork
          //////
-         generate_blocks(HARDFORK_BSIP_81_TIME);
          generate_block();
          trx.clear();
          set_expiration(db, trx);

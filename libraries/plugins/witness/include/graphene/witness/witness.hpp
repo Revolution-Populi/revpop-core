@@ -118,6 +118,7 @@ private:
    fc::api< app::network_broadcast_api > _network_broadcast_api;
    std::shared_ptr< operation_visitor > o_v;
    std::vector< chain::account_id_type > _witness_accounts;
+   fc::flat_map< account_id_type, witness_id_type > _witness_account;
    fc::flat_map< account_id_type, uint64_t > _reveal_value;             // witness-> bid
    // block, witness, requires processing
    std::vector<std::tuple<uint64_t, account_id_type, bool>> _commit_schedule;

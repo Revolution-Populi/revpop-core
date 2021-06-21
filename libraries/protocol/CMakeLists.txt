@@ -33,7 +33,8 @@ list(APPEND SOURCES account.cpp
                     permission.cpp
                     content_vote.cpp
                     commit_reveal.cpp
-                    commit_reveal_v2.cpp)
+                    commit_reveal_v2.cpp
+                    commit_reveal_v3.cpp)
 
 
 list(APPEND CUSTOM_AUTHS_FILES

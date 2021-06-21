@@ -817,6 +817,9 @@ namespace graphene { namespace wallet { namespace detail {
 
    signed_transaction wallet_api_impl::send_commit( const string& account, uint64_t value, bool broadcast )
    { try {
+      if (HARDFORK_REVPOP_12_PASSED(fc::time_point_sec(fc::time_point::now())))
+         FC_THROW( "Please use send_commit2 instead" );
+
       auto acc_id = get_account(account).get_id();
       signed_transaction tx;
 
@@ -843,8 +846,59 @@ namespace graphene { namespace wallet { namespace detail {
       return sign_transaction(tx, broadcast);
    } FC_CAPTURE_AND_RETHROW( (account)(value)(broadcast) ) }
 
+   signed_transaction wallet_api_impl::send_commit2( const string& account, uint64_t value, const string& witness_key, bool broadcast )
+   { try {
+      if (!HARDFORK_REVPOP_12_PASSED(fc::time_point_sec(fc::time_point::now())))
+         FC_THROW( "Please use send_commit instead" );
+
+      auto acc_id = get_account(account).get_id();
+      signed_transaction tx;
+
+      fc::optional<fc::ecc::private_key> optional_private_key = wif_to_key(witness_key);
+      if (!optional_private_key)
+         FC_THROW("Invalid private key");
+      
+      private_key_type witness_prv_key = *optional_private_key;
+      public_key_type witness_pub_key = optional_private_key->get_public_key();
+
+      commit_create_v3_operation commit_op;
+
+      commit_op.account = acc_id;
+      commit_op.hash    = fc::sha512::hash( std::to_string(value) );
+      auto dynamic_props = get_dynamic_global_properties();
+      commit_op.maintenance_time = dynamic_props.next_maintenance_time.sec_since_epoch();
+      commit_op.witness_key = witness_pub_key;
+
+      tx.operations.push_back(commit_op);
+
+      tx.validate();
+      tx.set_reference_block(dynamic_props.head_block_id);
+      tx.set_expiration(dynamic_props.time + fc::seconds(30));
+      tx.clear_signatures();
+      tx.sign(witness_prv_key, _chain_id);
+
+      if( broadcast )
+      {
+         try
+         {
+            _remote_net_broadcast->broadcast_transaction( tx );
+         }
+         catch (const fc::exception& e)
+         {
+            elog("Caught exception while broadcasting tx ${id}:  ${e}",
+                 ("id", tx.id().str())("e", e.to_detail_string()) );
+            throw;
+         }
+      }
+
+      return tx;
+   } FC_CAPTURE_AND_RETHROW( (account)(value)(broadcast) ) }
+
    signed_transaction wallet_api_impl::send_reveal( const string& account, uint64_t value, bool broadcast )
    { try {
+      if (HARDFORK_REVPOP_12_PASSED(fc::time_point_sec(fc::time_point::now())))
+         FC_THROW( "Please use send_reveal2 instead" );
+
       auto acc_id = get_account(account).get_id();
       signed_transaction tx;
 
@@ -868,6 +922,54 @@ namespace graphene { namespace wallet { namespace detail {
 
       tx.validate();
       return sign_transaction(tx, broadcast);
+   } FC_CAPTURE_AND_RETHROW( (account)(value)(broadcast) ) }
+
+   signed_transaction wallet_api_impl::send_reveal2( const string& account, uint64_t value, const string& witness_key, bool broadcast )
+   { try {
+      if (!HARDFORK_REVPOP_12_PASSED(fc::time_point_sec(fc::time_point::now())))
+         FC_THROW( "Please use send_reveal instead" );
+
+      auto acc_id = get_account(account).get_id();
+      signed_transaction tx;
+
+      fc::optional<fc::ecc::private_key> optional_private_key = wif_to_key(witness_key);
+      if (!optional_private_key)
+         FC_THROW("Invalid private key");
+      
+      private_key_type witness_prv_key = *optional_private_key;
+      public_key_type witness_pub_key = optional_private_key->get_public_key();
+
+      reveal_create_v3_operation reveal_op;
+
+      reveal_op.account = acc_id;
+      reveal_op.value   = value;
+      auto dynamic_props = get_dynamic_global_properties();
+      reveal_op.maintenance_time = dynamic_props.next_maintenance_time.sec_since_epoch();
+      reveal_op.witness_key = witness_pub_key;
+
+      tx.operations.push_back(reveal_op);
+
+      tx.validate();
+      tx.set_reference_block(dynamic_props.head_block_id);
+      tx.set_expiration(dynamic_props.time + fc::seconds(30));
+      tx.clear_signatures();
+      tx.sign(witness_prv_key, _chain_id);
+
+      if( broadcast )
+      {
+         try
+         {
+            _remote_net_broadcast->broadcast_transaction( tx );
+         }
+         catch (const fc::exception& e)
+         {
+            elog("Caught exception while broadcasting tx ${id}:  ${e}",
+                 ("id", tx.id().str())("e", e.to_detail_string()) );
+            throw;
+         }
+      }
+
+      return tx;
    } FC_CAPTURE_AND_RETHROW( (account)(value)(broadcast) ) }
 
    commit_reveal_object wallet_api_impl::get_account_commit_reveal(const string &account) const

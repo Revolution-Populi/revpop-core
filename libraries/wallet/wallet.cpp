@@ -989,9 +989,19 @@ signed_transaction wallet_api::send_commit( const string& account, uint64_t valu
    return my->send_commit(account, value, broadcast);
 }
 
+signed_transaction wallet_api::send_commit2( const string& account, uint64_t value, const string& witness_key, bool broadcast )
+{
+   return my->send_commit2(account, value, witness_key, broadcast);
+}
+
 signed_transaction wallet_api::send_reveal( const string& account, uint64_t value, bool broadcast )
 {
    return my->send_reveal(account, value, broadcast);
+}
+
+signed_transaction wallet_api::send_reveal2( const string& account, uint64_t value, const string& witness_key, bool broadcast )
+{
+   return my->send_reveal2(account, value, witness_key, broadcast);
 }
 
 commit_reveal_object wallet_api::get_account_commit_reveal( const string& account ) const

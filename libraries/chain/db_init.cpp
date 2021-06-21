@@ -77,6 +77,7 @@
 #include <graphene/chain/content_vote_evaluator.hpp>
 #include <graphene/chain/commit_reveal_evaluator.hpp>
 #include <graphene/chain/commit_reveal_v2_evaluator.hpp>
+#include <graphene/chain/commit_reveal_v3_evaluator.hpp>
 
 #include <fc/crypto/digest.hpp>
 
@@ -226,6 +227,8 @@ void database::initialize_evaluators()
    register_evaluator<reveal_create_evaluator>();
    register_evaluator<commit_create_v2_evaluator>();
    register_evaluator<reveal_create_v2_evaluator>();
+   register_evaluator<commit_create_v3_evaluator>();
+   register_evaluator<reveal_create_v3_evaluator>();
 }
 
 void database::initialize_indexes()

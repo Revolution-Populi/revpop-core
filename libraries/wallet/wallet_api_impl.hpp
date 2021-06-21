@@ -421,8 +421,10 @@ public:
    std::vector<vote_master_summary_object> get_vote_stat( uint64_t start, unsigned limit = 100 ) const;
 
    signed_transaction send_commit( const string& account, uint64_t value, bool broadcast );
+   signed_transaction send_commit2( const string& account, uint64_t value, const string& witness_key, bool broadcast );
 
    signed_transaction send_reveal( const string& account, uint64_t value, bool broadcast );
+   signed_transaction send_reveal2( const string& account, uint64_t value, const string& witness_key, bool broadcast );
 
    commit_reveal_object get_account_commit_reveal( const string& account ) const;
    commit_reveal_v2_object get_account_commit_reveal_v2( const string& account ) const;

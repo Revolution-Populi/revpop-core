@@ -191,7 +191,11 @@ void application_impl::reset_websocket_server()
    if( !_options->count("rpc-endpoint") )
       return;
 
-   _websocket_server = std::make_shared<fc::http::websocket_server>();
+   string proxy_forward_header;
+   if( _options->count("proxy-forwarded-for-header") )
+      proxy_forward_header = _options->at("proxy-forwarded-for-header").as<string>();
+
+   _websocket_server = std::make_shared<fc::http::websocket_server>( proxy_forward_header );
    _websocket_server->on_connection( std::bind(&application_impl::new_connection, this, std::placeholders::_1) );
 
    ilog("Configured websocket rpc to listen on ${ip}", ("ip",_options->at("rpc-endpoint").as<string>()));
@@ -209,8 +213,13 @@ void application_impl::reset_websocket_tls_server()
       return;
    }
 
+   string proxy_forward_header;
+   if( _options->count("proxy-forwarded-for-header") )
+      proxy_forward_header = _options->at("proxy-forwarded-for-header").as<string>();
+
    string password = _options->count("server-pem-password") ? _options->at("server-pem-password").as<string>() : "";
-   _websocket_tls_server = std::make_shared<fc::http::websocket_tls_server>( _options->at("server-pem").as<string>(), password );
+   _websocket_tls_server = std::make_shared<fc::http::websocket_tls_server>(
+                                 _options->at("server-pem").as<string>(), password, proxy_forward_header );
    _websocket_tls_server->on_connection( std::bind(&application_impl::new_connection, this, std::placeholders::_1) );
 
    ilog("Configured websocket TLS rpc to listen on ${ip}", ("ip",_options->at("rpc-tls-endpoint").as<string>()));

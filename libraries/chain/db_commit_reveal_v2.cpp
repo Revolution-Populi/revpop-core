@@ -17,6 +17,7 @@
  */
 
 #include <graphene/chain/database.hpp>
+#include <graphene/chain/hardfork.hpp>
 
 namespace graphene { namespace chain {
 
@@ -55,6 +56,21 @@ uint64_t database::get_commit_reveal_seed_v2(const vector<account_id_type>& acco
 
    uint64_t seed = 0;
    uint32_t maintenance_time = get_dynamic_global_properties().next_maintenance_time.sec_since_epoch();
+   if (HARDFORK_REVPOP_13_PASSED(head_block_time()))
+   {
+   uint32_t prev_maintenance_time = maintenance_time - get_global_properties().parameters.maintenance_interval;
+   for (const auto& acc: accounts){
+      auto itr = by_op_idx.lower_bound(acc);
+      if( itr != by_op_idx.end() && itr->account == acc
+         && prev_maintenance_time <= itr->maintenance_time
+         && itr->maintenance_time <= maintenance_time )
+      {
+         seed += itr->value;
+      }
+   }
+   }
+   else
+   {
    for (const auto& acc: accounts){
       auto itr = by_op_idx.lower_bound(acc);
       if( itr != by_op_idx.end() && itr->account == acc
@@ -62,6 +78,7 @@ uint64_t database::get_commit_reveal_seed_v2(const vector<account_id_type>& acco
       {
          seed += itr->value;
       }
+   }
    }
    return seed;
 }
@@ -73,6 +90,22 @@ vector<account_id_type> database::filter_commit_reveal_participant_v2(const vect
 
    vector<account_id_type> result;
    uint32_t maintenance_time = get_dynamic_global_properties().next_maintenance_time.sec_since_epoch();
+   if (HARDFORK_REVPOP_13_PASSED(head_block_time()))
+   {
+   uint32_t prev_maintenance_time = maintenance_time - get_global_properties().parameters.maintenance_interval;
+   for (const auto& acc: accounts){
+      auto itr = by_op_idx.lower_bound(acc);
+      if( itr != by_op_idx.end() && itr->account == acc && itr->value != 0
+         && prev_maintenance_time <= itr->maintenance_time
+         && itr->maintenance_time <= maintenance_time )
+
+      {
+         result.push_back(itr->account);
+      }
+   }
+   }
+   else
+   {
    for (const auto& acc: accounts){
       auto itr = by_op_idx.lower_bound(acc);
       if( itr != by_op_idx.end() && itr->account == acc && itr->value != 0
@@ -81,6 +114,7 @@ vector<account_id_type> database::filter_commit_reveal_participant_v2(const vect
       {
          result.push_back(itr->account);
       }
+   }
    }
    return result;
 }

@@ -18,6 +18,7 @@
 
 #include <graphene/chain/commit_reveal_v3_evaluator.hpp>
 #include <graphene/chain/database.hpp>
+#include <graphene/chain/hardfork.hpp>
 #include <graphene/chain/exceptions.hpp>
 #include <graphene/chain/special_authority_object.hpp>
 #include <graphene/chain/witness_object.hpp>
@@ -34,7 +35,17 @@ void_result commit_create_v3_evaluator::do_evaluate( const commit_create_v3_oper
    const auto& gpo = d.get_global_properties();
    const auto& dgpo = d.get_dynamic_global_properties();
 
+   if (HARDFORK_REVPOP_13_PASSED(d.head_block_time()))
+   {
+   uint32_t maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
+   uint32_t prev_maintenance_time = maintenance_time - gpo.parameters.maintenance_interval;
+   FC_ASSERT(prev_maintenance_time <= op.maintenance_time
+            && op.maintenance_time <= maintenance_time, "Incorrect maintenance time.");
+   }
+   else
+   {
    FC_ASSERT(op.maintenance_time == dgpo.next_maintenance_time.sec_since_epoch(), "Incorrect maintenance time.");
+   }
 
    const auto& cr_idx = d.get_index_type<commit_reveal_v2_index>();
    const auto& by_cr_acc = cr_idx.indices().get<by_account>();
@@ -89,9 +100,17 @@ void_result reveal_create_v3_evaluator::do_evaluate( const reveal_create_v3_oper
    const auto& gpo = d.get_global_properties();
    const auto& dgpo = d.get_dynamic_global_properties();
 
-   const auto head_block_time = d.head_block_time();
-   FC_ASSERT(head_block_time > dgpo.next_maintenance_time - gpo.parameters.maintenance_interval / 2 &&
-                   head_block_time < dgpo.next_maintenance_time, "Reveal interval has finished.");
+   if (HARDFORK_REVPOP_13_PASSED(d.head_block_time()))
+   {
+   uint32_t maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
+   uint32_t prev_maintenance_time = maintenance_time - gpo.parameters.maintenance_interval;
+   FC_ASSERT(prev_maintenance_time <= op.maintenance_time
+            && op.maintenance_time <= maintenance_time, "Incorrect maintenance time.");
+   }
+   else
+   {
+   FC_ASSERT(op.maintenance_time == dgpo.next_maintenance_time.sec_since_epoch(), "Incorrect maintenance time.");
+   }
 
    const auto& cr_idx = d.get_index_type<commit_reveal_v2_index>();
    const auto& by_cr_acc = cr_idx.indices().get<by_account>();
@@ -100,7 +119,33 @@ void_result reveal_create_v3_evaluator::do_evaluate( const reveal_create_v3_oper
    FC_ASSERT(cr_itr != by_cr_acc.end(), "Commit-reveal object doesn't exist.");
    FC_ASSERT(cr_itr->account == op.account, "Commit-reveal object doesn't exist.");
    FC_ASSERT(cr_itr->value == 0, "The reveal operation for the current maintenance period has already been received.");
-   string hash = fc::sha512::hash( std::to_string(op.value) );
+   string hash;
+   if (HARDFORK_REVPOP_13_PASSED(d.head_block_time()))
+   {
+      const auto& wit_idx = d.get_index_type<witness_index>();
+      const auto& wit_op_idx = wit_idx.indices().get<by_id>();
+      vector<account_id_type> wits_acc;
+      for( const witness_id_type& wit_id : gpo.active_witnesses )
+      {
+         const auto& wit_itr = wit_op_idx.lower_bound(wit_id);
+         if (wit_itr != wit_op_idx.end()) {
+            wits_acc.push_back(wit_itr->witness_account);
+         }
+      }
+      int64_t prev_seed = d.get_commit_reveal_seed_v2(wits_acc);
+
+      hash = fc::sha512::hash(
+         std::to_string(op.value) +
+         fc::sha256::hash(std::to_string(op.value)).str() +
+         fc::sha512::hash(std::to_string(op.maintenance_time)).str() +
+         std::to_string(prev_seed) +
+         op.witness_key.operator std::string()
+      );
+   }
+   else
+   {
+      hash = fc::sha512::hash( std::to_string(op.value) );
+   }
    FC_ASSERT(cr_itr->hash == hash, "Hash is broken.");
 
    const auto& idx = d.get_index_type<witness_index>().indices().get<by_account>();
@@ -109,7 +154,8 @@ void_result reveal_create_v3_evaluator::do_evaluate( const reveal_create_v3_oper
       ("acc", op.account) );
    FC_ASSERT( wit->signing_key == op.witness_key, "Incorrect witness key");
 
-   FC_ASSERT(op.maintenance_time == dgpo.next_maintenance_time.sec_since_epoch(), "Incorrect maintenance time.");
+   FC_ASSERT(d.head_block_time() >= dgpo.next_maintenance_time - gpo.parameters.maintenance_interval / 2,
+         "Reveal interval has finished.");
 
    return void_result();
 } FC_CAPTURE_AND_RETHROW( (op) ) }

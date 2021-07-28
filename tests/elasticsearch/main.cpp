@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(elasticsearch_account_history) {
          res = graphene::utilities::simpleQuery(es);
          j = fc::json::from_string(res);
          auto first_id = j["hits"]["hits"][size_t(0)]["_id"].as_string();
-         BOOST_CHECK_EQUAL(first_id, "2.9.1"); // this should be 0? are they inserted in the right order?
+         BOOST_CHECK_EQUAL(first_id, "2.9.0");
 
          generate_block();
          auto willie = create_account("willie");
@@ -218,7 +218,7 @@ BOOST_AUTO_TEST_CASE(elasticsearch_history_api) {
 
       graphene::utilities::ES es;
       es.curl = curl;
-      es.elasticsearch_url = "http://localhost:9200/";
+      es.elasticsearch_url = "http://127.0.0.1:9200/";
       es.index_prefix = "revpop-";
 
       auto delete_account_history = graphene::utilities::deleteAll(es);

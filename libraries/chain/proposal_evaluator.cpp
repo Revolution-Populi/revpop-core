@@ -130,6 +130,10 @@ struct proposal_operation_hardfork_visitor
          FC_ASSERT(!op.new_parameters.extensions.value.maker_fee_discount_percent.valid(),
                    "Unable to set maker_fee_discount_percent before hardfork BSIP 85");
       }
+      if (!HARDFORK_REVPOP_14_PASSED(block_time)) {
+         FC_ASSERT(!op.new_parameters.extensions.value.electoral_threshold.valid(),
+                   "Unable to set electoral_threshold before hardfork REVPOP 14");
+      }
       if (!HARDFORK_BSIP_86_PASSED(block_time)) {
          FC_ASSERT(!op.new_parameters.extensions.value.market_fee_network_percent.valid(),
                    "Unable to set market_fee_network_percent before hardfork BSIP 86");

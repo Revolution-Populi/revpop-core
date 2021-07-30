@@ -302,7 +302,8 @@ void database::update_active_witnesses()
          uint32_t j = i + _maintenance_prng.rand() % jmax;
          std::swap( wits[i], wits[j] );
       }
-      uint32_t from_top = (uint32_t)gpo.parameters.revpop_witnesses_active_max - electoral_threshold;
+      uint32_t from_top = std::min((uint32_t)
+            gpo.parameters.revpop_witnesses_active_max - electoral_threshold, threshold);
       std::copy(wits.begin(), wits.begin() + from_top, back_inserter(enabled_wits));
 
       // bottom half
@@ -312,7 +313,8 @@ void database::update_active_witnesses()
          uint32_t j = i + _maintenance_prng.rand() % jmax;
          std::swap( wits[i], wits[j] );
       }
-      std::copy(wits.begin() + threshold, wits.begin() + threshold + electoral_threshold, back_inserter(enabled_wits));
+      uint32_t from_bottom = std::min((uint32_t)wits.size() - threshold, (uint32_t)electoral_threshold);
+      std::copy(wits.begin() + threshold, wits.begin() + threshold + from_bottom, back_inserter(enabled_wits));
 
       // swap
       if( !enabled_wits.empty() )

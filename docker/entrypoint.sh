@@ -14,6 +14,7 @@ VERSION=`cat /etc/revpop/version`
 #   * $REVPOPD_P2P_ENDPOINT
 #   * $REVPOPD_WITNESS_ID
 #   * $REVPOPD_PRIVATE_KEY
+#   * $REVPOPD_SEED
 #   * $REVPOPD_TRACK_ACCOUNTS
 #   * $REVPOPD_PARTIAL_OPERATIONS
 #   * $REVPOPD_MAX_OPS_PER_ACCOUNT
@@ -51,6 +52,10 @@ fi
 
 if [[ ! -z "$REVPOPD_PRIVATE_KEY" ]]; then
     ARGS+=" --private-key=$REVPOPD_PRIVATE_KEY"
+fi
+
+if [[ ! -z "$REVPOPD_SEED" ]]; then
+    ARGS+=" --user-provided-seed=$REVPOPD_SEED"
 fi
 
 if [[ ! -z "$REVPOPD_TRACK_ACCOUNTS" ]]; then

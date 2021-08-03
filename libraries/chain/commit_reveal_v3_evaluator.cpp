@@ -40,7 +40,7 @@ void_result commit_create_v3_evaluator::do_evaluate( const commit_create_v3_oper
    uint32_t maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
    uint32_t prev_maintenance_time = maintenance_time - gpo.parameters.maintenance_interval;
    FC_ASSERT(prev_maintenance_time <= op.maintenance_time
-            && op.maintenance_time <= maintenance_time, "Incorrect maintenance time.");
+            && op.maintenance_time <  maintenance_time, "Incorrect maintenance time.");
    }
    else
    {
@@ -105,7 +105,7 @@ void_result reveal_create_v3_evaluator::do_evaluate( const reveal_create_v3_oper
    uint32_t maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
    uint32_t prev_maintenance_time = maintenance_time - gpo.parameters.maintenance_interval;
    FC_ASSERT(prev_maintenance_time <= op.maintenance_time
-            && op.maintenance_time <= maintenance_time, "Incorrect maintenance time.");
+            && op.maintenance_time <  maintenance_time, "Incorrect maintenance time.");
    }
    else
    {

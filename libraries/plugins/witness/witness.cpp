@@ -489,7 +489,7 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
       uint32_t prev_maintenance_time = maintenance_time - gpo.parameters.maintenance_interval;
       if (cr_itr != by_cr_acc.end() && cr_itr->account == acc_id
          && prev_maintenance_time <= cr_itr->maintenance_time
-         && cr_itr->maintenance_time <= maintenance_time)
+         && cr_itr->maintenance_time < maintenance_time)
       {
          ilog("[${b}: ${nme}(${acc})] Commit operation for the current maintenance period has already been made, value: ${v}",
               ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())("v", _reveal_value[acc_id]));

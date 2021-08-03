@@ -136,10 +136,16 @@ void_result reveal_create_v3_evaluator::do_evaluate( const reveal_create_v3_oper
 
       hash = fc::sha512::hash(
          std::to_string(op.value) +
-         fc::sha256::hash(std::to_string(op.value)).str() +
-         fc::sha512::hash(std::to_string(op.maintenance_time)).str() +
-         std::to_string(prev_seed) +
-         op.witness_key.operator std::string()
+         fc::sha256::hash(
+            std::to_string(op.value) +
+            fc::sha512::hash(
+               std::to_string(prev_seed) +
+               op.witness_key.operator std::string() +
+               fc::sha512::hash(
+                  std::to_string(op.maintenance_time)
+               ).str()
+            ).str()
+         ).str()
       );
    }
    else

@@ -522,10 +522,16 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
 
       commit_op.hash = fc::sha512::hash(
          std::to_string(_reveal_value[acc_id]) +
-         fc::sha256::hash(std::to_string(_reveal_value[acc_id])).str() +
-         fc::sha512::hash(std::to_string(commit_op.maintenance_time)).str() +
-         std::to_string(prev_seed) +
-         commit_op.witness_key.operator std::string()
+         fc::sha256::hash(
+            std::to_string(_reveal_value[acc_id]) +
+            fc::sha512::hash(
+               std::to_string(prev_seed) +
+               commit_op.witness_key.operator std::string() +
+               fc::sha512::hash(
+                  std::to_string(commit_op.maintenance_time)
+               ).str()
+            ).str()
+         ).str()
       );
       _reveal_hash[acc_id] = commit_op.hash;
       tx.operations.push_back(commit_op);

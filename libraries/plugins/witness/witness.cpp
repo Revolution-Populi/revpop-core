@@ -507,25 +507,12 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
       commit_op.account = acc_id;
       commit_op.maintenance_time = fc::time_point::now().sec_since_epoch();
       commit_op.witness_key = *_witness_key_cache[_witness_account[acc_id]];
-
-      const auto& wit_idx = db.get_index_type<witness_index>();
-      const auto& wit_op_idx = wit_idx.indices().get<by_id>();
-      vector<account_id_type> wits_acc;
-      for( const witness_id_type& wit_id : gpo.active_witnesses )
-      {
-         const auto& wit_itr = wit_op_idx.lower_bound(wit_id);
-         if (wit_itr != wit_op_idx.end()) {
-            wits_acc.push_back(wit_itr->witness_account);
-         }
-      }
-      int64_t prev_seed = db.get_commit_reveal_seed_v2(wits_acc);
-
       commit_op.hash = fc::sha512::hash(
          std::to_string(_reveal_value[acc_id]) +
          fc::sha256::hash(
             std::to_string(_reveal_value[acc_id]) +
             fc::sha512::hash(
-               std::to_string(prev_seed) +
+               std::to_string(db.get_maintenance_seed()) +
                commit_op.witness_key.operator std::string() +
                fc::sha512::hash(
                   std::to_string(commit_op.maintenance_time)

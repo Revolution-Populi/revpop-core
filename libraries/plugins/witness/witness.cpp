@@ -467,6 +467,7 @@ void witness_plugin::schedule_commit_reveal() {
 void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
    auto& db = database();
    const auto& dgpo = db.get_dynamic_global_properties();
+   const auto& gpo = db.get_global_properties();
    const auto& chain_props = db.get_chain_properties();
 
    // Prepare the block transaction
@@ -477,7 +478,55 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
    std::uniform_int_distribution<uint64_t> dis(1);
    _reveal_value[acc_id] = dis(gen);
 
-   if (HARDFORK_REVPOP_12_PASSED(db.head_block_time()))
+
+   if (HARDFORK_REVPOP_13_PASSED(db.head_block_time()))
+   {
+      // Search for the commit operation
+      const auto &cr_idx = db.get_index_type<commit_reveal_v2_index>();
+      const auto &by_cr_acc = cr_idx.indices().get<by_account>();
+      auto cr_itr = by_cr_acc.lower_bound(acc_id);
+
+      uint32_t maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
+      uint32_t prev_maintenance_time = maintenance_time - gpo.parameters.maintenance_interval;
+      if (cr_itr != by_cr_acc.end() && cr_itr->account == acc_id
+         && prev_maintenance_time <= cr_itr->maintenance_time
+         && cr_itr->maintenance_time < maintenance_time)
+      {
+         ilog("[${b}: ${nme}(${acc})] Commit operation for the current maintenance period has already been made, value: ${v}",
+              ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())("v", _reveal_value[acc_id]));
+         return;
+      }
+
+      if (!_witness_key_cache[_witness_account[acc_id]].valid()) {
+         ilog("[${b}: ${nme}(${acc})] Can't find a witness key for the commit operation, value: ${v}",
+              ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())("v", _reveal_value[acc_id]));
+         return;
+      }
+
+      // Create the commit operation
+      commit_create_v3_operation commit_op;
+      commit_op.account = acc_id;
+      commit_op.maintenance_time = fc::time_point::now().sec_since_epoch();
+      commit_op.witness_key = *_witness_key_cache[_witness_account[acc_id]];
+      commit_op.hash = fc::sha512::hash(
+         std::to_string(_reveal_value[acc_id]) +
+         fc::sha256::hash(
+            std::to_string(_reveal_value[acc_id]) +
+            fc::sha512::hash(
+               std::to_string(db.get_maintenance_seed()) +
+               commit_op.witness_key.operator std::string() +
+               fc::sha512::hash(
+                  std::to_string(commit_op.maintenance_time)
+               ).str()
+            ).str()
+         ).str()
+      );
+      _reveal_hash[acc_id] = commit_op.hash;
+      tx.operations.push_back(commit_op);
+      ilog("[${b}: ${nme}(${acc})] Commit operation was send, value: ${v}, hash: ${h} | ${wk}",
+           ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())("v", _reveal_value[acc_id])("h", commit_op.hash)("wk", commit_op.witness_key));
+   }
+   else if (HARDFORK_REVPOP_12_PASSED(db.head_block_time()))
    {
       // Search for the commit operation
       const auto &cr_idx = db.get_index_type<commit_reveal_v2_index>();
@@ -590,7 +639,49 @@ void witness_plugin::broadcast_reveal(const chain::account_id_type& acc_id) {
    // Prepare the block transaction
    protocol::signed_transaction tx;
 
-   if (HARDFORK_REVPOP_12_PASSED(db.head_block_time()))
+   if (HARDFORK_REVPOP_13_PASSED(db.head_block_time()))
+   {
+      // Search for the corresponding commit operation
+      const auto &cr_idx = db.get_index_type<commit_reveal_v2_index>();
+      const auto &by_cr_acc = cr_idx.indices().get<by_account>();
+      auto cr_itr = by_cr_acc.lower_bound(acc_id);
+
+      if (cr_itr == by_cr_acc.end() || cr_itr->account != acc_id || _reveal_value[acc_id] == 0)
+      {
+         ilog("[${b}: ${nme}(${acc})] Reveal operation can't find the corresponding commit operation, value: ${v}",
+              ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
+              ("v", _reveal_value[acc_id]));
+         return;
+      }
+
+      if (cr_itr->hash != _reveal_hash[acc_id] || cr_itr->value != 0)
+      {
+         ilog("[${b}: ${nme}(${acc})] Double reveal operations is prohibited, value: ${v}, hash: ${h}",
+              ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
+              ("v", _reveal_value[acc_id])("h", _reveal_hash[acc_id]));
+         return;
+      }
+
+      if (!_witness_key_cache[_witness_account[acc_id]].valid()) {
+         ilog("[${b}: ${nme}(${acc})] Can't find a witness key for the commit operation, value: ${v}",
+              ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
+              ("v", _reveal_value[acc_id]));
+         return;
+      }
+
+      // Create the reveal operation
+      reveal_create_v3_operation reveal_op;
+      reveal_op.account = acc_id;
+      reveal_op.value = _reveal_value[acc_id];
+      reveal_op.maintenance_time = fc::time_point::now().sec_since_epoch();
+      reveal_op.witness_key = *_witness_key_cache[_witness_account[acc_id]];
+      tx.operations.push_back(reveal_op);
+      ilog("[${b}: ${nme}(${acc})] Reveal operation was send, value: ${v}, hash: ${h}",
+            ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
+            ("v", _reveal_value[acc_id])("h", _reveal_hash[acc_id]));
+      _reveal_value[acc_id] = 0;
+   }
+   else if (HARDFORK_REVPOP_12_PASSED(db.head_block_time()))
    {
       // Search for the corresponding commit operation
       const auto &cr_idx = db.get_index_type<commit_reveal_v2_index>();

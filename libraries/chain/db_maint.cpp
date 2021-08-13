@@ -1505,4 +1505,14 @@ uint64_t database::maintenance_prng::rand()
    return k;
 }
 
+uint64_t database::maintenance_prng::get_seed() const
+{
+   return _seed;
+}
+
+uint64_t database::get_maintenance_seed() const
+{
+   return _maintenance_prng.get_seed();
+}
+
 } }

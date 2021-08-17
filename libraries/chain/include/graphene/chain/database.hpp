@@ -704,6 +704,7 @@ namespace graphene { namespace chain {
                maintenance_prng() : _seed(0), _counter(0) {}
 
                void seed(uint64_t seed);
+               uint64_t get_seed() const;
                uint64_t rand();
 
             private:
@@ -712,6 +713,8 @@ namespace graphene { namespace chain {
 
          };
          maintenance_prng _maintenance_prng;
+      public:
+         uint64_t get_maintenance_seed() const;
          ///@}
    };
 

@@ -37,6 +37,7 @@
 #include <fc/optional.hpp>
 #include <fc/crypto/aes.hpp>
 #include <fc/crypto/base64.hpp>
+#include <random>
 
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string.hpp>
@@ -107,6 +108,7 @@ private:
    fc::flat_map< chain::witness_id_type, fc::optional<chain::public_key_type> > _witness_key_cache;
 
    /// RevPop
+   std::mt19937 gen;
    void check_resources();
    bool process_master_operations( const chain::signed_block& b );
    void commit_reveal_operations();

@@ -40,7 +40,7 @@ void_result commit_create_v3_evaluator::do_evaluate( const commit_create_v3_oper
    uint32_t maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
    uint32_t prev_maintenance_time = maintenance_time - gpo.parameters.maintenance_interval;
    FC_ASSERT(prev_maintenance_time <= op.maintenance_time
-            && op.maintenance_time <= maintenance_time, "Incorrect maintenance time.");
+            && op.maintenance_time <  maintenance_time, "Incorrect maintenance time.");
    }
    else
    {
@@ -105,7 +105,7 @@ void_result reveal_create_v3_evaluator::do_evaluate( const reveal_create_v3_oper
    uint32_t maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
    uint32_t prev_maintenance_time = maintenance_time - gpo.parameters.maintenance_interval;
    FC_ASSERT(prev_maintenance_time <= op.maintenance_time
-            && op.maintenance_time <= maintenance_time, "Incorrect maintenance time.");
+            && op.maintenance_time <  maintenance_time, "Incorrect maintenance time.");
    }
    else
    {
@@ -122,24 +122,18 @@ void_result reveal_create_v3_evaluator::do_evaluate( const reveal_create_v3_oper
    string hash;
    if (HARDFORK_REVPOP_13_PASSED(d.head_block_time()))
    {
-      const auto& wit_idx = d.get_index_type<witness_index>();
-      const auto& wit_op_idx = wit_idx.indices().get<by_id>();
-      vector<account_id_type> wits_acc;
-      for( const witness_id_type& wit_id : gpo.active_witnesses )
-      {
-         const auto& wit_itr = wit_op_idx.lower_bound(wit_id);
-         if (wit_itr != wit_op_idx.end()) {
-            wits_acc.push_back(wit_itr->witness_account);
-         }
-      }
-      int64_t prev_seed = d.get_commit_reveal_seed_v2(wits_acc);
-
       hash = fc::sha512::hash(
          std::to_string(op.value) +
-         fc::sha256::hash(std::to_string(op.value)).str() +
-         fc::sha512::hash(std::to_string(op.maintenance_time)).str() +
-         std::to_string(prev_seed) +
-         op.witness_key.operator std::string()
+         fc::sha256::hash(
+            std::to_string(op.value) +
+            fc::sha512::hash(
+               std::to_string(d.get_maintenance_seed()) +
+               op.witness_key.operator std::string() +
+               fc::sha512::hash(
+                  std::to_string(op.maintenance_time)
+               ).str()
+            ).str()
+         ).str()
       );
    }
    else

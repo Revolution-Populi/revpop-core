@@ -63,7 +63,7 @@ uint64_t database::get_commit_reveal_seed_v2(const vector<account_id_type>& acco
       auto itr = by_op_idx.lower_bound(acc);
       if( itr != by_op_idx.end() && itr->account == acc
          && prev_maintenance_time <= itr->maintenance_time
-         && itr->maintenance_time <= maintenance_time )
+         && itr->maintenance_time <  maintenance_time )
       {
          seed += itr->value;
       }
@@ -97,7 +97,7 @@ vector<account_id_type> database::filter_commit_reveal_participant_v2(const vect
       auto itr = by_op_idx.lower_bound(acc);
       if( itr != by_op_idx.end() && itr->account == acc && itr->value != 0
          && prev_maintenance_time <= itr->maintenance_time
-         && itr->maintenance_time <= maintenance_time )
+         && itr->maintenance_time <  maintenance_time )
 
       {
          result.push_back(itr->account);

@@ -39,7 +39,6 @@
 
 #include <iostream>
 #include <cmath>
-#include <random>
 #include <chrono>
 
 using namespace graphene::chain;
@@ -89,6 +88,8 @@ void witness_plugin::plugin_set_program_options(
           "Path to a file containing tuples of [PublicKey, WIF private key]."
           " The file has to contain exactly one tuple (i.e. private - public key pair) per line."
           " This option may be specified multiple times, thus multiple files can be provided.")
+         ("user-provided-seed", bpo::value<uint64_t>(),
+               "A random number that will be used by a pseudo-random number generator as a source of entropy")
          ;
    config_file_options.add(command_line_options);
 }
@@ -171,6 +172,18 @@ void witness_plugin::plugin_initialize(const boost::program_options::variables_m
            wlog("witness plugin: Warning - Low required participation of ${rp}% found", ("rp", required_participation));
        else if(required_participation > 90)
            wlog("witness plugin: Warning - High required participation of ${rp}% found", ("rp", required_participation));
+   }
+   if(options.count("user-provided-seed"))
+   {
+      uint64_t user_provided_seed = options["user-provided-seed"].as<uint64_t>();
+      uint64_t seed = static_cast<uint64_t>(
+         std::chrono::high_resolution_clock::now().time_since_epoch().count()) ^ user_provided_seed;
+      gen.seed(seed);
+   }
+   else
+   {
+      std::random_device rd;
+      gen.seed(rd());
    }
 
    ilog("witness plugin:  plugin_initialize() end");
@@ -410,13 +423,6 @@ void witness_plugin::schedule_commit_reveal() {
    // numer of blocks between 2 maintenances
    int32_t blocks = static_cast<int32_t>(gpo.parameters.maintenance_interval / gpo.parameters.block_interval);
 
-   // Random init
-   std::random_device rd;
-   std::mt19937 gen{rd()};
-   uint64_t seed = static_cast<uint64_t>(
-      std::chrono::high_resolution_clock::now().time_since_epoch().count());
-   gen.seed(seed);
-
    // Use uniform distribution for the commit operations.
    // For:
    // {
@@ -467,12 +473,7 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
    // Prepare the block transaction
    protocol::signed_transaction tx;
 
-   // Generate a bet
-   std::random_device rd;
-   std::mt19937 gen(rd());
-   uint64_t seed = static_cast<uint64_t>(
-      std::chrono::high_resolution_clock::now().time_since_epoch().count()) + acc_id.instance.value;
-   gen.seed(seed);
+   // Generate the bet,
    // 0 is not possible secret value
    std::uniform_int_distribution<uint64_t> dis(1);
    _reveal_value[acc_id] = dis(gen);
@@ -489,7 +490,7 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
       uint32_t prev_maintenance_time = maintenance_time - gpo.parameters.maintenance_interval;
       if (cr_itr != by_cr_acc.end() && cr_itr->account == acc_id
          && prev_maintenance_time <= cr_itr->maintenance_time
-         && cr_itr->maintenance_time <= maintenance_time)
+         && cr_itr->maintenance_time < maintenance_time)
       {
          ilog("[${b}: ${nme}(${acc})] Commit operation for the current maintenance period has already been made, value: ${v}",
               ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())("v", _reveal_value[acc_id]));
@@ -507,25 +508,18 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
       commit_op.account = acc_id;
       commit_op.maintenance_time = fc::time_point::now().sec_since_epoch();
       commit_op.witness_key = *_witness_key_cache[_witness_account[acc_id]];
-
-      const auto& wit_idx = db.get_index_type<witness_index>();
-      const auto& wit_op_idx = wit_idx.indices().get<by_id>();
-      vector<account_id_type> wits_acc;
-      for( const witness_id_type& wit_id : gpo.active_witnesses )
-      {
-         const auto& wit_itr = wit_op_idx.lower_bound(wit_id);
-         if (wit_itr != wit_op_idx.end()) {
-            wits_acc.push_back(wit_itr->witness_account);
-         }
-      }
-      int64_t prev_seed = db.get_commit_reveal_seed_v2(wits_acc);
-
       commit_op.hash = fc::sha512::hash(
          std::to_string(_reveal_value[acc_id]) +
-         fc::sha256::hash(std::to_string(_reveal_value[acc_id])).str() +
-         fc::sha512::hash(std::to_string(commit_op.maintenance_time)).str() +
-         std::to_string(prev_seed) +
-         commit_op.witness_key.operator std::string()
+         fc::sha256::hash(
+            std::to_string(_reveal_value[acc_id]) +
+            fc::sha512::hash(
+               std::to_string(db.get_maintenance_seed()) +
+               commit_op.witness_key.operator std::string() +
+               fc::sha512::hash(
+                  std::to_string(commit_op.maintenance_time)
+               ).str()
+            ).str()
+         ).str()
       );
       _reveal_hash[acc_id] = commit_op.hash;
       tx.operations.push_back(commit_op);

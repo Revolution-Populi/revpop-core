@@ -114,6 +114,11 @@ namespace graphene { namespace protocol {
          FC_ASSERT( *extensions.value.maker_fee_discount_percent <= GRAPHENE_100_PERCENT,
                     "The maker_fee_discount_percent parameter can not exceed 100%" );
       }
+      if( extensions.value.electoral_threshold.valid() )
+      {
+         FC_ASSERT( *extensions.value.electoral_threshold <= revpop_witnesses_active_max,
+                    "The electoral_threshold parameter can not be more than " + revpop_witnesses_active_max );
+      }
    }
 
    uint16_t chain_parameters::get_market_fee_network_percent() const
@@ -126,6 +131,11 @@ namespace graphene { namespace protocol {
    {
       return extensions.value.maker_fee_discount_percent.valid() ?
                 *extensions.value.maker_fee_discount_percent : 0;
+   }
+   uint16_t chain_parameters::get_electoral_threshold() const
+   {
+      return extensions.value.electoral_threshold.valid() ?
+                *extensions.value.electoral_threshold : 0;
    }
 
 }}

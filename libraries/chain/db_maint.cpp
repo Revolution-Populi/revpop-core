@@ -281,6 +281,49 @@ void database::update_active_witnesses()
       }
    }
 
+   if (HARDFORK_REVPOP_14_PASSED(head_block_time()))
+   {
+      decltype(wits) enabled_wits;
+      enabled_wits.reserve( gpo.parameters.revpop_witnesses_active_max ); //21
+
+      const uint16_t electoral_threshold = get_global_properties().parameters.get_electoral_threshold();
+      uint32_t threshold = std::min((uint32_t)wits.size(), (uint32_t)gpo.parameters.revpop_witnesses_active_max);
+      
+      // Sort all
+      std::sort(wits.begin(), wits.end(),
+            [&](const witness_object& a, const witness_object& b){
+               return _vote_tally_buffer[a.vote_id] > _vote_tally_buffer[b.vote_id];
+            });
+
+      // top half
+      for( uint32_t i = 0; i < threshold; ++i )
+      {
+         uint32_t jmax = threshold - i;
+         uint32_t j = i + _maintenance_prng.rand() % jmax;
+         std::swap( wits[i], wits[j] );
+      }
+      uint32_t from_top = std::min((uint32_t)
+            gpo.parameters.revpop_witnesses_active_max - electoral_threshold, threshold);
+      std::copy(wits.begin(), wits.begin() + from_top, back_inserter(enabled_wits));
+
+      // bottom half
+      for( uint32_t i = threshold; i < wits.size(); ++i )
+      {
+         uint32_t jmax = wits.size() - i;
+         uint32_t j = i + _maintenance_prng.rand() % jmax;
+         std::swap( wits[i], wits[j] );
+      }
+      uint32_t from_bottom = std::min((uint32_t)wits.size() - threshold, (uint32_t)electoral_threshold);
+      std::copy(wits.begin() + threshold, wits.begin() + threshold + from_bottom, back_inserter(enabled_wits));
+
+      // swap
+      if( !enabled_wits.empty() )
+      {
+         wits.swap(enabled_wits);
+      }
+   }
+   else
+   {
    // RevPop: shuffle witnesses top list
    for( uint32_t i = 0; i < wits.size(); ++i )
    {
@@ -293,6 +336,7 @@ void database::update_active_witnesses()
    if( wits.size() > gpo.parameters.revpop_witnesses_active_max)
    {
       wits.erase( wits.begin() + gpo.parameters.revpop_witnesses_active_max, wits.end() );
+   }
    }
    std::sort(wits.begin(), wits.end(),
              [&](const witness_object& a, const witness_object& b){
@@ -1503,6 +1547,16 @@ uint64_t database::maintenance_prng::rand()
    _counter++;
 
    return k;
+}
+
+uint64_t database::maintenance_prng::get_seed() const
+{
+   return _seed;
+}
+
+uint64_t database::get_maintenance_seed() const
+{
+   return _maintenance_prng.get_seed();
 }
 
 } }

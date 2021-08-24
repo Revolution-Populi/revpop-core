@@ -283,11 +283,15 @@ void database::update_active_witnesses()
 
    if (HARDFORK_REVPOP_14_PASSED(head_block_time()))
    {
-      decltype(wits) enabled_wits;
-      enabled_wits.reserve( gpo.parameters.revpop_witnesses_active_max ); //21
+      const uint16_t electoral_threshold = gpo.parameters.get_electoral_threshold();
+      uint32_t wits_size = std::min(                                   //21 or less
+                           // as much as we want
+                           (uint32_t)gpo.parameters.revpop_witnesses_active_max,
+                           // as much as we can
+                           (uint32_t)wits.size());
 
-      const uint16_t electoral_threshold = get_global_properties().parameters.get_electoral_threshold();
-      uint32_t threshold = std::min((uint32_t)wits.size(), (uint32_t)gpo.parameters.revpop_witnesses_active_max);
+      decltype(wits) enabled_wits;
+      enabled_wits.reserve( wits_size );
       
       // Sort all
       std::sort(wits.begin(), wits.end(),
@@ -295,31 +299,42 @@ void database::update_active_witnesses()
                return _vote_tally_buffer[a.vote_id] > _vote_tally_buffer[b.vote_id];
             });
 
-      // top half
-      for( uint32_t i = 0; i < threshold; ++i )
+      // the first round
+      for( uint32_t i = 0; i < wits_size; ++i )
       {
-         uint32_t jmax = threshold - i;
+         uint32_t jmax = wits_size - i;
          uint32_t j = i + _maintenance_prng.rand() % jmax;
          std::swap( wits[i], wits[j] );
       }
-      uint32_t from_top = std::min((uint32_t)
-            gpo.parameters.revpop_witnesses_active_max - electoral_threshold, threshold);
-      std::copy(wits.begin(), wits.begin() + from_top, back_inserter(enabled_wits));
+      uint32_t from_r1 = std::min(
+                           // as much as we want
+                           (uint32_t)gpo.parameters.revpop_witnesses_active_max - electoral_threshold,
+                           // as much as we can
+                           wits_size);
+      std::copy(wits.begin(), wits.begin() + from_r1, back_inserter(enabled_wits));
 
-      // bottom half
-      for( uint32_t i = threshold; i < wits.size(); ++i )
+      // the second round
+      for( uint32_t i = from_r1; i < wits.size(); ++i )
       {
          uint32_t jmax = wits.size() - i;
          uint32_t j = i + _maintenance_prng.rand() % jmax;
          std::swap( wits[i], wits[j] );
       }
-      uint32_t from_bottom = std::min((uint32_t)wits.size() - threshold, (uint32_t)electoral_threshold);
-      std::copy(wits.begin() + threshold, wits.begin() + threshold + from_bottom, back_inserter(enabled_wits));
+      uint32_t from_r2 = std::min(
+                           // as much as we want
+                           (uint32_t)electoral_threshold,
+                           // as much as we can
+                           wits_size - from_r1);
+      std::copy(wits.begin() + from_r1, wits.begin() + from_r1 + from_r2, back_inserter(enabled_wits));
 
       // swap
       if( !enabled_wits.empty() )
       {
          wits.swap(enabled_wits);
+      }
+      else
+      {
+         wlog("The rdPoS algorithm missed, we use dPoS instead");
       }
    }
    else

@@ -130,7 +130,7 @@ void_result reveal_create_v3_evaluator::do_evaluate( const reveal_create_v3_oper
                std::to_string(d.get_maintenance_seed()) +
                op.witness_key.operator std::string() +
                fc::sha512::hash(
-                  std::to_string(op.maintenance_time)
+                  std::to_string(cr_itr->maintenance_time)
                ).str()
             ).str()
          ).str()

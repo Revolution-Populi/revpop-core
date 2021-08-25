@@ -116,6 +116,13 @@ void_result reveal_create_v3_evaluator::do_evaluate( const reveal_create_v3_oper
    const auto& by_cr_acc = cr_idx.indices().get<by_account>();
    auto cr_itr = by_cr_acc.lower_bound(op.account);
 
+   if (HARDFORK_REVPOP_13_PASSED(d.head_block_time()))
+   {
+   // This fix is specific to the Testnet history and probably won't be needed for Mainnet.
+   if (cr_itr->maintenance_time == dgpo.next_maintenance_time.sec_since_epoch() - gpo.parameters.maintenance_interval)
+      ++cr_itr;
+   }
+
    FC_ASSERT(cr_itr != by_cr_acc.end(), "Commit-reveal object doesn't exist.");
    FC_ASSERT(cr_itr->account == op.account, "Commit-reveal object doesn't exist.");
    FC_ASSERT(cr_itr->value == 0, "The reveal operation for the current maintenance period has already been received.");

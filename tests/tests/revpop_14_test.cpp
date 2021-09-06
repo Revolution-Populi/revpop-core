@@ -78,7 +78,12 @@ BOOST_AUTO_TEST_CASE( hardfork_time_test )
 
       trx.operations.clear();
       cop.proposed_ops.clear();
-      cmuop.new_parameters.extensions.value.electoral_threshold = 3; // 3 from 21
+
+      const chain_parameters& current_params = db.get_global_properties().parameters;
+      chain_parameters new_params = current_params;
+      new_params.extensions.value.electoral_threshold = 3; // 3 from 21
+      cmuop.new_parameters = new_params;
+
       cop.proposed_ops.emplace_back(cmuop);
       trx.operations.push_back(cop);
 

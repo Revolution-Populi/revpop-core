@@ -51,7 +51,8 @@
 
 using namespace graphene::chain::test;
 
-uint32_t GRAPHENE_TESTING_GENESIS_TIMESTAMP = 1431700000;
+extern uint32_t    GRAPHENE_TESTING_GENESIS_TIMESTAMP;
+extern std::string GRAPHENE_TESTING_ES_URL;
 
 namespace graphene { namespace chain {
 
@@ -239,7 +240,7 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
       auto esplugin = app.register_plugin<graphene::elasticsearch::elasticsearch_plugin>();
       esplugin->plugin_set_app(&app);
 
-      options.insert(std::make_pair("elasticsearch-node-url", boost::program_options::variable_value(string("http://localhost:9200/"), false)));
+      options.insert(std::make_pair("elasticsearch-node-url", boost::program_options::variable_value(GRAPHENE_TESTING_ES_URL, false)));
       options.insert(std::make_pair("elasticsearch-bulk-replay", boost::program_options::variable_value(uint32_t(2), false)));
       options.insert(std::make_pair("elasticsearch-bulk-sync", boost::program_options::variable_value(uint32_t(2), false)));
       options.insert(std::make_pair("elasticsearch-start-es-after-block", boost::program_options::variable_value(uint32_t(0), false)));
@@ -269,7 +270,7 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
       auto esobjects_plugin = app.register_plugin<graphene::es_objects::es_objects_plugin>();
       esobjects_plugin->plugin_set_app(&app);
 
-      options.insert(std::make_pair("es-objects-elasticsearch-url", boost::program_options::variable_value(string("http://localhost:9200/"), false)));
+      options.insert(std::make_pair("es-objects-elasticsearch-url", boost::program_options::variable_value(GRAPHENE_TESTING_ES_URL, false)));
       options.insert(std::make_pair("es-objects-bulk-replay", boost::program_options::variable_value(uint32_t(2), false)));
       options.insert(std::make_pair("es-objects-bulk-sync", boost::program_options::variable_value(uint32_t(2), false)));
       options.insert(std::make_pair("es-objects-proposals", boost::program_options::variable_value(true, false)));

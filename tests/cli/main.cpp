@@ -60,12 +60,15 @@
 #include <boost/filesystem/path.hpp>
 
 #include "../common/init_unit_test_suite.hpp"
+#include "../common/genesis_file_util.hpp"
+#include "../common/program_options_util.hpp"
+#include "../common/utils.hpp"
 
+#ifdef _WIN32
 /*****
  * Global Initialization for Windows
  * ( sets up Winsock stuf )
  */
-#ifdef _WIN32
 int sockInit(void)
 {
    WSADATA wsa_data;
@@ -81,38 +84,10 @@ int sockQuit(void)
  * Helper Methods
  *********************/
 
-#include "../common/genesis_file_util.hpp"
-
 using std::exception;
 using std::cerr;
 
 #define INVOKE(test) ((struct test*)this)->test_method();
-
-//////
-/// @brief attempt to find an available port on localhost
-/// @returns an available port number, or -1 on error
-/////
-int get_available_port()
-{
-   struct sockaddr_in sin;
-   int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-   if (socket_fd == -1)
-      return -1;
-   sin.sin_family = AF_INET;
-   sin.sin_port = 0;
-   sin.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-   if (::bind(socket_fd, (struct sockaddr*)&sin, sizeof(struct sockaddr_in)) == -1)
-      return -1;
-   socklen_t len = sizeof(sin);
-   if (getsockname(socket_fd, (struct sockaddr *)&sin, &len) == -1)
-      return -1;
-#ifdef _WIN32
-   closesocket(socket_fd);
-#else
-   close(socket_fd);
-#endif
-   return ntohs(sin.sin_port);
-}
 
 ///////////
 /// @brief Start the application
@@ -121,32 +96,32 @@ int get_available_port()
 /// @returns the application object
 //////////
 std::shared_ptr<graphene::app::application> start_application(fc::temp_directory& app_dir, int& server_port_number) {
-   std::shared_ptr<graphene::app::application> app1(new graphene::app::application{});
+   auto app1 = std::make_shared<graphene::app::application>();
 
    app1->register_plugin<graphene::account_history::account_history_plugin>(true);
    app1->register_plugin< graphene::api_helper_indexes::api_helper_indexes>(true);
    app1->register_plugin<graphene::custom_operations::custom_operations_plugin>(true);
 
-   app1->startup_plugins();
-   boost::program_options::variables_map cfg;
-#ifdef _WIN32
-   sockInit();
-#endif
-   server_port_number = get_available_port();
-   cfg.emplace(
-      "rpc-endpoint",
-      boost::program_options::variable_value(string("127.0.0.1:" + std::to_string(server_port_number)), false)
-   );
-   cfg.emplace("genesis-json", boost::program_options::variable_value(create_genesis_file(app_dir), false));
-   cfg.emplace("seed-nodes", boost::program_options::variable_value(string("[]"), false));
-   cfg.emplace("custom-operations-start-block", boost::program_options::variable_value(uint32_t(1), false));
+   auto sharable_cfg = std::make_shared<boost::program_options::variables_map>();
+   auto& cfg = *sharable_cfg;
+   server_port_number = fc::network::get_available_port();
+   auto p2p_port = server_port_number;
+   for( size_t i = 0; i < 10 && p2p_port == server_port_number; ++i )
+   {
+      p2p_port = fc::network::get_available_port();
+   }
+   BOOST_REQUIRE( p2p_port != server_port_number );
+   fc::set_option( cfg, "rpc-endpoint", string("127.0.0.1:") + std::to_string(server_port_number) );
+   fc::set_option( cfg, "p2p-endpoint", string("0.0.0.0:") + std::to_string(p2p_port) );
+   fc::set_option( cfg, "genesis-json", create_genesis_file(app_dir) );
+   fc::set_option( cfg, "seed-nodes", string("[]") );
+   fc::set_option( cfg, "custom-operations-start-block", uint32_t(1) );
    app1->initialize(app_dir.path(), cfg);
 
    app1->initialize_plugins(cfg);
    app1->startup_plugins();
 
    app1->startup();
-   fc::usleep(fc::milliseconds(500));
 
    return app1;
 }
@@ -157,7 +132,7 @@ std::shared_ptr<graphene::app::application> start_application(fc::temp_directory
 /// @param returned_block the signed block
 /// @returns true on success
 ///////////
-bool generate_block(std::shared_ptr<graphene::app::application> app, graphene::chain::signed_block& returned_block) 
+bool generate_block(std::shared_ptr<graphene::app::application> app, graphene::chain::signed_block& returned_block)
 {
    try {
       fc::ecc::private_key committee_key = fc::ecc::private_key::regenerate(fc::sha256::hash(string("nathan")));
@@ -295,16 +270,16 @@ public:
 
 struct cli_fixture
 {
-   class dummy
-   {
-   public:
-      ~dummy()
-      {
-         // wait for everything to finish up
-         fc::usleep(fc::milliseconds(500));
+#ifdef _WIN32
+   struct socket_maintainer {
+      socket_maintainer() {
+         sockInit();
       }
-   };
-   dummy dmy;
+      ~socket_maintainer() {
+         sockQuit();
+      }
+   } sock_maintainer;
+#endif
    int server_port_number;
    fc::temp_directory app_dir;
    std::shared_ptr<graphene::app::application> app1;
@@ -342,10 +317,6 @@ struct cli_fixture
    ~cli_fixture()
    {
       BOOST_TEST_MESSAGE("Cleanup cli_wallet::boost_fixture_test_case");
-      app1->shutdown();
-#ifdef _WIN32
-      sockQuit();
-#endif
    }
 };
 
@@ -369,6 +340,30 @@ BOOST_FIXTURE_TEST_CASE( cli_quit, cli_fixture )
 {
    BOOST_TEST_MESSAGE("Testing wallet connection and quit command.");
    BOOST_CHECK_THROW( con.wallet_api_ptr->quit(), fc::canceled_exception );
+}
+
+BOOST_FIXTURE_TEST_CASE( cli_help_gethelp, cli_fixture )
+{
+   BOOST_TEST_MESSAGE("Testing help and gethelp commands.");
+   auto formatters = con.wallet_api_ptr->get_result_formatters();
+
+   string result = con.wallet_api_ptr->help();
+   BOOST_CHECK( result.find("gethelp") != string::npos );
+   if( formatters.find("help") != formatters.end() )
+   {
+      BOOST_TEST_MESSAGE("Testing formatter of help");
+      string output = formatters["help"](fc::variant(result), fc::variants());
+      BOOST_CHECK( output.find("gethelp") != string::npos );
+   }
+
+   result = con.wallet_api_ptr->gethelp( "transfer" );
+   BOOST_CHECK( result.find("usage") != string::npos );
+   if( formatters.find("gethelp") != formatters.end() )
+   {
+      BOOST_TEST_MESSAGE("Testing formatter of gethelp");
+      string output = formatters["gethelp"](fc::variant(result), fc::variants());
+      BOOST_CHECK( output.find("usage") != string::npos );
+   }
 }
 
 BOOST_FIXTURE_TEST_CASE( upgrade_nathan_account, cli_fixture )
@@ -663,8 +658,8 @@ BOOST_FIXTURE_TEST_CASE( cli_get_available_transaction_signers, cli_fixture )
       trx.sign( privkey_2, con.wallet_data.chain_id );
 
       // verify expected result
-      flat_set<public_key_type> expected_signers = {test_bki.pub_key, 
-                                                    privkey_1.get_public_key(), 
+      flat_set<public_key_type> expected_signers = {test_bki.pub_key,
+                                                    privkey_1.get_public_key(),
                                                     privkey_2.get_public_key()};
 
       auto signers = con.wallet_api_ptr->get_transaction_signers(trx);
@@ -712,7 +707,7 @@ BOOST_FIXTURE_TEST_CASE( cli_cant_get_signers_from_modified_transaction, cli_fix
       // modify transaction (MITM-attack)
       trx.operations.clear();
 
-      // verify if transaction has no valid signature of test account 
+      // verify if transaction has no valid signature of test account
       flat_set<public_key_type> expected_signers_of_valid_transaction = {test_bki.pub_key};
       auto signers = con.wallet_api_ptr->get_transaction_signers(trx);
       BOOST_CHECK(signers != expected_signers_of_valid_transaction);
@@ -755,10 +750,10 @@ BOOST_FIXTURE_TEST_CASE( cli_confidential_tx_test, cli_fixture )
    try {
       // we need to increase the default max transaction size to run this test.
       this->app1->chain_database()->modify(
-         this->app1->chain_database()->get_global_properties(), 
+         this->app1->chain_database()->get_global_properties(),
          []( global_property_object& p) {
             p.parameters.maximum_transaction_size = 8192;
-      });      
+      });
       std::vector<signed_transaction> import_txs;
 
       BOOST_TEST_MESSAGE("Importing nathan's balance");
@@ -766,6 +761,8 @@ BOOST_FIXTURE_TEST_CASE( cli_confidential_tx_test, cli_fixture )
 
       unsigned int head_block = 0;
       auto & W = *con.wallet_api_ptr; // Wallet alias
+
+      auto formatters = con.wallet_api_ptr->get_result_formatters();
 
       BOOST_TEST_MESSAGE("Creating blind accounts");
       graphene::wallet::brain_key_info bki_nathan = W.suggest_brain_key();
@@ -785,7 +782,17 @@ BOOST_FIXTURE_TEST_CASE( cli_confidential_tx_test, cli_fixture )
 
       // ** Block 2: Nathan will blind 100M CORE token:
       BOOST_TEST_MESSAGE("Blinding a large balance");
-      W.transfer_to_blind("nathan", GRAPHENE_SYMBOL, {{"nathan","100000000"}}, true);
+      {
+         auto result = W.transfer_to_blind("nathan", GRAPHENE_SYMBOL, {{"nathan","100000000"}}, true);
+         // Testing result formatter
+         if( formatters.find("transfer_to_blind") != formatters.end() )
+         {
+            BOOST_TEST_MESSAGE("Testing formatter of transfer_to_blind");
+            string output = formatters["transfer_to_blind"](
+                  fc::variant(result, FC_PACK_MAX_DEPTH), fc::variants());
+            BOOST_CHECK( output.find("receipt") != string::npos );
+         }
+      }
       BOOST_CHECK( W.get_blind_balances("nathan")[0].amount == 10000000000000 );
       generate_block(app1); head_block++;
 
@@ -796,7 +803,7 @@ BOOST_FIXTURE_TEST_CASE( cli_confidential_tx_test, cli_fixture )
       std::map<std::string, share_type> to_list = {{"alice",100000000000},
                                                    {"bob",    1000000000}};
       vector<blind_confirmation> bconfs;
-      asset_object core_asset = W.get_asset("1.3.0");
+      auto core_asset = W.get_asset("1.3.0");
       BOOST_TEST_MESSAGE("Sending blind transactions to alice and bob");
       for (auto to : to_list) {
          string amount = core_asset.amount_to_string(to.second);
@@ -829,6 +836,35 @@ BOOST_FIXTURE_TEST_CASE( cli_confidential_tx_test, cli_fixture )
       BOOST_TEST_MESSAGE("Check that all expected blocks have processed");
       dynamic_global_property_object dgp = W.get_dynamic_global_properties();
       BOOST_CHECK(dgp.head_block_number == head_block);
+
+      // Receive blind transfer
+      {
+         auto result = W.receive_blind_transfer(bconfs[1].outputs[1].confirmation_receipt, "", "bob_receive");
+         BOOST_CHECK_EQUAL( result.amount.amount.value, 1000000000 );
+         // Testing result formatter
+         if( formatters.find("receive_blind_transfer") != formatters.end() )
+         {
+            BOOST_TEST_MESSAGE("Testing formatter of receive_blind_transfer");
+            string output = formatters["receive_blind_transfer"](
+                  fc::variant(result, FC_PACK_MAX_DEPTH), fc::variants());
+            BOOST_CHECK( output.find("bob_receive") != string::npos );
+         }
+      }
+
+      // Check blind history
+      {
+         auto result = W.blind_history("nathan");
+         BOOST_CHECK_EQUAL( result.size(), 5u ); // 1 transfer_to_blind + 2 outputs * 2 blind_transfers
+         // Testing result formatter
+         if( formatters.find("blind_history") != formatters.end() )
+         {
+            BOOST_TEST_MESSAGE("Testing formatter of blind_history");
+            string output = formatters["blind_history"](
+                  fc::variant(result, FC_PACK_MAX_DEPTH), fc::variants());
+            BOOST_CHECK( output.find("WHEN") != string::npos );
+            BOOST_TEST_MESSAGE( output );
+         }
+      }
    } catch( fc::exception& e ) {
       edump((e.to_detail_string()));
       throw;
@@ -867,6 +903,16 @@ BOOST_FIXTURE_TEST_CASE( account_history_pagination, cli_fixture )
             BOOST_FAIL("Duplicate found");
          }
          operation_ids.insert(op.op.id);
+      }
+
+      // Testing result formatter
+      auto formatters = con.wallet_api_ptr->get_result_formatters();
+      if( formatters.find("get_account_history") != formatters.end() )
+      {
+         BOOST_TEST_MESSAGE("Testing formatter of get_account_history");
+         string output = formatters["get_account_history"](
+               fc::variant(history, FC_PACK_MAX_DEPTH), fc::variants());
+         BOOST_CHECK( output.find("Here are some") != string::npos );
       }
    } catch( fc::exception& e ) {
       edump((e.to_detail_string()));
@@ -997,17 +1043,10 @@ BOOST_AUTO_TEST_CASE( cli_multisig_transaction )
          }
       }
 
-      // wait for everything to finish up
-      fc::usleep(fc::seconds(1));
    } catch( fc::exception& e ) {
       edump((e.to_detail_string()));
       throw;
    }
-   app1->shutdown();
-   app1.reset();
-   // Intentional delay after app1->shutdown
-   std::cout << "cli_multisig_transaction conclusion: Intentional delay" << std::endl;
-   fc::usleep(fc::seconds(1));
 }
 
 graphene::wallet::plain_keys decrypt_keys( const std::string& password, const vector<char>& cipher_keys )
@@ -1037,6 +1076,7 @@ BOOST_AUTO_TEST_CASE( saving_keys_wallet_test ) {
    BOOST_CHECK( pk.keys.size() == 1 ); // nathan key
 
    BOOST_CHECK( generate_block( cli.app1 ) );
+   // Intentional delay
    fc::usleep( fc::seconds(1) );
 
    wallet = fc::json::from_file( path ).as<graphene::wallet::wallet_data>( 2 * GRAPHENE_MAX_NESTED_OBJECTS );

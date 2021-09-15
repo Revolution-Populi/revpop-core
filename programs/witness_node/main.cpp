@@ -23,6 +23,7 @@
  */
 #include <graphene/app/application.hpp>
 #include <graphene/app/config_util.hpp>
+#include <graphene/app/util.hpp>
 
 #include <graphene/witness/witness.hpp>
 #include <graphene/debug_witness/debug_witness.hpp>
@@ -159,6 +160,8 @@ int main(int argc, char** argv) {
       });
 
       bpo::notify(options);
+
+      app::log_system_info();
 
       node->initialize(data_dir, options);
       node->initialize_plugins( options );

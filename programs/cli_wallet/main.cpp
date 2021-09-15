@@ -35,6 +35,7 @@
 #include <fc/stacktrace.hpp>
 
 #include <graphene/app/api.hpp>
+#include <graphene/app/util.hpp>
 #include <graphene/chain/config.hpp>
 #include <graphene/egenesis/egenesis.hpp>
 #include <graphene/utilities/key_conversion.hpp>
@@ -218,6 +219,8 @@ int main( int argc, char** argv )
             std::cout << "Starting a new wallet with chain ID " << wdata.chain_id.str() << " (from egenesis)\n";
          }
       }
+
+      log_system_info();
 
       // but allow CLI to override
       if( options.count("server-rpc-endpoint") )

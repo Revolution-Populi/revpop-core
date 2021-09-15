@@ -41,6 +41,51 @@
                     "ignoreFailures": true
                 }
             ]
+        },
+        {
+            "name": "(gdb) Launch witness_node in debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/buildd/programs/witness_node/witness_node",
+            "args": [
+                "--rpc-endpoint=127.0.0.1:8090"
+                ,"--force-validate"
+            ],
+            "stopAtEntry": false,
+           "cwd": "${workspaceFolder}/buildd",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) Launch cli_wallet in debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/buildd/programs/cli_wallet/cli_wallet",
+            "args": [
+                "-sws://127.0.0.1:8090"
+                , "-H127.0.0.1:8091"
+                ,"-d"
+            ],
+            "stopAtEntry": false,
+           "cwd": "${workspaceFolder}/buildd",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
         }
     ]
 }

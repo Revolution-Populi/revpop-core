@@ -79,7 +79,7 @@ share_type call_order_object::get_max_debt_to_cover( price match_price,
    // Although this should be guaranteed by the caller of this function, we still check here to be defensive.
    // Theoretically this check can be skipped for better performance.
    //
-   // we check with call_price; afterwards, we check with collateralization().
+   // we check with collateralization().
    if( collateralization() > *maintenance_collateralization )
       return 0;
 
@@ -129,7 +129,7 @@ share_type call_order_object::get_max_debt_to_cover( price match_price,
    FC_ASSERT( to_pay.amount < collateral && to_cover.amount < debt );
 
    // Check whether the collateral ratio after filled is high enough
-   // we check with call_price; afterwards, we check with collateralization().
+   // we check with collateralization().
    std::function<bool()> result_is_good =
       std::function<bool()>( [this,&to_cover,&to_pay,target_collateralization]() -> bool
       {

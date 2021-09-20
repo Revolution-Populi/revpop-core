@@ -207,9 +207,7 @@ bool database::check_for_blackswan( const asset_object& mia, bool enable_black_s
     if( call_ptr->debt_type() != debt_asset_id ) // no call order
        return false;
 
-    price highest = settle_price;
-    // due to #338, we won't check for black swan on incoming limit order, so need to check with MSSP here
-    highest = bitasset.current_feed.max_short_squeeze_price();
+    price highest = bitasset.current_feed.max_short_squeeze_price();
 
     const limit_order_index& limit_index = get_index_type<limit_order_index>();
     const auto& limit_price_index = limit_index.indices().get<by_price>();

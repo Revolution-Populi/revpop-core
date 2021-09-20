@@ -290,7 +290,7 @@ void database::cancel_limit_order( const limit_order_object& order, bool create_
    // could be virtual op or real op here
    if( order.deferred_paid_fee.amount == 0 )
    {
-      // be here, order.create_time <= HARDFORK_CORE_604_TIME, or fee paid in CORE, or no fee to refund.
+      // be here, fee paid in CORE, or no fee to refund.
       // if order was created before hard fork 604 then cancelled no matter before or after hard fork 604,
       //    see it as fee paid in CORE, deferred_fee should be refunded to order owner but not fee pool
       adjust_balance( order.seller, deferred_fee );
@@ -705,7 +705,7 @@ bool database::fill_limit_order( const limit_order_object& order, const asset& p
    share_type deferred_paid_fee = order.deferred_paid_fee.amount;
 
    // conditional because cheap integer comparison may allow us to avoid two expensive modify() and object lookups
-   if( order.deferred_paid_fee.amount > 0 ) // implies head_block_time() > HARDFORK_CORE_604_TIME
+   if( order.deferred_paid_fee.amount > 0 )
    {
       share_type fee_pool_refund = 0;
       if( is_maker && maker_discount_percent > 0 )

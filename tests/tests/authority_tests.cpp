@@ -434,6 +434,11 @@ BOOST_AUTO_TEST_CASE( proposal_failure )
 /// Verify that committee authority cannot be invoked in a normal transaction
 BOOST_AUTO_TEST_CASE( committee_authority )
 { try {
+   // Initialize committee by voting for each memeber and for desired count
+   vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
+   generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
+   set_expiration(db, trx);
+
    fc::ecc::private_key nathan_key = fc::ecc::private_key::generate();
    fc::ecc::private_key committee_key = init_account_priv_key;
    const account_object nathan = create_account("nathan", nathan_key.get_public_key());
@@ -526,6 +531,11 @@ BOOST_AUTO_TEST_CASE( committee_authority )
 
 BOOST_FIXTURE_TEST_CASE( fired_committee_members, database_fixture )
 { try {
+   // Initialize committee by voting for each memeber and for desired count
+   vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
+   generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
+   set_expiration(db, trx);
+
    generate_block();
    fc::ecc::private_key committee_key = init_account_priv_key;
    fc::ecc::private_key committee_member_key = fc::ecc::private_key::generate();

@@ -37,6 +37,10 @@ BOOST_FIXTURE_TEST_SUITE( bsip85_tests, database_fixture )
 
 BOOST_AUTO_TEST_CASE( hardfork_time_test )
 { try {
+   // Initialize committee by voting for each memeber and for desired count
+   vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
+   generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
+   set_expiration(db, trx);
 
    generate_block();
    set_expiration( db, trx );

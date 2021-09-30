@@ -28,6 +28,8 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <graphene/chain/hardfork.hpp>
+
 #include "wallet_api_impl.hpp"
 #include <graphene/wallet/wallet.hpp>
 
@@ -815,69 +817,238 @@ namespace graphene { namespace wallet { namespace detail {
 
    signed_transaction wallet_api_impl::send_commit( const string& account, uint64_t value, bool broadcast )
    { try {
-      auto acc_id = get_account(account).get_id();
+      if (HARDFORK_REVPOP_12_PASSED(fc::time_point_sec(fc::time_point::now())))
+         FC_THROW( "Please use send_commit2 instead" );
 
-      commit_create_operation commit_op;
+      auto acc_id = get_account(account).get_id();
+      signed_transaction tx;
+
+      if (HARDFORK_REVPOP_11_PASSED(fc::time_point_sec(fc::time_point::now())))
+      {
+         commit_create_v2_operation commit_op;
+
+         commit_op.account = acc_id;
+         commit_op.hash    = fc::sha512::hash( std::to_string(value) );
+         auto dynamic_props = get_dynamic_global_properties();
+         commit_op.maintenance_time = dynamic_props.next_maintenance_time.sec_since_epoch();
+
+         tx.operations.push_back(commit_op);
+      } else {
+         commit_create_operation commit_op;
+
+         commit_op.account = acc_id;
+         commit_op.hash    = fc::sha512::hash( std::to_string(value) );
+
+         tx.operations.push_back(commit_op);
+      }
+
+      tx.validate();
+      return sign_transaction(tx, broadcast);
+   } FC_CAPTURE_AND_RETHROW( (account)(value)(broadcast) ) }
+
+   signed_transaction wallet_api_impl::send_commit2( const string& account, uint64_t value, const string& witness_key, bool broadcast )
+   { try {
+      if (!HARDFORK_REVPOP_12_PASSED(fc::time_point_sec(fc::time_point::now())))
+         FC_THROW( "Please use send_commit instead" );
+
+      auto acc_id = get_account(account).get_id();
+      signed_transaction tx;
+
+      fc::optional<fc::ecc::private_key> optional_private_key = wif_to_key(witness_key);
+      if (!optional_private_key)
+         FC_THROW("Invalid private key");
+      
+      private_key_type witness_prv_key = *optional_private_key;
+      public_key_type witness_pub_key = optional_private_key->get_public_key();
+
+      commit_create_v3_operation commit_op;
+
       commit_op.account = acc_id;
       commit_op.hash    = fc::sha512::hash( std::to_string(value) );
+      auto dynamic_props = get_dynamic_global_properties();
+      commit_op.maintenance_time = dynamic_props.next_maintenance_time.sec_since_epoch();
+      commit_op.witness_key = witness_pub_key;
 
-      signed_transaction tx;
-      tx.operations.push_back(commit_op);         
+      tx.operations.push_back(commit_op);
+
       tx.validate();
+      tx.set_reference_block(dynamic_props.head_block_id);
+      tx.set_expiration(dynamic_props.time + fc::seconds(30));
+      tx.clear_signatures();
+      tx.sign(witness_prv_key, _chain_id);
 
-      return sign_transaction(tx, broadcast);
+      if( broadcast )
+      {
+         try
+         {
+            _remote_net_broadcast->broadcast_transaction( tx );
+         }
+         catch (const fc::exception& e)
+         {
+            elog("Caught exception while broadcasting tx ${id}:  ${e}",
+                 ("id", tx.id().str())("e", e.to_detail_string()) );
+            throw;
+         }
+      }
+
+      return tx;
    } FC_CAPTURE_AND_RETHROW( (account)(value)(broadcast) ) }
 
    signed_transaction wallet_api_impl::send_reveal( const string& account, uint64_t value, bool broadcast )
    { try {
+      if (HARDFORK_REVPOP_12_PASSED(fc::time_point_sec(fc::time_point::now())))
+         FC_THROW( "Please use send_reveal2 instead" );
+
       auto acc_id = get_account(account).get_id();
-
-      reveal_create_operation reveal_op;
-      reveal_op.account = acc_id;
-      reveal_op.value   = value;
-
       signed_transaction tx;
-      tx.operations.push_back(reveal_op);         
-      tx.validate();
 
+      if (HARDFORK_REVPOP_11_PASSED(fc::time_point_sec(fc::time_point::now())))
+      {
+         reveal_create_v2_operation reveal_op;
+
+         reveal_op.account = acc_id;
+         reveal_op.value   = value;
+         auto dynamic_props = get_dynamic_global_properties();
+         reveal_op.maintenance_time = dynamic_props.next_maintenance_time.sec_since_epoch();
+
+         tx.operations.push_back(reveal_op);
+      } else {
+         reveal_create_operation reveal_op;
+         reveal_op.account = acc_id;
+         reveal_op.value   = value;
+
+         tx.operations.push_back(reveal_op);
+      }
+
+      tx.validate();
       return sign_transaction(tx, broadcast);
    } FC_CAPTURE_AND_RETHROW( (account)(value)(broadcast) ) }
 
-   commit_reveal_object wallet_api_impl::get_account_commit_reveal( const string& account ) const
+   signed_transaction wallet_api_impl::send_reveal2( const string& account, uint64_t value, const string& witness_key, bool broadcast )
+   { try {
+      if (!HARDFORK_REVPOP_12_PASSED(fc::time_point_sec(fc::time_point::now())))
+         FC_THROW( "Please use send_reveal instead" );
+
+      auto acc_id = get_account(account).get_id();
+      signed_transaction tx;
+
+      fc::optional<fc::ecc::private_key> optional_private_key = wif_to_key(witness_key);
+      if (!optional_private_key)
+         FC_THROW("Invalid private key");
+      
+      private_key_type witness_prv_key = *optional_private_key;
+      public_key_type witness_pub_key = optional_private_key->get_public_key();
+
+      reveal_create_v3_operation reveal_op;
+
+      reveal_op.account = acc_id;
+      reveal_op.value   = value;
+      auto dynamic_props = get_dynamic_global_properties();
+      reveal_op.maintenance_time = dynamic_props.next_maintenance_time.sec_since_epoch();
+      reveal_op.witness_key = witness_pub_key;
+
+      tx.operations.push_back(reveal_op);
+
+      tx.validate();
+      tx.set_reference_block(dynamic_props.head_block_id);
+      tx.set_expiration(dynamic_props.time + fc::seconds(30));
+      tx.clear_signatures();
+      tx.sign(witness_prv_key, _chain_id);
+
+      if( broadcast )
+      {
+         try
+         {
+            _remote_net_broadcast->broadcast_transaction( tx );
+         }
+         catch (const fc::exception& e)
+         {
+            elog("Caught exception while broadcasting tx ${id}:  ${e}",
+                 ("id", tx.id().str())("e", e.to_detail_string()) );
+            throw;
+         }
+      }
+
+      return tx;
+   } FC_CAPTURE_AND_RETHROW( (account)(value)(broadcast) ) }
+
+   commit_reveal_object wallet_api_impl::get_account_commit_reveal(const string &account) const
    {
       auto acc_id = get_account(account).get_id();
       auto cr_opt = _remote_db->get_account_commit_reveal(acc_id);
-      if (cr_opt.valid()) {
-   return *cr_opt;
+      if (cr_opt.valid())
+      {
+         return *cr_opt;
       }
       return commit_reveal_object();
    }
 
-   vector<commit_reveal_object> wallet_api_impl::get_commit_reveals( uint64_t start, uint32_t limit ) const
+   commit_reveal_v2_object wallet_api_impl::get_account_commit_reveal_v2(const string &account) const
+   {
+      auto acc_id = get_account(account).get_id();
+      auto cr_opt = _remote_db->get_account_commit_reveal_v2(acc_id);
+      if (cr_opt.valid())
+      {
+         return *cr_opt;
+      }
+      return commit_reveal_v2_object();
+   }
+
+   vector<commit_reveal_object> wallet_api_impl::get_commit_reveals(uint64_t start, uint32_t limit) const
    {
       auto start_id = commit_reveal_id_type(start);
       auto crs = _remote_db->get_commit_reveals(start_id, limit);
       return crs;
    }
 
-   uint64_t wallet_api_impl::get_commit_reveal_seed(const vector<string>& accounts) const
+   vector<commit_reveal_v2_object> wallet_api_impl::get_commit_reveals_v2(uint64_t start, uint32_t limit) const
+   {
+      auto start_id = commit_reveal_v2_id_type(start);
+      auto crs = _remote_db->get_commit_reveals_v2(start_id, limit);
+      return crs;
+   }
+
+   uint64_t wallet_api_impl::get_commit_reveal_seed(const vector<string> &accounts) const
    {
       vector<account_id_type> acc_ids;
-      for (const auto& acc_name: accounts) {
-   acc_ids.push_back(get_account(acc_name).get_id());
+      for (const auto &acc_name : accounts)
+      {
+         acc_ids.push_back(get_account(acc_name).get_id());
       }
       auto seed = _remote_db->get_commit_reveal_seed(acc_ids);
       return seed;
    }
 
-   vector<account_id_type> wallet_api_impl::filter_commit_reveal_participant(const vector<string>& accounts) const
+   uint64_t wallet_api_impl::get_commit_reveal_seed_v2(const vector<string> &accounts) const
    {
       vector<account_id_type> acc_ids;
-      for (const auto& acc_name: accounts) {
-   acc_ids.push_back(get_account(acc_name).get_id());
+      for (const auto &acc_name : accounts)
+      {
+         acc_ids.push_back(get_account(acc_name).get_id());
+      }
+      auto seed = _remote_db->get_commit_reveal_seed_v2(acc_ids);
+      return seed;
+   }
+
+   vector<account_id_type> wallet_api_impl::filter_commit_reveal_participant(const vector<string> &accounts) const
+   {
+      vector<account_id_type> acc_ids;
+      for (const auto &acc_name : accounts)
+      {
+         acc_ids.push_back(get_account(acc_name).get_id());
       }
       auto filter_accs = _remote_db->filter_commit_reveal_participant(acc_ids);
       return filter_accs;
    }
 
+   vector<account_id_type> wallet_api_impl::filter_commit_reveal_participant_v2(const vector<string> &accounts) const
+   {
+      vector<account_id_type> acc_ids;
+      for (const auto &acc_name : accounts)
+      {
+         acc_ids.push_back(get_account(acc_name).get_id());
+      }
+      auto filter_accs = _remote_db->filter_commit_reveal_participant_v2(acc_ids);
+      return filter_accs;
+   }
 }}} // namespace graphene::wallet::detail

@@ -1892,6 +1892,46 @@ vector<account_id_type> database_api_impl::filter_commit_reveal_participant(cons
    return _db.filter_commit_reveal_participant(accounts);
 }
 
+fc::optional<commit_reveal_v2_object> database_api::get_account_commit_reveal_v2( const account_id_type account ) const
+{
+   return my->get_account_commit_reveal_v2(account);
+}
+
+fc::optional<commit_reveal_v2_object> database_api_impl::get_account_commit_reveal_v2( const account_id_type account ) const
+{
+   return _db.get_account_commit_reveal_v2(account);
+}
+
+vector<commit_reveal_v2_object> database_api::get_commit_reveals_v2( const commit_reveal_v2_id_type start, uint32_t limit ) const
+{
+   return my->get_commit_reveals_v2(start, limit);
+}
+
+vector<commit_reveal_v2_object> database_api_impl::get_commit_reveals_v2( const commit_reveal_v2_id_type start, uint32_t limit ) const
+{
+   return _db.get_commit_reveals_v2(start, limit);
+}
+
+uint64_t database_api::get_commit_reveal_seed_v2(const vector<account_id_type>& accounts) const
+{
+   return my->get_commit_reveal_seed_v2(accounts);
+}
+
+uint64_t database_api_impl::get_commit_reveal_seed_v2(const vector<account_id_type>& accounts) const
+{
+   return _db.get_commit_reveal_seed_v2(accounts);
+}
+
+vector<account_id_type> database_api::filter_commit_reveal_participant_v2(const vector<account_id_type>& accounts) const
+{
+   return my->filter_commit_reveal_participant_v2(accounts);
+}
+
+vector<account_id_type> database_api_impl::filter_commit_reveal_participant_v2(const vector<account_id_type>& accounts) const
+{
+   return _db.filter_commit_reveal_participant_v2(accounts);
+}
+
 //////////////////////////////////////////////////////////////////////
 //                                                                  //
 // Private methods                                                  //

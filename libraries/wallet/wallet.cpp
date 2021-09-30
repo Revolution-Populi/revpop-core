@@ -989,9 +989,19 @@ signed_transaction wallet_api::send_commit( const string& account, uint64_t valu
    return my->send_commit(account, value, broadcast);
 }
 
+signed_transaction wallet_api::send_commit2( const string& account, uint64_t value, const string& witness_key, bool broadcast )
+{
+   return my->send_commit2(account, value, witness_key, broadcast);
+}
+
 signed_transaction wallet_api::send_reveal( const string& account, uint64_t value, bool broadcast )
 {
    return my->send_reveal(account, value, broadcast);
+}
+
+signed_transaction wallet_api::send_reveal2( const string& account, uint64_t value, const string& witness_key, bool broadcast )
+{
+   return my->send_reveal2(account, value, witness_key, broadcast);
 }
 
 commit_reveal_object wallet_api::get_account_commit_reveal( const string& account ) const
@@ -999,9 +1009,19 @@ commit_reveal_object wallet_api::get_account_commit_reveal( const string& accoun
    return my->get_account_commit_reveal(account);
 }
 
+commit_reveal_v2_object wallet_api::get_account_commit_reveal_v2( const string& account ) const
+{
+   return my->get_account_commit_reveal_v2(account);
+}
+
 vector<commit_reveal_object> wallet_api::get_commit_reveals( uint64_t start, uint32_t limit ) const
 {
    return my->get_commit_reveals(start, limit);
+}
+
+vector<commit_reveal_v2_object> wallet_api::get_commit_reveals_v2( uint64_t start, uint32_t limit ) const
+{
+   return my->get_commit_reveals_v2(start, limit);
 }
 
 uint64_t wallet_api::get_commit_reveal_seed(const vector<string>& accounts) const
@@ -1009,9 +1029,19 @@ uint64_t wallet_api::get_commit_reveal_seed(const vector<string>& accounts) cons
    return my->get_commit_reveal_seed(accounts);
 }
 
+uint64_t wallet_api::get_commit_reveal_seed_v2(const vector<string>& accounts) const
+{
+   return my->get_commit_reveal_seed_v2(accounts);
+}
+
 vector<account_id_type> wallet_api::filter_commit_reveal_participant(const vector<string>& accounts) const
 {
    return my->filter_commit_reveal_participant(accounts);
+}
+
+vector<account_id_type> wallet_api::filter_commit_reveal_participant_v2(const vector<string>& accounts) const
+{
+   return my->filter_commit_reveal_participant_v2(accounts);
 }
 
 string wallet_api::help()const

@@ -17,6 +17,7 @@ if( GRAPHENE_DISABLE_UNITY_BUILD )
         db_witness_schedule.cpp
         db_notify.cpp
         db_commit_reveal.cpp
+        db_commit_reveal_v2.cpp
       )
    message( STATUS "Graphene database unity build disabled" )
 else( GRAPHENE_DISABLE_UNITY_BUILD )
@@ -77,7 +78,10 @@ add_library( graphene_chain
              content_vote_evaluator.cpp
              vote_master_summary_object.cpp
              commit_reveal_object.cpp
+             commit_reveal_v2_object.cpp
              commit_reveal_evaluator.cpp
+             commit_reveal_v2_evaluator.cpp
+             commit_reveal_v3_evaluator.cpp
 
              ${HEADERS}
              "${CMAKE_CURRENT_BINARY_DIR}/include/graphene/chain/hardfork.hpp"

@@ -234,16 +234,33 @@ void database::update_active_witnesses()
    }
 
    // RevPop: seed maintenance PRNG from commit-reveal scheme or chain_id + head block number
-   uint64_t prng_seed = wits_acc.empty() ?
-      // Fallback: seed PRNG from chain_id + head block num
-      ((*(const uint64_t *)get_chain_id().data()) + dpo.head_block_number) :
-      // Normal: seed PRNG from commit-reveal scheme
-      get_commit_reveal_seed( wits_acc );
-   _maintenance_prng.seed( prng_seed );
+   if (HARDFORK_REVPOP_11_PASSED(head_block_time()))
+   {
+      uint64_t prng_seed = get_commit_reveal_seed_v2(wits_acc);
+      if (prng_seed == 0)
+      {
+         // Fallback: seed PRNG from chain_id + head block num
+         prng_seed = ((*(const uint64_t *)get_chain_id().data()) + dpo.head_block_number);
+      }
+      _maintenance_prng.seed(prng_seed);
+   }
+   else
+   {
+      uint64_t prng_seed = wits_acc.empty() ?
+               // Fallback: seed PRNG from chain_id + head block num
+               ((*(const uint64_t *)get_chain_id().data()) + dpo.head_block_number)
+               :
+               // Normal: seed PRNG from commit-reveal scheme
+               get_commit_reveal_seed(wits_acc);
+      _maintenance_prng.seed(prng_seed);
+   }
 
    // RevPop: remove from top list witnesses without reveals
    {
-      auto wits_acc_w_reveals = filter_commit_reveal_participant( wits_acc );
+      auto wits_acc_w_reveals = HARDFORK_REVPOP_11_PASSED(head_block_time()) ?
+                     filter_commit_reveal_participant_v2(wits_acc)
+                     :
+                     filter_commit_reveal_participant(wits_acc);
       decltype(wits) enabled_wits;
       enabled_wits.reserve( wits_acc_w_reveals.size() );
       std::copy_if( wits.begin(), wits.end(), std::back_inserter( enabled_wits ),
@@ -255,7 +272,7 @@ void database::update_active_witnesses()
       });
       if( !enabled_wits.empty() )
       {
-         wits = enabled_wits;
+         wits.swap(enabled_wits);
       }
       else
       {
@@ -263,6 +280,64 @@ void database::update_active_witnesses()
       }
    }
 
+   if (HARDFORK_REVPOP_14_PASSED(head_block_time()))
+   {
+      const uint16_t electoral_threshold = gpo.parameters.get_electoral_threshold();
+      uint32_t wits_size = std::min(                                   //21 or less
+                           // as much as we want
+                           (uint32_t)gpo.parameters.revpop_witnesses_active_max,
+                           // as much as we can
+                           (uint32_t)wits.size());
+
+      decltype(wits) enabled_wits;
+      enabled_wits.reserve( wits_size );
+      
+      // Sort all
+      std::sort(wits.begin(), wits.end(),
+            [&](const witness_object& a, const witness_object& b){
+               return _vote_tally_buffer[a.vote_id] > _vote_tally_buffer[b.vote_id];
+            });
+
+      // the first round
+      for( uint32_t i = 0; i < wits_size; ++i )
+      {
+         uint32_t jmax = wits_size - i;
+         uint32_t j = i + _maintenance_prng.rand() % jmax;
+         std::swap( wits[i], wits[j] );
+      }
+      uint32_t from_r1 = std::min(
+                           // as much as we want
+                           (uint32_t)gpo.parameters.revpop_witnesses_active_max - electoral_threshold,
+                           // as much as we can
+                           wits_size);
+      std::copy(wits.begin(), wits.begin() + from_r1, back_inserter(enabled_wits));
+
+      // the second round
+      for( uint32_t i = from_r1; i < wits.size(); ++i )
+      {
+         uint32_t jmax = wits.size() - i;
+         uint32_t j = i + _maintenance_prng.rand() % jmax;
+         std::swap( wits[i], wits[j] );
+      }
+      uint32_t from_r2 = std::min(
+                           // as much as we want
+                           (uint32_t)electoral_threshold,
+                           // as much as we can
+                           wits_size - from_r1);
+      std::copy(wits.begin() + from_r1, wits.begin() + from_r1 + from_r2, back_inserter(enabled_wits));
+
+      // swap
+      if( !enabled_wits.empty() )
+      {
+         wits.swap(enabled_wits);
+      }
+      else
+      {
+         wlog("The rdPoS algorithm missed, we use dPoS instead");
+      }
+   }
+   else
+   {
    // RevPop: shuffle witnesses top list
    for( uint32_t i = 0; i < wits.size(); ++i )
    {
@@ -275,6 +350,7 @@ void database::update_active_witnesses()
    if( wits.size() > gpo.parameters.revpop_witnesses_active_max)
    {
       wits.erase( wits.begin() + gpo.parameters.revpop_witnesses_active_max, wits.end() );
+   }
    }
    std::sort(wits.begin(), wits.end(),
              [&](const witness_object& a, const witness_object& b){
@@ -1207,6 +1283,16 @@ uint64_t database::maintenance_prng::rand()
    _counter++;
 
    return k;
+}
+
+uint64_t database::maintenance_prng::get_seed() const
+{
+   return _seed;
+}
+
+uint64_t database::get_maintenance_seed() const
+{
+   return _maintenance_prng.get_seed();
 }
 
 } }

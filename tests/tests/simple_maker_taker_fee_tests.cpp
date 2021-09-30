@@ -574,12 +574,12 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          // Initialize tokens
          price price(asset(1, asset_id_type(1)), asset(1));
 
-         const uint16_t JILL_PRECISION = 100;
+         // UNUSED: const uint16_t JILL_PRECISION = 100;
          const uint16_t jill_market_fee_percent = 2 * GRAPHENE_1_PERCENT;
          create_user_issued_asset("JCOIN", jill, charge_market_fee, price, 2,
                                                                 jill_market_fee_percent);
 
-         const uint16_t IZZY_PRECISION = 1000;
+         // UNUSED: const uint16_t IZZY_PRECISION = 1000;
          const uint16_t izzy_market_fee_percent = 5 * GRAPHENE_1_PERCENT;
          create_user_issued_asset("ICOIN", izzy, charge_market_fee, price, 3,
                                                                 izzy_market_fee_percent);
@@ -667,12 +667,12 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          // Initialize tokens
          price price(asset(1, asset_id_type(1)), asset(1));
 
-         const uint16_t JILL_PRECISION = 100;
+         // UNUSED: const uint16_t JILL_PRECISION = 100;
          const uint16_t jill_market_fee_percent = 0 * GRAPHENE_1_PERCENT;
          create_user_issued_asset("JCOIN", jill, charge_market_fee, price, 2,
                                                                 jill_market_fee_percent);
 
-         const uint16_t IZZY_PRECISION = 1000;
+         // UNUSED: const uint16_t IZZY_PRECISION = 1000;
          const uint16_t izzy_market_fee_percent = 0 * GRAPHENE_1_PERCENT;
          create_user_issued_asset("ICOIN", izzy, charge_market_fee, price, 3,
                                                                 izzy_market_fee_percent);
@@ -762,12 +762,12 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          // Initialize tokens
          price price(asset(1, asset_id_type(1)), asset(1));
 
-         const uint16_t JILL_PRECISION = 100;
+         // UNUSED: const uint16_t JILL_PRECISION = 100;
          const uint16_t jill_market_fee_percent = 2 * GRAPHENE_1_PERCENT;
          create_user_issued_asset("JCOIN", jill, charge_market_fee, price, 2,
                                                                 jill_market_fee_percent);
 
-         const uint16_t IZZY_PRECISION = 1000;
+         // UNUSED: const uint16_t IZZY_PRECISION = 1000;
          const uint16_t izzy_market_fee_percent = 5 * GRAPHENE_1_PERCENT;
          create_user_issued_asset("ICOIN", izzy, charge_market_fee, price, 3,
                                                                 izzy_market_fee_percent);
@@ -888,7 +888,7 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
          // UNUSED: uint16_t jill_maker_fee_percent = jill_market_fee_percent;
          // UNUSED: uint16_t jill_taker_fee_percent = jill_market_fee_percent;
 
-         uint16_t izzy_maker_fee_percent = izzy_market_fee_percent;
+         // UNUSED: uint16_t izzy_maker_fee_percent = izzy_market_fee_percent;
          // UNUSED: uint16_t izzy_taker_fee_percent = izzy_market_fee_percent;
 
          // Check the taker fee for JCOIN: it should still not be set
@@ -933,7 +933,7 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
 
          // Initialize tokens
          price price(asset(1, asset_id_type(1)), asset(1));
-         const uint16_t JILL_PRECISION = 100;
+         // UNUSED: const uint16_t JILL_PRECISION = 100;
          const uint16_t jill_market_fee_percent = 2 * GRAPHENE_1_PERCENT;
          const asset_object jillcoin = create_user_issued_asset("JCOIN", jill, charge_market_fee, price, 2,
                                                                 jill_market_fee_percent);
@@ -1190,7 +1190,7 @@ BOOST_FIXTURE_TEST_SUITE(simple_maker_taker_fee_tests, simple_maker_taker_databa
                          charge_market_fee, 4);
 
          uint16_t jill_maker_fee_percent = jill_market_fee_percent;
-         uint16_t jill_taker_fee_percent = jill_market_fee_percent;
+         // UNUSED: uint16_t jill_taker_fee_percent = jill_market_fee_percent;
 
          uint16_t smartbit_maker_fee_percent = smartbit_market_fee_percent;
 

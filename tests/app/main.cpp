@@ -34,16 +34,18 @@
 
 #include <fc/thread/thread.hpp>
 #include <fc/log/appender.hpp>
+#include <fc/log/console_appender.hpp>
 #include <fc/log/logger.hpp>
+#include <fc/log/logger_config.hpp>
 
 #include <boost/filesystem/path.hpp>
 
 #include "../../libraries/app/application_impl.hxx"
 
-#define BOOST_TEST_MODULE Test Application
-#include <boost/test/included/unit_test.hpp>
+#include "../common/init_unit_test_suite.hpp"
 
 #include "../common/genesis_file_util.hpp"
+#include "../common/program_options_util.hpp"
 #include "../common/utils.hpp"
 
 using namespace graphene;
@@ -216,6 +218,18 @@ BOOST_AUTO_TEST_CASE( two_node_network )
    using namespace graphene::chain;
    using namespace graphene::app;
    try {
+      // Configure logging
+      fc::logging_config logging_config;
+      logging_config.appenders.push_back( fc::appender_config( "stderr", "console",
+            fc::variant( fc::console_appender::config(), GRAPHENE_MAX_NESTED_OBJECTS ) ) );
+
+      fc::logger_config logger_config("p2p");
+      logger_config.level = fc::log_level::debug;
+      logger_config.appenders.push_back("stderr");
+
+      logging_config.loggers.push_back(logger_config);
+
+      fc::configure_logging(logging_config);
 
       // Start app1
       BOOST_TEST_MESSAGE( "Creating and initializing app1" );
@@ -230,10 +244,11 @@ BOOST_AUTO_TEST_CASE( two_node_network )
       graphene::app::application app1;
       app1.register_plugin< graphene::account_history::account_history_plugin>();
       app1.register_plugin< graphene::witness_plugin::witness_plugin >();
-      boost::program_options::variables_map cfg;
-      cfg.emplace("p2p-endpoint", boost::program_options::variable_value(app1_p2p_endpoint_str, false));
-      cfg.emplace("genesis-json", boost::program_options::variable_value(genesis_file, false));
-      cfg.emplace("seed-nodes", boost::program_options::variable_value(string("[]"), false));
+      auto sharable_cfg = std::make_shared<boost::program_options::variables_map>();
+      auto& cfg = *sharable_cfg;
+      fc::set_option( cfg, "p2p-endpoint", app1_p2p_endpoint_str );
+      fc::set_option( cfg, "genesis-json", genesis_file );
+      fc::set_option( cfg, "seed-nodes", string("[]") );
       app1.initialize(app_dir.path(), cfg);
       BOOST_TEST_MESSAGE( "Starting app1 and waiting" );
       app1.startup();
@@ -252,9 +267,10 @@ BOOST_AUTO_TEST_CASE( two_node_network )
       graphene::app::application app2;
       app2.register_plugin<account_history::account_history_plugin>();
       app2.register_plugin< graphene::witness_plugin::witness_plugin >();
-      boost::program_options::variables_map cfg2;
-      cfg2.emplace("genesis-json", boost::program_options::variable_value(genesis_file, false));
-      cfg2.emplace("seed-nodes", boost::program_options::variable_value(app2_seed_nodes_str, false));
+      auto sharable_cfg2 = std::make_shared<boost::program_options::variables_map>();
+      auto& cfg2 = *sharable_cfg2;
+      fc::set_option( cfg2, "genesis-json", genesis_file );
+      fc::set_option( cfg2, "seed-nodes", app2_seed_nodes_str );
       app2.initialize(app2_dir.path(), cfg2);
 
       BOOST_TEST_MESSAGE( "Starting app2 and waiting for connection" );

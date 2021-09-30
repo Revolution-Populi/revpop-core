@@ -29,10 +29,9 @@
 #include <graphene/utilities/elasticsearch.hpp>
 #include <graphene/elasticsearch/elasticsearch_plugin.hpp>
 
-#include "../common/database_fixture.hpp"
+#include "../common/init_unit_test_suite.hpp"
 
-#define BOOST_TEST_MODULE Elastic Search Database Tests
-#include <boost/test/included/unit_test.hpp>
+#include "../common/database_fixture.hpp"
 
 #include "../common/utils.hpp"
 
@@ -42,7 +41,7 @@ using namespace graphene::chain;
 using namespace graphene::chain::test;
 using namespace graphene::app;
 
-const std::string GRAPHENE_TESTING_ES_URL = "http://localhost:9200/";
+extern std::string GRAPHENE_TESTING_ES_URL;
 const std::string es_index_prefix = "revpop-";
 const std::string es_obj_index_prefix = "objects-";
 

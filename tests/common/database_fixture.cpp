@@ -144,15 +144,9 @@ database_fixture_base::~database_fixture_base()
 void database_fixture_base::init_genesis( database_fixture_base& fixture )
 {
    fixture.genesis_state.initial_timestamp = fc::time_point_sec(GRAPHENE_TESTING_GENESIS_TIMESTAMP);
-   if( fixture.current_test_name == "hf_1270_test" )
-   {
-      fixture.genesis_state.initial_active_witnesses = 20;
-   }
-   else {
-      fixture.genesis_state.initial_active_witnesses = 10;
-      fixture.genesis_state.immutable_parameters.min_committee_member_count = INITIAL_COMMITTEE_MEMBER_COUNT;
-      fixture.genesis_state.immutable_parameters.min_witness_count = INITIAL_WITNESS_COUNT;
-   }
+   fixture.genesis_state.initial_active_witnesses = 10;
+   fixture.genesis_state.immutable_parameters.min_committee_member_count = INITIAL_COMMITTEE_MEMBER_COUNT;
+   fixture.genesis_state.immutable_parameters.min_witness_count = INITIAL_WITNESS_COUNT;
 
    for( unsigned int i = 0; i < fixture.genesis_state.initial_active_witnesses; ++i )
    {
@@ -852,7 +846,6 @@ const asset_object& database_fixture_base::create_user_issued_asset( const strin
    creator.issuer = issuer.id;
    creator.fee = asset();
    creator.symbol = name;
-   creator.common_options.max_supply = 0;
    creator.precision = precision;
    creator.common_options.core_exchange_rate = core_exchange_rate;
    creator.common_options.max_supply = GRAPHENE_MAX_SHARE_SUPPLY;
@@ -1120,8 +1113,7 @@ void database_fixture_base::publish_feed( const asset_object& mia, const account
    if( op.feed.core_exchange_rate.is_null() )
    {
       op.feed.core_exchange_rate = op.feed.settlement_price;
-      if( db.head_block_time() > HARDFORK_480_TIME )
-         op.feed.core_exchange_rate.quote.asset_id = asset_id_type();
+      op.feed.core_exchange_rate.quote.asset_id = asset_id_type();
    }
    op.extensions.value.initial_collateral_ratio = icr;
    trx.operations.emplace_back( std::move(op) );

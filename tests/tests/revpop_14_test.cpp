@@ -58,6 +58,11 @@ BOOST_AUTO_TEST_CASE( hardfork_time_test )
    set_expiration( db, trx );
 
    {
+         // Initialize committee by voting for each memeber and for desired count
+         vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
+         generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
+         set_expiration(db, trx);
+
       // The electoral threshold is still 0
       BOOST_CHECK_EQUAL( db.get_global_properties().parameters.get_electoral_threshold(), 0 );
 

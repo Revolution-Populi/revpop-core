@@ -950,6 +950,11 @@ BOOST_FIXTURE_TEST_CASE( double_sign_check, database_fixture )
 
 BOOST_FIXTURE_TEST_CASE( change_block_interval, database_fixture )
 { try {
+   // Initialize committee by voting for each memeber and for desired count
+   vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
+   generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
+   set_expiration(db, trx);
+
    generate_block();
 
    db.modify(db.get_global_properties(), [](global_property_object& p) {

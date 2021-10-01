@@ -36,7 +36,7 @@ bool proposal_object::is_authorized_to_execute( database& db ) const
    transaction_evaluation_state dry_run_eval( &db );
 
    try {
-      bool allow_non_immediate_owner = ( db.head_block_time() >= HARDFORK_CORE_584_TIME );
+      bool allow_non_immediate_owner = true;
       verify_authority( proposed_transaction.operations,
                         available_key_approvals,
                         [&db]( account_id_type id ){ return &id( db ).active; },
@@ -44,7 +44,7 @@ bool proposal_object::is_authorized_to_execute( database& db ) const
                         [&db]( account_id_type id, const operation& op, rejected_predicate_map* rejects ){
                            return db.get_viable_custom_authorities(id, op, rejects); },
                         allow_non_immediate_owner,
-                        MUST_IGNORE_CUSTOM_OP_REQD_AUTHS( db.head_block_time() ),
+                        false,
                         db.get_global_properties().parameters.max_authority_depth,
                         true, /* allow committee */
                         available_active_approvals,

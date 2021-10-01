@@ -32,7 +32,7 @@ namespace graphene { namespace protocol {
    {
       fc::optional<uint16_t>                  reward_percent;
       fc::optional<flat_set<account_id_type>> whitelist_market_fee_sharing;
-      // After BSIP81 activation, taker_fee_percent is the taker fee
+      // taker_fee_percent is the taker fee
       fc::optional<uint16_t>                  taker_fee_percent;
    };
    typedef extension<additional_asset_options> additional_asset_options_t;
@@ -51,14 +51,14 @@ namespace graphene { namespace protocol {
       /// When this asset is traded on the markets, this percentage of the total traded will be exacted and paid
       /// to the issuer. This is a fixed point value, representing hundredths of a percent, i.e. a value of 100
       /// in this field means a 1% fee is charged on market trades of this asset.
-      // BSIP81: Asset owners may specify different market fee rate for maker orders and taker orders
-      // After BSIP81 activation, market_fee_percent is the maker fee
+      // Asset owners may specify different market fee rate for maker orders and taker orders
+      // market_fee_percent is the maker fee
       uint16_t market_fee_percent = 0;
       /// Market fees calculated as @ref market_fee_percent of the traded volume are capped to this value
       share_type max_market_fee = GRAPHENE_MAX_SHARE_SUPPLY;
 
       /// The flags which the issuer has permission to update. See @ref asset_issuer_permission_flags
-      uint16_t issuer_permissions = DEFAULT_UIA_ASSET_ISSUER_PERMISSION;
+      uint16_t issuer_permissions = UIA_ASSET_ISSUER_PERMISSION_MASK;
       /// The currently active flags on this permission. See @ref asset_issuer_permission_flags
       uint16_t flags = 0;
 
@@ -110,13 +110,13 @@ namespace graphene { namespace protocol {
 
       struct ext
       {
-         /// After BSIP77, when creating a new debt position or updating an existing position,
+         /// When creating a new debt position or updating an existing position,
          /// the position will be checked against this parameter.
          /// Unused for prediction markets, although we allow it to be set for simpler implementation
          fc::optional<uint16_t> initial_collateral_ratio;  // BSIP-77
-         /// After BSIP75, the asset owner can update MCR directly
+         /// The asset owner can update MCR directly
          fc::optional<uint16_t> maintenance_collateral_ratio; // BSIP-75
-         /// After BSIP75, the asset owner can update MSSR directly
+         /// The asset owner can update MSSR directly
          fc::optional<uint16_t> maximum_short_squeeze_ratio;  // BSIP-75
          fc::optional<uint16_t> margin_call_fee_ratio; // BSIP 74
          fc::optional<uint16_t> force_settle_fee_percent;  // BSIP-87
@@ -308,10 +308,10 @@ namespace graphene { namespace protocol {
    {
       struct ext
       {
-         /// After BSIP48, the precision of an asset can be updated if no supply is available
+         /// An asset can be updated if no supply is available
          /// @note The parties involved still need to be careful
          fc::optional<uint8_t> new_precision;
-         /// After BSIP48, if this option is set to true, the asset's core_exchange_rate won't be updated.
+         /// If this option is set to true, the asset's core_exchange_rate won't be updated.
          /// This is especially useful for committee-owned bitassets which can not be updated quickly.
          fc::optional<bool> skip_core_exchange_rate;
       };
@@ -416,7 +416,7 @@ namespace graphene { namespace protocol {
    {
       struct ext
       {
-         /// After BSIP77, price feed producers can feed ICR too
+         /// Price feed producers can feed ICR too
          fc::optional<uint16_t> initial_collateral_ratio;  // BSIP-77
       };
 

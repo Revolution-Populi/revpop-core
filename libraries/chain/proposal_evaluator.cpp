@@ -29,27 +29,7 @@
 namespace graphene { namespace chain {
 
 namespace detail {
-   void check_asset_options_hf_1774(const fc::time_point_sec& block_time, const asset_options& options);
 
-   void check_asset_options_hf_bsip_48_75(const fc::time_point_sec& block_time, const asset_options& options);
-   void check_bitasset_options_hf_bsip_48_75(const fc::time_point_sec& block_time, const bitasset_options& options);
-   void check_asset_update_extensions_hf_bsip_48_75( const fc::time_point_sec& block_time,
-                                                     const asset_update_operation::ext& extensions );
-
-   void check_asset_publish_feed_extensions_hf_bsip77( const fc::time_point_sec& block_time,
-                                                       const asset_publish_feed_operation::ext& extensions );
-   void check_bitasset_options_hf_bsip77(const fc::time_point_sec& block_time, const bitasset_options& options);
-
-   void check_bitasset_options_hf_bsip74(const fc::time_point_sec& block_time,
-                                         const bitasset_options& options); // HF_REMOVABLE
-
-   void check_asset_options_hf_bsip81(const fc::time_point_sec& block_time, const asset_options& options);
-
-   void check_bitasset_options_hf_bsip87(const fc::time_point_sec& block_time,
-                                         const bitasset_options& options); // HF_REMOVABLE
-
-   void check_asset_claim_fees_hardfork_87_74_collatfee(const fc::time_point_sec& block_time,
-                                                        const asset_claim_fees_operation& op); // HF_REMOVABLE
 }
 
 struct proposal_operation_hardfork_visitor
@@ -66,52 +46,21 @@ struct proposal_operation_hardfork_visitor
    void operator()(const T &v) const {}
 
    void operator()(const graphene::chain::asset_create_operation &v) const {
-      detail::check_asset_options_hf_1774(block_time, v.common_options);
-      detail::check_asset_options_hf_bsip_48_75(block_time, v.common_options);
-      detail::check_asset_options_hf_bsip81(block_time, v.common_options);
-      if( v.bitasset_opts.valid() ) {
-         detail::check_bitasset_options_hf_bsip_48_75( block_time, *v.bitasset_opts );
-         detail::check_bitasset_options_hf_bsip74( block_time, *v.bitasset_opts ); // HF_REMOVABLE
-         detail::check_bitasset_options_hf_bsip77( block_time, *v.bitasset_opts ); // HF_REMOVABLE
-         detail::check_bitasset_options_hf_bsip87( block_time, *v.bitasset_opts ); // HF_REMOVABLE
-      }
-
-      // TODO move as many validations as possible to validate() if not triggered before hardfork
-      if( HARDFORK_BSIP_48_75_PASSED( block_time ) )
-      {
-         v.common_options.validate_flags( v.bitasset_opts.valid() );
-      }
+      v.common_options.validate_flags( v.bitasset_opts.valid() );
    }
 
    void operator()(const graphene::chain::asset_update_operation &v) const {
-      detail::check_asset_options_hf_1774(block_time, v.new_options);
-      detail::check_asset_options_hf_bsip_48_75(block_time, v.new_options);
-      detail::check_asset_options_hf_bsip81(block_time, v.new_options);
-
-      detail::check_asset_update_extensions_hf_bsip_48_75( block_time, v.extensions.value );
-
-      // TODO move as many validations as possible to validate() if not triggered before hardfork
-      if( HARDFORK_BSIP_48_75_PASSED( block_time ) )
-      {
-         v.new_options.validate_flags( true );
-      }
+      v.new_options.validate_flags( true );
 
    }
 
    void operator()(const graphene::chain::asset_update_bitasset_operation &v) const {
-      detail::check_bitasset_options_hf_bsip_48_75( block_time, v.new_options );
-      detail::check_bitasset_options_hf_bsip74( block_time, v.new_options ); // HF_REMOVABLE
-      detail::check_bitasset_options_hf_bsip77( block_time, v.new_options ); // HF_REMOVABLE
-      detail::check_bitasset_options_hf_bsip87( block_time, v.new_options ); // HF_REMOVABLE
    }
 
    void operator()(const graphene::chain::asset_claim_fees_operation &v) const {
-      detail::check_asset_claim_fees_hardfork_87_74_collatfee(block_time, v); // HF_REMOVABLE
    }
 
    void operator()(const graphene::chain::asset_publish_feed_operation &v) const {
-
-      detail::check_asset_publish_feed_extensions_hf_bsip77( block_time, v.extensions.value );
 
    }
 
@@ -126,23 +75,9 @@ struct proposal_operation_hardfork_visitor
          FC_ASSERT(!op.new_parameters.current_fees->exists<custom_authority_delete_operation>(),
                    "Unable to define fees for custom authority operations prior to hardfork BSIP 40");*/
       }
-      if (!HARDFORK_BSIP_85_PASSED(block_time)) {
-         FC_ASSERT(!op.new_parameters.extensions.value.maker_fee_discount_percent.valid(),
-                   "Unable to set maker_fee_discount_percent before hardfork BSIP 85");
-      }
       if (!HARDFORK_REVPOP_14_PASSED(block_time)) {
          FC_ASSERT(!op.new_parameters.extensions.value.electoral_threshold.valid(),
                    "Unable to set electoral_threshold before hardfork REVPOP 14");
-      }
-      if (!HARDFORK_BSIP_86_PASSED(block_time)) {
-         FC_ASSERT(!op.new_parameters.extensions.value.market_fee_network_percent.valid(),
-                   "Unable to set market_fee_network_percent before hardfork BSIP 86");
-      }
-      if (!HARDFORK_CORE_2103_PASSED(block_time)) {
-         FC_ASSERT(!op.new_parameters.current_fees->exists<ticket_create_operation>(),
-                   "Unable to define fees for ticket operations prior to hardfork 2103");
-         FC_ASSERT(!op.new_parameters.current_fees->exists<ticket_update_operation>(),
-                   "Unable to define fees for ticket operations prior to hardfork 2103");
       }
    }
    void operator()(const graphene::chain::custom_authority_create_operation&) const {
@@ -153,12 +88,6 @@ struct proposal_operation_hardfork_visitor
    }
    void operator()(const graphene::chain::custom_authority_delete_operation&) const {
       FC_ASSERT( HARDFORK_BSIP_40_PASSED(block_time), "Not allowed until hardfork BSIP 40" );
-   }
-   void operator()(const graphene::chain::ticket_create_operation &op) const {
-      FC_ASSERT( HARDFORK_CORE_2103_PASSED(block_time), "Not allowed until hardfork 2103" );
-   }
-   void operator()(const graphene::chain::ticket_update_operation &op) const {
-      FC_ASSERT( HARDFORK_CORE_2103_PASSED(block_time), "Not allowed until hardfork 2103" );
    }
 
    // loop and self visit in proposals
@@ -176,18 +105,6 @@ struct proposal_operation_hardfork_visitor
             already_contains_proposal_update = true;
          }
       }
-   }
-};
-
-struct hardfork_visitor_214 // non-recursive proposal visitor
-{
-   typedef void result_type;
-
-   template<typename T>
-   void operator()(const T &v) const {}
-
-   void operator()(const proposal_update_operation &v) const {
-      FC_ASSERT(false, "Not allowed until hardfork 214");
    }
 };
 
@@ -220,13 +137,6 @@ void_result proposal_create_evaluator::do_evaluate( const proposal_create_operat
    const fc::time_point_sec block_time = d.head_block_time();
    proposal_operation_hardfork_visitor vtor( d, block_time );
    vtor( o );
-   if( block_time < HARDFORK_CORE_214_TIME )
-   {
-      // cannot be removed after hf, unfortunately
-      hardfork_visitor_214 hf214;
-      for( const op_wrapper &op : o.proposed_ops )
-         op.op.visit( hf214 );
-   }
    vtor_1479( o );
 
    const auto& global_parameters = d.get_global_properties().parameters;
@@ -243,8 +153,7 @@ void_result proposal_create_evaluator::do_evaluate( const proposal_create_operat
    vector<authority> other;
    for( auto& op : o.proposed_ops )
    {
-      operation_get_required_authorities( op.op, tmp_required_active_auths, _required_owner_auths, other,
-                                          MUST_IGNORE_CUSTOM_OP_REQD_AUTHS( block_time ) );
+      operation_get_required_authorities( op.op, tmp_required_active_auths, _required_owner_auths, other, false );
    }
    // All accounts which must provide both owner and active authority should be omitted from the 
    // active authority set; owner authority approval implies active authority approval.
@@ -282,9 +191,8 @@ void_result proposal_create_evaluator::do_evaluate( const proposal_create_operat
 object_id_type proposal_create_evaluator::do_apply( const proposal_create_operation& o )
 { try {
    database& d = db();
-   auto chain_time = d.head_block_time();
 
-   const proposal_object& proposal = d.create<proposal_object>( [&o, this, chain_time](proposal_object& proposal) {
+   const proposal_object& proposal = d.create<proposal_object>( [&o, this](proposal_object& proposal) {
       _proposed_trx.expiration = o.expiration_time;
       proposal.proposed_transaction = _proposed_trx;
       proposal.expiration_time = o.expiration_time;
@@ -296,19 +204,8 @@ object_id_type proposal_create_evaluator::do_apply( const proposal_create_operat
       proposal.required_owner_approvals.insert( _required_owner_auths.begin(), _required_owner_auths.end() );
       proposal.required_active_approvals.insert( _required_active_auths.begin(), _required_active_auths.end() );
 
-      if( chain_time > HARDFORK_CORE_1479_TIME )
-         FC_ASSERT( vtor_1479.nested_update_count == 0 || proposal.id.instance() > vtor_1479.max_update_instance,
-                    "Cannot update/delete a proposal with a future id!" );
-      else if( vtor_1479.nested_update_count > 0 && proposal.id.instance() <= vtor_1479.max_update_instance )
-      {
-         // Note: This happened on mainnet, proposal 1.10.17503
-         // prevent approval
-         transfer_operation top;
-         top.from = GRAPHENE_NULL_ACCOUNT;
-         top.to = GRAPHENE_RELAXED_COMMITTEE_ACCOUNT;
-         top.amount = asset( GRAPHENE_MAX_SHARE_SUPPLY );
-         proposal.proposed_transaction.operations.emplace_back( top );
-      }
+      FC_ASSERT( vtor_1479.nested_update_count == 0 || proposal.id.instance() > vtor_1479.max_update_instance,
+                 "Cannot update/delete a proposal with a future id!" );
    });
 
    return proposal.id;

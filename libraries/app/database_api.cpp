@@ -1280,8 +1280,9 @@ set<public_key_type> database_api_impl::get_required_signatures( const signed_tr
                                                             const flat_set<public_key_type>& available_keys )const
 {
    auto chain_time = _db.head_block_time();
-   bool allow_non_immediate_owner = ( chain_time >= HARDFORK_CORE_584_TIME );
-   bool ignore_custom_op_reqd_auths = MUST_IGNORE_CUSTOM_OP_REQD_AUTHS( chain_time );
+   bool allow_non_immediate_owner = true;
+   bool ignore_custom_op_reqd_auths = false;
+
    auto result = trx.get_required_signatures( _db.get_chain_id(),
                                        available_keys,
                                        [&]( account_id_type id ){ return &id(_db).active; },
@@ -1304,8 +1305,8 @@ set<address> database_api::get_potential_address_signatures( const signed_transa
 set<public_key_type> database_api_impl::get_potential_signatures( const signed_transaction& trx )const
 {
    auto chain_time = _db.head_block_time();
-   bool allow_non_immediate_owner = ( chain_time >= HARDFORK_CORE_584_TIME );
-   bool ignore_custom_op_reqd_auths = MUST_IGNORE_CUSTOM_OP_REQD_AUTHS( chain_time );
+   bool allow_non_immediate_owner = true;
+   bool ignore_custom_op_reqd_auths = false;
 
    set<public_key_type> result;
    auto get_active = [this, &result]( account_id_type id ){
@@ -1343,8 +1344,8 @@ set<public_key_type> database_api_impl::get_potential_signatures( const signed_t
 set<address> database_api_impl::get_potential_address_signatures( const signed_transaction& trx )const
 {
    auto chain_time = _db.head_block_time();
-   bool allow_non_immediate_owner = ( chain_time >= HARDFORK_CORE_584_TIME );
-   bool ignore_custom_op_reqd_auths = MUST_IGNORE_CUSTOM_OP_REQD_AUTHS( chain_time );
+   bool allow_non_immediate_owner = true;
+   bool ignore_custom_op_reqd_auths = false;
 
    set<address> result;
    auto get_active = [this, &result]( account_id_type id ){
@@ -1376,7 +1377,7 @@ bool database_api::verify_authority( const signed_transaction& trx )const
 
 bool database_api_impl::verify_authority( const signed_transaction& trx )const
 {
-   bool allow_non_immediate_owner = ( _db.head_block_time() >= HARDFORK_CORE_584_TIME );
+   bool allow_non_immediate_owner = true;
    trx.verify_authority( _db.get_chain_id(),
                          [this]( account_id_type id ){ return &id(_db).active; },
                          [this]( account_id_type id ){ return &id(_db).owner; },
@@ -1409,7 +1410,7 @@ bool database_api_impl::verify_account_authority( const string& account_name_or_
             [this]( account_id_type id ){ return &id(_db).owner; },
             // Use a no-op lookup for custom authorities; we don't want it even if one does apply for our dummy op
             [](auto, auto, auto*) { return vector<authority>(); },
-            true, MUST_IGNORE_CUSTOM_OP_REQD_AUTHS(_db.head_block_time()) );
+            true, false );
    }
    catch (fc::exception& ex)
    {

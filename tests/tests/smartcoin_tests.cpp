@@ -257,29 +257,10 @@ BOOST_AUTO_TEST_CASE(bsip36)
       generate_blocks(db.head_block_time() + feed_lifetime + 1);
       bitasset_data = bit_usd_id(db).bitasset_data(db);
       itr = bitasset_data.feeds.begin();
-      BOOST_CHECK_EQUAL(bitasset_data.feeds.size(), 2u);
       BOOST_CHECK_EQUAL(itr[0].first.instance.value, 16u);
-
-      // Other witnesses add more feeds
-      feed.settlement_price = bit_usd_id(db).amount(4) / core.amount(5);
-      publish_feed(bit_usd_id(db), witness2_id(db), feed);
-      feed.settlement_price = bit_usd_id(db).amount(3) / core.amount(5);
-      publish_feed(bit_usd_id(db), witness3_id(db), feed);
-
-      // But the one from witness0 is never removed
-      bitasset_data = bit_usd_id(db).bitasset_data(db);
-      itr = bitasset_data.feeds.begin();
-      BOOST_CHECK_EQUAL(bitasset_data.feeds.size(), 4u);
-      BOOST_CHECK_EQUAL(itr[0].first.instance.value, 16u);
-
-      // Feed from witness1 is also expired but never deleted
-      // All feeds should be deleted at this point
-      const auto minimum_feeds = bit_usd_id(db).bitasset_data(db).options.minimum_feeds;
-      BOOST_CHECK_EQUAL(minimum_feeds, 1u);
-      BOOST_CHECK_EQUAL(itr[1].first.instance.value, 17u);
 
       // Advancing into HF time
-      generate_blocks(HARDFORK_CORE_518_TIME);
+      generate_block();
 
       // Advancing to next maint
       generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
@@ -393,14 +374,24 @@ BOOST_AUTO_TEST_CASE(bsip36_update_feed_producers)
       const asset_id_type bit_usd_id = create_bitasset("USDBIT").id;
 
       // Update asset issuer
-      const asset_object &asset_obj = bit_usd_id(db);
       {
+         const asset_object &asset_obj = bit_usd_id(db);
          asset_update_operation op;
          op.asset_to_update = bit_usd_id;
          op.issuer = asset_obj.issuer;
-         op.new_issuer = bob_id;
          op.new_options = asset_obj.options;
          op.new_options.flags &= ~witness_fed_asset;
+         trx.operations.push_back(op);
+         PUSH_TX(db, trx, ~0);
+         generate_block();
+         trx.clear();
+      }
+      {
+         const asset_object &asset_obj = bit_usd_id(db);
+         asset_update_issuer_operation op;
+         op.asset_to_update = bit_usd_id;
+         op.issuer = asset_obj.issuer;
+         op.new_issuer = bob_id;
          trx.operations.push_back(op);
          PUSH_TX(db, trx, ~0);
          generate_block();
@@ -459,7 +450,7 @@ BOOST_AUTO_TEST_CASE(bsip36_update_feed_producers)
       BOOST_CHECK_EQUAL(itr[1].first.instance.value, 18u);
 
       // Advancing into HF time
-      generate_blocks(HARDFORK_CORE_518_TIME);
+      generate_block();
 
       // Advancing to next maint
       generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);

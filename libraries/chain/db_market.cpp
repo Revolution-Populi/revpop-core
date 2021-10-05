@@ -178,7 +178,7 @@ void database::_cancel_bids_and_revive_mpa( const asset_object& bitasset, const 
 void database::cancel_bid(const collateral_bid_object& bid, bool create_virtual_op)
 {
    adjust_balance(bid.bidder, bid.inv_swan_price.base);
-/*
+
    if( create_virtual_op )
    {
       bid_collateral_operation vop;
@@ -187,7 +187,6 @@ void database::cancel_bid(const collateral_bid_object& bid, bool create_virtual_
       vop.debt_covered = asset( 0, bid.inv_swan_price.quote.asset_id );
       push_applied_operation( vop );
    }
-*/
    remove(bid);
 }
 
@@ -215,8 +214,8 @@ void database::execute_bid( const collateral_bid_object& bid, share_type debt_co
          stats.total_core_in_orders += call_obj.collateral;
       });
 
-   //push_applied_operation( execute_bid_operation( bid.bidder, asset( call_obj.collateral, bid.inv_swan_price.base.asset_id ),
-   //                                               asset( debt_covered, bid.inv_swan_price.quote.asset_id ) ) );
+   push_applied_operation( execute_bid_operation( bid.bidder, asset( debt_covered, bid.inv_swan_price.quote.asset_id ),
+                                                  asset( call_obj.collateral, bid.inv_swan_price.base.asset_id ) ) );
 
    remove(bid);
 }
@@ -244,10 +243,9 @@ void database::cancel_limit_order( const limit_order_object& order, bool create_
    // 2. due to cull_small: deduct a fee after hard fork 604, but not before (will set skip_cancel_fee)
    const account_statistics_object* seller_acc_stats = nullptr;
    const asset_dynamic_data_object* fee_asset_dyn_data = nullptr;
-   //limit_order_cancel_operation vop;
+   limit_order_cancel_operation vop;
    share_type deferred_fee = order.deferred_fee;
    asset deferred_paid_fee = order.deferred_paid_fee;
-/*
    if( create_virtual_op )
    {
       vop.order = order.id;
@@ -294,7 +292,6 @@ void database::cancel_limit_order( const limit_order_object& order, bool create_
          }
       }
    }
-*/
 
    // refund funds in order
    auto refunded = order.amount_for_sale();
@@ -327,10 +324,10 @@ void database::cancel_limit_order( const limit_order_object& order, bool create_
          addo.fee_pool += deferred_fee;
       });
    }
-/*
+
    if( create_virtual_op )
       push_applied_operation( vop );
-*/
+
    remove(order);
 }
 
@@ -844,7 +841,7 @@ bool database::fill_limit_order( const limit_order_object& order, const asset& p
    pay_order( seller, receives - issuer_fees, pays );
 
    assert( pays.asset_id != receives.asset_id );
-   //push_applied_operation( fill_order_operation( order.id, order.seller, pays, receives, issuer_fees, fill_price, is_maker ) );
+   push_applied_operation( fill_order_operation( order.id, order.seller, pays, receives, issuer_fees, fill_price, is_maker ) );
 
    // BSIP85: Maker order creation fee discount, https://github.com/bitshares/bsips/blob/master/bsip-0085.md
    //   if the order creation fee was paid in RVP,
@@ -1003,8 +1000,8 @@ bool database::fill_call_order( const call_order_object& order, const asset& pay
       mia.accumulate_fee(*this, margin_call_fee);
 
    // virtual operation for account history
-   //push_applied_operation( fill_order_operation( order.id, order.borrower, pays, receives,
-   //      margin_call_fee, fill_price, is_maker ) );
+   push_applied_operation( fill_order_operation( order.id, order.borrower, pays, receives,
+         margin_call_fee, fill_price, is_maker ) );
 
    // Call order completely filled, remove it
    if( collateral_freed.valid() )
@@ -1074,8 +1071,8 @@ bool database::fill_settle_order( const force_settlement_object& settle, const a
    adjust_balance(settle.owner, receives - total_collateral_denominated_fees);
 
    assert( pays.asset_id != receives.asset_id );
-   //push_applied_operation( fill_order_operation( settle.id, settle.owner, pays, receives,
-   //                                              total_collateral_denominated_fees, fill_price, is_maker ) );
+   push_applied_operation( fill_order_operation( settle.id, settle.owner, pays, receives,
+                                                 total_collateral_denominated_fees, fill_price, is_maker ) );
 
    if (filled)
       remove(settle);
@@ -1342,7 +1339,8 @@ void database::pay_order( const account_object& receiver, const asset& receives,
    adjust_balance(receiver.get_id(), receives);
 }
 
-asset database::calculate_market_fee( const asset_object& trade_asset, const asset& trade_amount, const bool& is_maker)
+asset database::calculate_market_fee( const asset_object& trade_asset, const asset& trade_amount,
+                                      const bool& is_maker )const
 {
    assert( trade_asset.id == trade_amount.asset_id );
 
@@ -1377,9 +1375,10 @@ asset database::calculate_market_fee( const asset_object& trade_asset, const ass
 
 
 asset database::pay_market_fees(const account_object* seller, const asset_object& recv_asset, const asset& receives,
-                                const bool& is_maker)
+                                const bool& is_maker, const optional<asset>& calculated_market_fees )
 {
-   const auto market_fees = calculate_market_fee( recv_asset, receives, is_maker );
+   const auto market_fees = ( calculated_market_fees.valid() ? *calculated_market_fees
+                                    : calculate_market_fee( recv_asset, receives, is_maker ) );
    auto issuer_fees = market_fees;
    FC_ASSERT( issuer_fees <= receives, "Market fee shouldn't be greater than receives");
    //Don't dirty undo state if not actually collecting any fees

@@ -595,15 +595,18 @@ void database::clear_expired_htlcs()
       const auto amount = asset(obj.transfer.amount, obj.transfer.asset_id);
       adjust_balance( obj.transfer.from, amount );
       // notify related parties
-      //htlc_refund_operation vop( obj.id, obj.transfer.from, obj.transfer.to, amount,
-      //   obj.conditions.hash_lock.preimage_hash, obj.conditions.hash_lock.preimage_size );
-      //push_applied_operation( vop );
+      htlc_refund_operation vop( obj.id, obj.transfer.from, obj.transfer.to, amount,
+         obj.conditions.hash_lock.preimage_hash, obj.conditions.hash_lock.preimage_size );
+      push_applied_operation( vop );
       remove( obj );
    }
 }
 
 generic_operation_result database::process_tickets()
 {
+   const auto maint_time = get_dynamic_global_properties().next_maintenance_time;
+   ticket_version version = ( HARDFORK_CORE_2262_PASSED(maint_time) ? ticket_v2 : ticket_v1 );
+
    generic_operation_result result;
    share_type total_delta_pob;
    share_type total_delta_inactive;
@@ -627,8 +630,8 @@ generic_operation_result database::process_tickets()
       {
          ticket_type old_type = ticket.current_type;
          share_type old_value = ticket.value;
-         modify( ticket, []( ticket_object& o ) {
-            o.auto_update();
+         modify( ticket, [version]( ticket_object& o ) {
+            o.auto_update( version );
          });
          result.updated_objects.insert( ticket.id );
 

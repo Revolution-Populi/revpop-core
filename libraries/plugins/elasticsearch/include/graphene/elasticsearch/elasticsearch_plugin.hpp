@@ -55,16 +55,16 @@ enum mode { only_save = 0 , only_query = 1, all = 2 };
 class elasticsearch_plugin : public graphene::app::plugin
 {
    public:
-      elasticsearch_plugin();
-      virtual ~elasticsearch_plugin();
+      explicit elasticsearch_plugin(graphene::app::application& app);
+      ~elasticsearch_plugin() override;
 
       std::string plugin_name()const override;
       std::string plugin_description()const override;
-      virtual void plugin_set_program_options(
+      void plugin_set_program_options(
          boost::program_options::options_description& cli,
          boost::program_options::options_description& cfg) override;
-      virtual void plugin_initialize(const boost::program_options::variables_map& options) override;
-      virtual void plugin_startup() override;
+      void plugin_initialize(const boost::program_options::variables_map& options) override;
+      void plugin_startup() override;
 
       operation_history_object get_operation_by_id(operation_history_id_type id);
       vector<operation_history_object> get_account_history(const account_id_type account_id,
@@ -111,6 +111,21 @@ struct operation_visitor
    share_type          fill_receives_amount;
    double              fill_fill_price;
    bool                fill_is_maker;
+
+   void operator()( const graphene::chain::fill_order_operation& o )
+   {
+      fee_asset = o.fee.asset_id;
+      fee_amount = o.fee.amount;
+
+      fill_order_id = o.order_id;
+      fill_account_id = o.account_id;
+      fill_pays_asset_id = o.pays.asset_id;
+      fill_pays_amount = o.pays.amount;
+      fill_receives_asset_id = o.receives.asset_id;
+      fill_receives_amount = o.receives.amount;
+      fill_fill_price = o.fill_price.to_real();
+      fill_is_maker = o.is_maker;
+   }
 
    template<typename T>
    void operator()( const T& o )

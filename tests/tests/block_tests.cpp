@@ -39,6 +39,7 @@
 #include <graphene/utilities/tempdir.hpp>
 
 #include <fc/crypto/digest.hpp>
+#include <fc/io/fstream.hpp>
 
 #include "../common/database_fixture.hpp"
 
@@ -903,6 +904,49 @@ BOOST_FIXTURE_TEST_CASE( maintenance_interval, database_fixture )
 }
 
 
+BOOST_FIXTURE_TEST_CASE( limit_order_expiration, database_fixture )
+{ try {
+   //Get a sane head block time
+   generate_block();
+
+   auto* test = &create_bitasset("MIATEST");
+   auto* core = &asset_id_type()(db);
+   auto* nathan = &create_account("nathan");
+   auto* committee = &account_id_type()(db);
+
+   transfer(*committee, *nathan, core->amount(50000));
+
+   BOOST_CHECK_EQUAL( get_balance(*nathan, *core), 50000 );
+
+   limit_order_create_operation op;
+   op.seller = nathan->id;
+   op.amount_to_sell = core->amount(500);
+   op.min_to_receive = test->amount(500);
+   op.expiration = db.head_block_time() + fc::seconds(10);
+   trx.operations.push_back(op);
+   auto ptrx = PUSH_TX( db, trx, ~0 );
+
+   BOOST_CHECK_EQUAL( get_balance(*nathan, *core), 49500 );
+
+   auto ptrx_id = ptrx.operation_results.back().get<object_id_type>();
+   auto limit_index = db.get_index_type<limit_order_index>().indices();
+   auto limit_itr = limit_index.begin();
+   BOOST_REQUIRE( limit_itr != limit_index.end() );
+   BOOST_REQUIRE( limit_itr->id == ptrx_id );
+   BOOST_REQUIRE( db.find_object(limit_itr->id) );
+   BOOST_CHECK_EQUAL( get_balance(*nathan, *core), 49500 );
+   auto id = limit_itr->id;
+
+   generate_blocks(op.expiration, false);
+   test = &get_asset("MIATEST");
+   core = &asset_id_type()(db);
+   nathan = &get_account("nathan");
+   committee = &account_id_type()(db);
+
+   BOOST_CHECK(db.find_object(id) == nullptr);
+   BOOST_CHECK_EQUAL( get_balance(*nathan, *core), 50000 );
+} FC_LOG_AND_RETHROW() }
+
 BOOST_FIXTURE_TEST_CASE( double_sign_check, database_fixture )
 { try {
    generate_block();
@@ -1203,7 +1247,13 @@ BOOST_FIXTURE_TEST_CASE( transaction_invalidated_in_cache, database_fixture )
       fc::temp_directory data_dir2( graphene::utilities::temp_directory_path() );
 
       database db2;
-      db2.open(data_dir2.path(), make_genesis, "TEST");
+      {
+         std::string genesis_json;
+         fc::read_file_contents( data_dir.path() / "genesis.json", genesis_json );
+         genesis_state_type genesis = fc::json::from_string( genesis_json ).as<genesis_state_type>( 50 );
+         genesis.initial_chain_id = fc::sha256::hash( genesis_json );
+         db2.open(data_dir2.path(), [&genesis] () { return genesis; }, "TEST");
+      }
       BOOST_CHECK( db.get_chain_id() == db2.get_chain_id() );
 
       while( db2.head_block_num() < db.head_block_num() )
@@ -1771,6 +1821,45 @@ BOOST_FIXTURE_TEST_CASE( tapos_rollover, database_fixture )
       throw;
    }
 }
+
+BOOST_FIXTURE_TEST_CASE( temp_account_balance, database_fixture )
+{ try {
+   ACTORS( (alice) );
+   fund( alice );
+   create_user_issued_asset( "UIA" );
+
+   generate_block();
+   set_expiration( db, trx );
+
+   transfer_operation top;
+   top.amount = asset( 1000 );
+   top.from = alice_id;
+   top.to   = GRAPHENE_TEMP_ACCOUNT;
+   trx.operations.push_back( top );
+
+   limit_order_create_operation loc;
+   loc.amount_to_sell = top.amount;
+   loc.expiration = db.head_block_time() + 1;
+   loc.seller = GRAPHENE_TEMP_ACCOUNT;
+   loc.min_to_receive = asset( 1000, asset_id_type(1) );
+   trx.operations.push_back( loc );
+   sign( trx, alice_private_key );
+   PUSH_TX( db, trx );
+   trx.clear();
+
+   generate_block();
+   generate_block();
+   generate_block();
+
+   top.to = GRAPHENE_COMMITTEE_ACCOUNT;
+   trx.operations.push_back( top );
+   set_expiration( db, trx );
+   trx.clear_signatures();
+   sign( trx, alice_private_key );
+   PUSH_TX( db, trx );
+
+   BOOST_CHECK( get_balance( GRAPHENE_TEMP_ACCOUNT, asset_id_type() ) > 0 );
+} FC_LOG_AND_RETHROW() }
 
 ///
 /// This test case tries to

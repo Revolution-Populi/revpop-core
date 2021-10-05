@@ -57,6 +57,23 @@ struct hardfork_visitor {
                                   commit_create_operation, reveal_create_operation>;
    using RevPop_11_ops = TL::list<commit_create_v2_operation, reveal_create_v2_operation>;
    using RevPop_12_ops = TL::list<commit_create_v3_operation, reveal_create_v3_operation>;
+   using liquidity_pool_ops = TL::list< liquidity_pool_create_operation,
+                                        liquidity_pool_delete_operation,
+                                        liquidity_pool_deposit_operation,
+                                        liquidity_pool_withdraw_operation,
+                                        liquidity_pool_exchange_operation >;
+   using upstream_sync_ops = TL::list< limit_order_create_operation,
+                                       limit_order_cancel_operation,
+                                       call_order_update_operation,
+                                       fill_order_operation,
+                                       worker_create_operation,
+                                       bid_collateral_operation,
+                                       execute_bid_operation,
+                                       htlc_create_operation,
+                                       htlc_redeem_operation,
+                                       htlc_redeemed_operation,
+                                       htlc_extend_operation,
+                                       htlc_refund_operation>;
 
    fc::time_point_sec now;
 
@@ -82,6 +99,12 @@ struct hardfork_visitor {
    template<typename Op>
    std::enable_if_t<TL::contains<RevPop_12_ops, Op>(), bool>
    visit() { return HARDFORK_REVPOP_12_PASSED(now); }
+   template<typename Op>
+   std::enable_if_t<TL::contains<liquidity_pool_ops, Op>(), bool>
+   visit() { return HARDFORK_LIQUIDITY_POOL_PASSED(now); }
+   template<typename Op>
+   std::enable_if_t<TL::contains<upstream_sync_ops, Op>(), bool>
+   visit() { return true; }
    /// @}
 
    /// typelist::runtime::dispatch adaptor

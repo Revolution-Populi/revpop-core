@@ -1372,7 +1372,7 @@ BOOST_FIXTURE_TEST_CASE( nonminimal_sig_test, database_fixture )
 }
 
 /*
- * Active vs Owner https://github.com/bitshares/bitshares-core/issues/584
+ * Active vs Owner
  *
  * All weights and all thresholds are 1, so every single key should be able to sign if within max_depth
  *

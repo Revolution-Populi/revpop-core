@@ -43,4 +43,5 @@ object_database/*
 *.pyo
 
 build/*
+dbuild/*
 .vscode

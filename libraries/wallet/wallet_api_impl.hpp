@@ -167,7 +167,9 @@ public:
 
    extended_asset_object get_asset(string asset_symbol_or_id)const;
 
-   asset_id_type get_asset_id(string asset_symbol_or_id) const;
+   fc::optional<htlc_object> get_htlc(string htlc_id) const;
+
+   asset_id_type get_asset_id(const string& asset_symbol_or_id) const;
 
    string get_wallet_filename() const;
 
@@ -267,6 +269,9 @@ public:
    signed_transaction settle_asset(string account_to_settle, string amount_to_settle, string symbol,
          bool broadcast );
 
+   signed_transaction bid_collateral(string bidder_name, string debt_amount, string debt_symbol,
+         string additional_collateral, bool broadcast );
+
    signed_transaction whitelist_account(string authorizing_account, string account_to_list,
          account_whitelist_operation::account_listing new_listing_status, bool broadcast );
 
@@ -280,6 +285,21 @@ public:
 
    signed_transaction update_witness(string witness_name, string url, string block_signing_key,
          bool broadcast );
+
+   signed_transaction create_worker( string owner_account, time_point_sec work_begin_date,
+         time_point_sec work_end_date, share_type daily_pay, string name, string url,
+         variant worker_settings, bool broadcast );
+
+   signed_transaction update_worker_votes( string account, worker_vote_delta delta, bool broadcast );
+
+   signed_transaction htlc_create( string source, string destination, string amount, string asset_symbol,
+         string hash_algorithm, const std::string& preimage_hash, uint32_t preimage_size,
+         const uint32_t claim_period_seconds, const std::string& memo, bool broadcast = false );
+
+   signed_transaction htlc_redeem( string htlc_id, string issuer, const std::vector<char>& preimage, 
+         bool broadcast );
+
+   signed_transaction htlc_extend ( string htlc_id, string issuer, const uint32_t seconds_to_add, bool broadcast);
 
    signed_transaction account_store_map(string account, string catalog, bool remove,
          flat_map<string, optional<string>> key_values, bool broadcast);
@@ -330,6 +350,12 @@ public:
 
    signed_transaction borrow_asset(string seller_name, string amount_to_borrow, string asset_symbol,
          string amount_of_collateral, bool broadcast = false);
+
+   signed_transaction borrow_asset_ext( string seller_name, string amount_to_borrow, string asset_symbol,
+         string amount_of_collateral, call_order_update_operation::extensions_type extensions,
+         bool broadcast = false);
+
+   signed_transaction cancel_order(limit_order_id_type order_id, bool broadcast = false);
 
    signed_transaction transfer(string from, string to, string amount,
          string asset_symbol, string memo, bool broadcast = false);
@@ -483,6 +509,8 @@ public:
 
 private:
    std::string account_id_to_string(account_id_type id) const;
+
+   static htlc_hash do_hash( const string& algorithm, const std::string& hash );
 
    void enable_umask_protection();
 

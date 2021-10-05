@@ -103,7 +103,6 @@ namespace graphene { namespace wallet {
 
       // Create as many derived owner keys as requested
       vector<brain_key_info> results;
-      brain_key = graphene::wallet::detail::normalize_brain_key(brain_key);
       for (int i = 0; i < number_of_desired_keys; ++i) {
         fc::ecc::private_key priv_key = graphene::wallet::detail::derive_private_key( brain_key, i );
 
@@ -152,7 +151,7 @@ namespace graphene { namespace wallet {
 namespace graphene { namespace wallet {
 
 wallet_api::wallet_api(const wallet_data& initial_data, fc::api<login_api> rapi)
-   : my(new detail::wallet_api_impl(*this, initial_data, rapi))
+   : my( std::make_unique<detail::wallet_api_impl>(*this, initial_data, rapi) )
 {
 }
 
@@ -200,7 +199,84 @@ uint64_t wallet_api::get_asset_count()const
    return my->_remote_db->get_asset_count();
 }
 
-vector<operation_detail> wallet_api::get_account_history(string name, int limit)const
+signed_transaction wallet_api::htlc_create( string source, string destination, string amount, string asset_symbol,
+         string hash_algorithm, const std::string& preimage_hash, uint32_t preimage_size,
+         const uint32_t claim_period_seconds, const std::string& memo, bool broadcast)
+{
+   return my->htlc_create(source, destination, amount, asset_symbol, hash_algorithm, preimage_hash, preimage_size,
+         claim_period_seconds, memo, broadcast);
+}
+
+fc::optional<fc::variant> wallet_api::get_htlc(std::string htlc_id) const
+{
+   fc::optional<htlc_object> optional_obj = my->get_htlc(htlc_id);
+   if ( optional_obj.valid() )
+   {
+      const htlc_object& obj = *optional_obj;
+      // convert to formatted variant
+      fc::mutable_variant_object transfer;
+      const auto& from = my->get_account( obj.transfer.from );
+      transfer["from"] = from.name;
+      const auto& to = my->get_account( obj.transfer.to );
+      transfer["to"] = to.name;
+      const auto& asset = my->get_asset( obj.transfer.asset_id );
+      transfer["asset"] = asset.symbol;
+      transfer["amount"] = graphene::app::uint128_amount_to_string( obj.transfer.amount.value, asset.precision );
+      if (obj.memo.valid())
+         transfer["memo"] = my->read_memo( *obj.memo );
+      class htlc_hash_to_variant_visitor
+      {
+         public:
+         typedef fc::mutable_variant_object result_type;
+
+         result_type operator()(const fc::ripemd160& obj)const
+         { return convert("RIPEMD160", obj.str()); }
+         result_type operator()(const fc::sha1& obj)const
+         { return convert("SHA1", obj.str()); }
+         result_type operator()(const fc::sha256& obj)const
+         { return convert("SHA256", obj.str()); }
+         result_type operator()(const fc::hash160& obj)const
+         { return convert("HASH160", obj.str()); }
+         private:
+         result_type convert(const std::string& type, const std::string& hash)const
+         {
+            fc::mutable_variant_object ret_val;
+            ret_val["hash_algo"] = type;
+            ret_val["preimage_hash"] = hash;
+            return ret_val;
+         }
+      };
+      static htlc_hash_to_variant_visitor hash_visitor;
+      fc::mutable_variant_object htlc_lock = obj.conditions.hash_lock.preimage_hash.visit(hash_visitor);
+      htlc_lock["preimage_size"] = obj.conditions.hash_lock.preimage_size;
+      fc::mutable_variant_object time_lock;
+      time_lock["expiration"] = obj.conditions.time_lock.expiration;
+      time_lock["time_left"] = fc::get_approximate_relative_time_string(obj.conditions.time_lock.expiration);
+      fc::mutable_variant_object conditions;
+      conditions["htlc_lock"] = htlc_lock;
+      conditions["time_lock"] = time_lock;
+      fc::mutable_variant_object result;
+      result["transfer"] = transfer;
+      result["conditions"] = conditions;
+      return fc::optional<fc::variant>(result);
+   }
+   return fc::optional<fc::variant>();
+}
+
+signed_transaction wallet_api::htlc_redeem( std::string htlc_id, std::string issuer, const std::string& preimage,
+      bool broadcast)
+{
+
+   return my->htlc_redeem(htlc_id, issuer, std::vector<char>(preimage.begin(), preimage.end()), broadcast);
+}
+
+signed_transaction wallet_api::htlc_extend ( std::string htlc_id, std::string issuer, const uint32_t seconds_to_add,
+      bool broadcast)
+{
+   return my->htlc_extend(htlc_id, issuer, seconds_to_add, broadcast);
+}
+
+vector<operation_detail> wallet_api::get_account_history(const string& name, uint32_t limit)const
 {
    vector<operation_detail> result;
 
@@ -222,7 +298,9 @@ vector<operation_detail> wallet_api::get_account_history(string name, int limit)
          }
       }
 
-      int page_limit = skip_first_row ? std::min( 100, limit + 1 ) : std::min( 100, limit );
+      uint32_t default_page_size = 100;
+      uint32_t page_limit = skip_first_row ? std::min<uint32_t>( default_page_size, limit + 1 )
+                                           : std::min<uint32_t>( default_page_size, limit );
 
       vector<operation_history_object> current = my->_remote_hist->get_account_history(
             name,
@@ -245,7 +323,7 @@ vector<operation_detail> wallet_api::get_account_history(string name, int limit)
          result.push_back( operation_detail{ memo, ss.str(), o } );
       }
 
-      if( int(current.size()) < page_limit )
+      if( current.size() < page_limit )
          break;
 
       limit -= current.size();
@@ -257,9 +335,9 @@ vector<operation_detail> wallet_api::get_account_history(string name, int limit)
 }
 
 vector<operation_detail> wallet_api::get_relative_account_history(
-      string name,
+      const string& name,
       uint32_t stop,
-      int limit,
+      uint32_t limit,
       uint32_t start)const
 {
    vector<operation_detail> result;
@@ -273,37 +351,38 @@ vector<operation_detail> wallet_api::get_relative_account_history(
    else
       start = std::min<uint32_t>(start, stats.total_ops);
 
+   uint32_t default_page_size = 100;
    while( limit > 0 )
    {
+      uint32_t page_size = std::min<uint32_t>(default_page_size, limit);
       vector <operation_history_object> current = my->_remote_hist->get_relative_account_history(
             name,
             stop,
-            std::min<uint32_t>(100, limit),
+            page_size,
             start);
       for (auto &o : current) {
          std::stringstream ss;
          auto memo = o.op.visit(detail::operation_printer(ss, *my, o));
          result.push_back(operation_detail{memo, ss.str(), o});
       }
-      if (current.size() < std::min<uint32_t>(100, limit))
+      if (current.size() < page_size)
          break;
-      limit -= current.size();
-      start -= 100;
+      limit -= page_size;
+      start -= page_size;
       if( start == 0 ) break;
    }
    return result;
 }
 
 account_history_operation_detail wallet_api::get_account_history_by_operations(
-      string name,
-      flat_set<uint16_t> operation_types,
+      const string& name,
+      const flat_set<uint16_t>& operation_types,
       uint32_t start,
-      int limit)
+      uint32_t limit)
 {
     account_history_operation_detail result;
-    auto account_id = get_account(name).get_id();
 
-    const auto& account = my->get_account(account_id);
+    const auto& account = my->get_account(name);
     const auto& stats = my->get_object(account.statistics);
 
     // sequence of account_transaction_history_object start with 1
@@ -314,10 +393,14 @@ account_history_operation_detail wallet_api::get_account_history_by_operations(
         result.total_count =stats.removed_ops;
     }
 
+    uint32_t default_page_size = 100;
     while (limit > 0 && start <= stats.total_ops) {
-        uint32_t min_limit = std::min<uint32_t> (100, limit);
+        uint32_t min_limit = std::min(default_page_size, limit);
         auto current = my->_remote_hist->get_account_history_by_operations(name, operation_types, start, min_limit);
-        for (auto& obj : current.operation_history_objs) {
+        auto his_rend = current.operation_history_objs.rend();
+        for( auto it = current.operation_history_objs.rbegin(); it != his_rend; ++it )
+        {
+            auto& obj = *it;
             std::stringstream ss;
             auto memo = obj.op.visit(detail::operation_printer(ss, *my, obj));
 
@@ -341,6 +424,47 @@ account_history_operation_detail wallet_api::get_account_history_by_operations(
 full_account wallet_api::get_full_account( const string& name_or_id)
 {
     return my->_remote_db->get_full_accounts({name_or_id}, false)[name_or_id];
+}
+
+vector<bucket_object> wallet_api::get_market_history(
+      string symbol1,
+      string symbol2,
+      uint32_t bucket,
+      fc::time_point_sec start,
+      fc::time_point_sec end )const
+{
+   return my->_remote_hist->get_market_history( symbol1, symbol2, bucket, start, end );
+}
+
+vector<limit_order_object> wallet_api::get_account_limit_orders(
+      const string& name_or_id,
+      const string &base,
+      const string &quote,
+      uint32_t limit,
+      optional<limit_order_id_type> ostart_id,
+      optional<price> ostart_price)
+{
+   return my->_remote_db->get_account_limit_orders(name_or_id, base, quote, limit, ostart_id, ostart_price);
+}
+
+vector<limit_order_object> wallet_api::get_limit_orders(std::string a, std::string b, uint32_t limit)const
+{
+   return my->_remote_db->get_limit_orders(a, b, limit);
+}
+
+vector<call_order_object> wallet_api::get_call_orders(std::string a, uint32_t limit)const
+{
+   return my->_remote_db->get_call_orders(a, limit);
+}
+
+vector<force_settlement_object> wallet_api::get_settle_orders(std::string a, uint32_t limit)const
+{
+   return my->_remote_db->get_settle_orders(a, limit);
+}
+
+vector<collateral_bid_object> wallet_api::get_collateral_bids(std::string asset, uint32_t limit, uint32_t start)const
+{
+   return my->_remote_db->get_collateral_bids(asset, limit, start);
 }
 
 brain_key_info wallet_api::suggest_brain_key()const
@@ -458,7 +582,7 @@ account_id_type wallet_api::get_account_id(string account_name_or_id) const
    return my->get_account_id(account_name_or_id);
 }
 
-asset_id_type wallet_api::get_asset_id(string asset_symbol_or_id) const
+asset_id_type wallet_api::get_asset_id(const string& asset_symbol_or_id) const
 {
    return my->get_asset_id(asset_symbol_or_id);
 }
@@ -479,6 +603,129 @@ bool wallet_api::import_key(string account_name_or_id, string wif_key)
       copy_wallet_file( "after-import-key-" + shorthash );
       return true;
    }
+   return false;
+}
+
+map<string, bool> wallet_api::import_accounts( string filename, string password )
+{
+   FC_ASSERT( !is_locked() );
+   FC_ASSERT( fc::exists( filename ) );
+
+   const auto imported_keys = fc::json::from_file<exported_keys>( filename );
+
+   const auto password_hash = fc::sha512::hash( password );
+   FC_ASSERT( fc::sha512::hash( password_hash ) == imported_keys.password_checksum );
+
+   map<string, bool> result;
+   for( const auto& item : imported_keys.account_keys )
+   {
+       const auto import_this_account = [ & ]() -> bool
+       {
+           try
+           {
+               const account_object account = get_account( item.account_name );
+               const auto& owner_keys = account.owner.get_keys();
+               const auto& active_keys = account.active.get_keys();
+
+               for( const auto& public_key : item.public_keys )
+               {
+                   if( std::find( owner_keys.begin(), owner_keys.end(), public_key ) != owner_keys.end() )
+                       return true;
+
+                   if( std::find( active_keys.begin(), active_keys.end(), public_key ) != active_keys.end() )
+                       return true;
+               }
+           }
+           catch( ... )
+           {
+           }
+
+           return false;
+       };
+
+       const auto should_proceed = import_this_account();
+       result[ item.account_name ] = should_proceed;
+
+       if( should_proceed )
+       {
+           uint32_t import_successes = 0;
+           uint32_t import_failures = 0;
+           // TODO: First check that all private keys match public keys
+           for( const auto& encrypted_key : item.encrypted_private_keys )
+           {
+               try
+               {
+                  const auto plain_text = fc::aes_decrypt( password_hash, encrypted_key );
+                  const auto private_key = fc::raw::unpack<private_key_type>( plain_text );
+
+                  import_key( item.account_name, string( graphene::utilities::key_to_wif( private_key ) ) );
+                  ++import_successes;
+               }
+               catch( const fc::exception& e )
+               {
+                  elog( "Couldn't import key due to exception ${e}", ("e", e.to_detail_string()) );
+                  ++import_failures;
+               }
+           }
+           ilog( "successfully imported ${n} keys for account ${name}",
+                 ("n", import_successes)("name", item.account_name) );
+           if( import_failures > 0 )
+              elog( "failed to import ${n} keys for account ${name}",
+                    ("n", import_failures)("name", item.account_name) );
+       }
+   }
+
+   return result;
+}
+
+bool wallet_api::import_account_keys(
+      string filename,
+      string password,
+      string src_account_name,
+      string dest_account_name )
+{
+   FC_ASSERT( !is_locked() );
+   FC_ASSERT( fc::exists( filename ) );
+
+   bool is_my_account = false;
+   const auto accounts = list_my_accounts();
+   for( const auto& account : accounts )
+   {
+       if( account.name == dest_account_name )
+       {
+           is_my_account = true;
+           break;
+       }
+   }
+   FC_ASSERT( is_my_account );
+
+   const auto imported_keys = fc::json::from_file<exported_keys>( filename );
+
+   const auto password_hash = fc::sha512::hash( password );
+   FC_ASSERT( fc::sha512::hash( password_hash ) == imported_keys.password_checksum );
+
+   bool found_account = false;
+   for( const auto& item : imported_keys.account_keys )
+   {
+       if( item.account_name != src_account_name )
+           continue;
+
+       found_account = true;
+
+       for( const auto& encrypted_key : item.encrypted_private_keys )
+       {
+           const auto plain_text = fc::aes_decrypt( password_hash, encrypted_key );
+           const auto private_key = fc::raw::unpack<private_key_type>( plain_text );
+
+           my->import_key( dest_account_name, string( graphene::utilities::key_to_wif( private_key ) ) );
+       }
+
+       return true;
+   }
+   save_wallet_file();
+
+   FC_ASSERT( found_account );
+
    return false;
 }
 
@@ -619,6 +866,14 @@ signed_transaction wallet_api::settle_asset(string account_to_settle,
    return my->settle_asset(account_to_settle, amount_to_settle, symbol, broadcast);
 }
 
+signed_transaction wallet_api::bid_collateral(string bidder_name,
+                                              string debt_amount, string debt_symbol,
+                                              string additional_collateral,
+                                              bool broadcast )
+{
+   return my->bid_collateral(bidder_name, debt_amount, debt_symbol, additional_collateral, broadcast);
+}
+
 signed_transaction wallet_api::whitelist_account(string authorizing_account,
                                                  string account_to_list,
                                                  account_whitelist_operation::account_listing new_listing_status,
@@ -658,6 +913,28 @@ signed_transaction wallet_api::create_witness(string owner_account,
                                               bool broadcast /* = false */)
 {
    return my->create_witness(owner_account, url, broadcast);
+}
+
+signed_transaction wallet_api::create_worker(
+   string owner_account,
+   time_point_sec work_begin_date,
+   time_point_sec work_end_date,
+   share_type daily_pay,
+   string name,
+   string url,
+   variant worker_settings,
+   bool broadcast /* = false */)
+{
+   return my->create_worker( owner_account, work_begin_date, work_end_date,
+      daily_pay, name, url, worker_settings, broadcast );
+}
+
+signed_transaction wallet_api::update_worker_votes(
+   string owner_account,
+   worker_vote_delta delta,
+   bool broadcast /* = false */)
+{
+   return my->update_worker_votes( owner_account, delta, broadcast );
 }
 
 signed_transaction wallet_api::update_witness(
@@ -1048,7 +1325,7 @@ string wallet_api::help()const
 {
    std::vector<std::string> method_names = my->method_documentation.get_method_names();
    std::stringstream ss;
-   for (const std::string method_name : method_names)
+   for (const std::string& method_name : method_names)
    {
       try
       {
@@ -1228,6 +1505,22 @@ signed_transaction wallet_api::borrow_asset(string seller_name, string amount_to
 {
    FC_ASSERT(!is_locked());
    return my->borrow_asset(seller_name, amount_to_sell, asset_symbol, amount_of_collateral, broadcast);
+}
+
+signed_transaction wallet_api::borrow_asset_ext( string seller_name, string amount_to_sell,
+                                                 string asset_symbol, string amount_of_collateral,
+                                                 call_order_update_operation::extensions_type extensions,
+                                                 bool broadcast)
+{
+   FC_ASSERT(!is_locked());
+   return my->borrow_asset_ext(seller_name, amount_to_sell, asset_symbol,
+                               amount_of_collateral, extensions, broadcast);
+}
+
+signed_transaction wallet_api::cancel_order(object_id_type order_id, bool broadcast)
+{
+   FC_ASSERT(!is_locked());
+   return my->cancel_order(order_id, broadcast);
 }
 
 memo_data wallet_api::sign_memo(string from, string to, string memo)
@@ -1810,6 +2103,11 @@ vector<blind_receipt> wallet_api::blind_history( string key_or_account )
    std::sort( result.begin(), result.end(),
               [&]( const blind_receipt& a, const blind_receipt& b ){ return a.date > b.date; } );
    return result;
+}
+
+order_book wallet_api::get_order_book( const string& base, const string& quote, unsigned limit )
+{
+   return( my->_remote_db->get_order_book( base, quote, limit ) );
 }
 
 // custom operations

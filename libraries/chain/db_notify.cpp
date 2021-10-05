@@ -18,6 +18,7 @@
 #include <graphene/chain/transaction_history_object.hpp>
 #include <graphene/chain/custom_authority_object.hpp>
 #include <graphene/chain/ticket_object.hpp>
+#include <graphene/chain/liquidity_pool_object.hpp>
 #include <graphene/chain/impacted.hpp>
 #include <graphene/chain/hardfork.hpp>
 #include <graphene/chain/personal_data_object.hpp>
@@ -55,6 +56,30 @@ struct get_impacted_account_visitor
    void operator()( const asset_claim_pool_operation& op )
    {
       _impacted.insert( op.fee_payer() ); // issuer
+   }
+   void operator()( const limit_order_create_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // seller
+   }
+   void operator()( const limit_order_cancel_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // fee_paying_account
+   }
+   void operator()( const call_order_update_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // funding_account
+   }
+   void operator()( const bid_collateral_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // bidder
+   }
+   void operator()( const fill_order_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // account_id
+   }
+   void operator()( const execute_bid_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // bidder
    }
    void operator()( const account_create_operation& op )
    {
@@ -198,6 +223,10 @@ struct get_impacted_account_visitor
    {
       _impacted.insert( op.fee_payer() ); // owner
    }
+   void operator()( const worker_create_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // owner
+   }
    void operator()( const custom_operation& op )
    {
       _impacted.insert( op.fee_payer() ); // payer
@@ -246,6 +275,29 @@ struct get_impacted_account_visitor
    void operator()( const fba_distribute_operation& op )
    {
       _impacted.insert( op.fee_payer() ); // account_id
+   }
+   void operator()( const htlc_create_operation& op )
+   {
+      _impacted.insert( op.fee_payer() );
+      _impacted.insert( op.to );
+   }
+   void operator()( const htlc_redeem_operation& op )
+   {
+      _impacted.insert( op.fee_payer() );
+   }
+   void operator()( const htlc_redeemed_operation& op )
+   {
+      _impacted.insert( op.from );
+      if ( op.to != op.redeemer )
+         _impacted.insert( op.to );
+   }
+   void operator()( const htlc_extend_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); 
+   }
+   void operator()( const htlc_refund_operation& op ) 
+   { 
+      _impacted.insert( op.fee_payer() );
    }
    void operator()( const custom_authority_create_operation& op )
    {
@@ -349,6 +401,26 @@ struct get_impacted_account_visitor
    {
       _impacted.insert( op.fee_payer() );
       _impacted.insert( op.account );
+   }
+   void operator()( const liquidity_pool_create_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // account
+   }
+   void operator()( const liquidity_pool_delete_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // account
+   }
+   void operator()( const liquidity_pool_deposit_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // account
+   }
+   void operator()( const liquidity_pool_withdraw_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // account
+   }
+   void operator()( const liquidity_pool_exchange_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // account
    }
 };
 
@@ -497,6 +569,9 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
            FC_ASSERT( cr_obj != nullptr );
            accounts.insert( cr_obj->account );
            break;
+        } case liquidity_pool_object_type:{
+           // no account info in the object although it does have an owner
+           break;
         }
       }
    }
@@ -635,6 +710,9 @@ void database::notify_changed_objects()
            GRAPHENE_TRY_NOTIFY( removed_objects, removed_ids, removed, removed_accounts_impacted )
       }
    }
+} catch( const graphene::chain::plugin_exception& e ) {
+   elog( "Caught plugin exception: ${e}", ("e", e.to_detail_string() ) );
+   throw;
 } FC_CAPTURE_AND_LOG( (0) ) }
 
 } } // namespace graphene::chain

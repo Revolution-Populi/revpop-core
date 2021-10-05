@@ -42,8 +42,6 @@ using namespace graphene::chain::test;
 using namespace graphene::app;
 
 extern std::string GRAPHENE_TESTING_ES_URL;
-const std::string es_index_prefix = "revpop-";
-const std::string es_obj_index_prefix = "objects-";
 
 BOOST_FIXTURE_TEST_SUITE( elasticsearch_tests, database_fixture )
 
@@ -71,10 +69,6 @@ BOOST_AUTO_TEST_CASE(elasticsearch_account_history) {
          auto bob = create_account("bob");
 
          generate_block();
-
-         // for later use
-         //int asset_create_op_id = operation::tag<asset_create_operation>::value;
-         //int account_create_op_id = operation::tag<account_create_operation>::value;
 
          string query = "{ \"query\" : { \"bool\" : { \"must\" : [{\"match_all\": {}}] } } }";
          es.endpoint = es.index_prefix + "*/data/_count";

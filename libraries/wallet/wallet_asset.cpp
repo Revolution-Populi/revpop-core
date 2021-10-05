@@ -74,7 +74,7 @@ namespace graphene { namespace wallet { namespace detail {
       return *opt;
    }
 
-   asset_id_type wallet_api_impl::get_asset_id(string asset_symbol_or_id) const
+   asset_id_type wallet_api_impl::get_asset_id(const string& asset_symbol_or_id) const
    {
       FC_ASSERT( asset_symbol_or_id.size() > 0 );
       vector<optional<extended_asset_object>> opt_asset;
@@ -225,7 +225,7 @@ namespace graphene { namespace wallet { namespace detail {
       optional<asset_object> asset_to_fund = find_asset(symbol);
       if (!asset_to_fund)
         FC_THROW("No asset with that symbol exists!");
-      asset_object core_asset = get_asset(asset_id_type());
+      auto core_asset = get_asset(asset_id_type());
 
       asset_fund_fee_pool_operation fund_op;
       fund_op.from_account = from_account.id;
@@ -246,7 +246,7 @@ namespace graphene { namespace wallet { namespace detail {
       optional<asset_object> asset_pool_to_claim = find_asset(symbol);
       if (!asset_pool_to_claim)
         FC_THROW("No asset with that symbol exists!");
-      asset_object core_asset = get_asset(asset_id_type());
+      auto core_asset = get_asset(asset_id_type());
 
       asset_claim_pool_operation claim_op;
       claim_op.issuer = asset_pool_to_claim->issuer;
@@ -350,5 +350,30 @@ namespace graphene { namespace wallet { namespace detail {
 
       return sign_transaction(tx, broadcast);
    }
+
+   signed_transaction wallet_api_impl::bid_collateral(string bidder_name, string debt_amount, string debt_symbol,
+         string additional_collateral, bool broadcast )
+   { try {
+      optional<asset_object> debt_asset = find_asset(debt_symbol);
+      if (!debt_asset)
+        FC_THROW("No asset with that symbol exists!");
+
+      FC_ASSERT(debt_asset->bitasset_data_id.valid(), "Not a bitasset, bidding not possible.");
+      const asset_object& collateral =
+            get_asset(get_object(*debt_asset->bitasset_data_id).options.short_backing_asset);
+
+      bid_collateral_operation op;
+      op.bidder = get_account_id(bidder_name);
+      op.debt_covered = debt_asset->amount_from_string(debt_amount);
+      op.additional_collateral = collateral.amount_from_string(additional_collateral);
+
+      signed_transaction tx;
+      tx.operations.push_back( op );
+      set_operation_fees( tx, _remote_db->get_global_properties().parameters.get_current_fees());
+      tx.validate();
+
+      return sign_transaction( tx, broadcast );
+   } FC_CAPTURE_AND_RETHROW( (bidder_name)(debt_amount)(debt_symbol)(additional_collateral)(broadcast) ) }
+
 
 }}} // namespace graphene::wallet::detail

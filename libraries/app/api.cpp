@@ -47,6 +47,7 @@ template class fc::api<graphene::app::network_node_api>;
 template class fc::api<graphene::app::history_api>;
 template class fc::api<graphene::app::crypto_api>;
 template class fc::api<graphene::app::asset_api>;
+template class fc::api<graphene::app::orders_api>;
 template class fc::api<graphene::app::custom_operations_api>;
 template class fc::api<graphene::debug_witness::debug_api>;
 template class fc::api<graphene::app::login_api>;
@@ -115,6 +116,10 @@ namespace graphene { namespace app {
        {
           _asset_api = std::make_shared< asset_api >( _app );
        }
+       else if( api_name == "orders_api" )
+       {
+          _orders_api = std::make_shared< orders_api >( std::ref( _app ) );
+       }
        else if( api_name == "custom_operations_api" )
        {
           if( _app.get_plugin( "custom_operations" ) )
@@ -174,10 +179,10 @@ namespace graphene { namespace app {
 
     void network_broadcast_api::broadcast_transaction(const precomputable_transaction& trx)
     {
+       FC_ASSERT( _app.p2p_node() != nullptr, "Not connected to P2P network, can't broadcast!" );
        _app.chain_database()->precompute_parallel( trx ).wait();
        _app.chain_database()->push_transaction(trx);
-       if( _app.p2p_node() != nullptr )
-          _app.p2p_node()->broadcast_transaction(trx);
+       _app.p2p_node()->broadcast_transaction(trx);
     }
 
     fc::variant network_broadcast_api::broadcast_transaction_synchronous(const precomputable_transaction& trx)
@@ -192,19 +197,19 @@ namespace graphene { namespace app {
 
     void network_broadcast_api::broadcast_block( const signed_block& b )
     {
+       FC_ASSERT( _app.p2p_node() != nullptr, "Not connected to P2P network, can't broadcast!" );
        _app.chain_database()->precompute_parallel( b ).wait();
        _app.chain_database()->push_block(b);
-       if( _app.p2p_node() != nullptr )
-          _app.p2p_node()->broadcast( net::block_message( b ));
+       _app.p2p_node()->broadcast( net::block_message( b ));
     }
 
     void network_broadcast_api::broadcast_transaction_with_callback(confirmation_callback cb, const precomputable_transaction& trx)
     {
+       FC_ASSERT( _app.p2p_node() != nullptr, "Not connected to P2P network, can't broadcast!" );
        _app.chain_database()->precompute_parallel( trx ).wait();
        _callbacks[trx.id()] = cb;
        _app.chain_database()->push_transaction(trx);
-       if( _app.p2p_node() != nullptr )
-          _app.p2p_node()->broadcast_transaction(trx);
+       _app.p2p_node()->broadcast_transaction(trx);
     }
 
     network_node_api::network_node_api( application& a ) : _app( a )
@@ -213,6 +218,7 @@ namespace graphene { namespace app {
 
     fc::variant_object network_node_api::get_info() const
     {
+       FC_ASSERT( _app.p2p_node() != nullptr, "No P2P network!" );
        fc::mutable_variant_object result = _app.p2p_node()->network_get_info();
        result["connection_count"] = _app.p2p_node()->get_connection_count();
        return result;
@@ -220,26 +226,33 @@ namespace graphene { namespace app {
 
     void network_node_api::add_node(const fc::ip::endpoint& ep)
     {
-       _app.p2p_node()->add_node(ep);
+       if( _app.p2p_node() != nullptr )
+          _app.p2p_node()->add_node(ep);
     }
 
     std::vector<net::peer_status> network_node_api::get_connected_peers() const
     {
-       return _app.p2p_node()->get_connected_peers();
+       if( _app.p2p_node() != nullptr )
+          return _app.p2p_node()->get_connected_peers();
+       return {};
     }
 
     std::vector<net::potential_peer_record> network_node_api::get_potential_peers() const
     {
-       return _app.p2p_node()->get_potential_peers();
+       if( _app.p2p_node() != nullptr )
+          return _app.p2p_node()->get_potential_peers();
+       return {};
     }
 
     fc::variant_object network_node_api::get_advanced_node_parameters() const
     {
+       FC_ASSERT( _app.p2p_node() != nullptr, "No P2P network!" );
        return _app.p2p_node()->get_advanced_node_parameters();
     }
 
     void network_node_api::set_advanced_node_parameters(const fc::variant_object& params)
     {
+       FC_ASSERT( _app.p2p_node() != nullptr, "No P2P network!" );
        return _app.p2p_node()->set_advanced_node_parameters(params);
     }
 
@@ -285,6 +298,12 @@ namespace graphene { namespace app {
        return *_asset_api;
     }
 
+    fc::api<orders_api> login_api::orders() const
+    {
+       FC_ASSERT(_orders_api);
+       return *_orders_api;
+    }
+
     fc::api<graphene::debug_witness::debug_api> login_api::debug() const
     {
        FC_ASSERT(_debug_api);
@@ -297,9 +316,39 @@ namespace graphene { namespace app {
        return *_custom_operations_api;
     }
 
+    vector<order_history_object> history_api::get_fill_order_history( std::string asset_a, std::string asset_b,
+                                                                      uint32_t limit )const
+    {
+       auto market_hist_plugin = _app.get_plugin<market_history_plugin>( "market_history" );
+       FC_ASSERT( market_hist_plugin, "Market history plugin is not enabled" );
+       FC_ASSERT(_app.chain_database());
+       const auto& db = *_app.chain_database();
+       asset_id_type a = database_api.get_asset_id_from_string( asset_a );
+       asset_id_type b = database_api.get_asset_id_from_string( asset_b );
+       if( a > b ) std::swap(a,b);
+       const auto& history_idx = db.get_index_type<graphene::market_history::history_index>().indices().get<by_key>();
+       history_key hkey;
+       hkey.base = a;
+       hkey.quote = b;
+       hkey.sequence = std::numeric_limits<int64_t>::min();
+
+       uint32_t count = 0;
+       auto itr = history_idx.lower_bound( hkey );
+       vector<order_history_object> result;
+       while( itr != history_idx.end() && count < limit)
+       {
+          if( itr->key.base != a || itr->key.quote != b ) break;
+          result.push_back( *itr );
+          ++itr;
+          ++count;
+       }
+
+       return result;
+    }
+
     vector<operation_history_object> history_api::get_account_history( const std::string account_id_or_name,
                                                                        operation_history_id_type stop,
-                                                                       unsigned limit,
+                                                                       uint32_t limit,
                                                                        operation_history_id_type start ) const
     {
        FC_ASSERT( _app.chain_database() );
@@ -350,10 +399,10 @@ namespace graphene { namespace app {
     }
 
     vector<operation_history_object> history_api::get_account_history_operations( const std::string account_id_or_name,
-                                                                       int operation_type,
+                                                                       int64_t operation_type,
                                                                        operation_history_id_type start,
                                                                        operation_history_id_type stop,
-                                                                       unsigned limit ) const
+                                                                       uint32_t limit ) const
     {
        FC_ASSERT( _app.chain_database() );
        const auto& db = *_app.chain_database();
@@ -396,7 +445,7 @@ namespace graphene { namespace app {
 
     vector<operation_history_object> history_api::get_relative_account_history( const std::string account_id_or_name,
                                                                                 uint64_t stop,
-                                                                                unsigned limit,
+                                                                                uint32_t limit,
                                                                                 uint64_t start ) const
     {
        FC_ASSERT( _app.chain_database() );
@@ -435,9 +484,17 @@ namespace graphene { namespace app {
        }
        return result;
     }
+
+    flat_set<uint32_t> history_api::get_market_history_buckets()const
+    {
+       auto market_hist_plugin = _app.get_plugin<market_history_plugin>( "market_history" );
+       FC_ASSERT( market_hist_plugin, "Market history plugin is not enabled" );
+       return market_hist_plugin->tracked_buckets();
+    }
+
     history_operation_detail history_api::get_account_history_by_operations( const std::string account_id_or_name,
                                                                              flat_set<uint16_t> operation_types,
-                                                                             uint32_t start, unsigned limit )const
+                                                                             uint32_t start, uint32_t limit )const
     {
        const auto configured_limit = _app.get_options().api_limit_get_account_history_by_operations;
        FC_ASSERT( limit <= configured_limit,
@@ -463,6 +520,160 @@ namespace graphene { namespace app {
 
        return result;
     }
+
+    vector<bucket_object> history_api::get_market_history( std::string asset_a, std::string asset_b,
+                                                           uint32_t bucket_seconds,
+                                                           fc::time_point_sec start, fc::time_point_sec end )const
+    { try {
+
+       auto market_hist_plugin = _app.get_plugin<market_history_plugin>( "market_history" );
+       FC_ASSERT( market_hist_plugin, "Market history plugin is not enabled" );
+       FC_ASSERT(_app.chain_database());
+
+       const auto& db = *_app.chain_database();
+       asset_id_type a = database_api.get_asset_id_from_string( asset_a );
+       asset_id_type b = database_api.get_asset_id_from_string( asset_b );
+       vector<bucket_object> result;
+       result.reserve(200);
+
+       if( a > b ) std::swap(a,b);
+
+       const auto& bidx = db.get_index_type<bucket_index>();
+       const auto& by_key_idx = bidx.indices().get<by_key>();
+
+       auto itr = by_key_idx.lower_bound( bucket_key( a, b, bucket_seconds, start ) );
+       while( itr != by_key_idx.end() && itr->key.open <= end && result.size() < 200 )
+       {
+          if( !(itr->key.base == a && itr->key.quote == b && itr->key.seconds == bucket_seconds) )
+          {
+            return result;
+          }
+          result.push_back(*itr);
+          ++itr;
+       }
+       return result;
+    } FC_CAPTURE_AND_RETHROW( (asset_a)(asset_b)(bucket_seconds)(start)(end) ) }
+
+    vector<liquidity_pool_history_object> history_api::get_liquidity_pool_history(
+               liquidity_pool_id_type pool_id,
+               optional<fc::time_point_sec> start,
+               optional<fc::time_point_sec> stop,
+               optional<uint32_t> olimit,
+               optional<int64_t> operation_type )const
+    { try {
+       FC_ASSERT( _app.get_options().has_market_history_plugin, "Market history plugin is not enabled." );
+
+       uint32_t limit = olimit.valid() ? *olimit : 101;
+
+       const auto configured_limit = _app.get_options().api_limit_get_liquidity_pool_history;
+       FC_ASSERT( limit <= configured_limit,
+                  "limit can not be greater than ${configured_limit}",
+                  ("configured_limit", configured_limit) );
+
+       FC_ASSERT( _app.chain_database(), "Internal error: the chain database is not availalbe" );
+
+       const auto& db = *_app.chain_database();
+
+       vector<liquidity_pool_history_object> result;
+
+       if( limit == 0 || ( start.valid() && stop.valid() && *start <= *stop ) ) // empty result
+          return result;
+
+       const auto& hist_idx = db.get_index_type<liquidity_pool_history_index>();
+
+       if( operation_type.valid() ) // one operation type
+       {
+          const auto& idx = hist_idx.indices().get<by_pool_op_type_time>();
+          auto itr = start.valid() ? idx.lower_bound( boost::make_tuple( pool_id, *operation_type, *start ) )
+                                   : idx.lower_bound( boost::make_tuple( pool_id, *operation_type ) );
+          auto itr_stop = stop.valid() ? idx.upper_bound( boost::make_tuple( pool_id, *operation_type, *stop ) )
+                                       : idx.upper_bound( boost::make_tuple( pool_id, *operation_type ) );
+          while( itr != itr_stop && result.size() < limit )
+          {
+             result.push_back( *itr );
+             ++itr;
+          }
+       }
+       else // all operation types
+       {
+          const auto& idx = hist_idx.indices().get<by_pool_time>();
+          auto itr = start.valid() ? idx.lower_bound( boost::make_tuple( pool_id, *start ) )
+                                   : idx.lower_bound( pool_id );
+          auto itr_stop = stop.valid() ? idx.upper_bound( boost::make_tuple( pool_id, *stop ) )
+                                       : idx.upper_bound( pool_id );
+          while( itr != itr_stop && result.size() < limit )
+          {
+             result.push_back( *itr );
+             ++itr;
+          }
+       }
+
+       return result;
+
+    } FC_CAPTURE_AND_RETHROW( (pool_id)(start)(stop)(olimit)(operation_type) ) }
+
+    vector<liquidity_pool_history_object> history_api::get_liquidity_pool_history_by_sequence(
+               liquidity_pool_id_type pool_id,
+               optional<uint64_t> start,
+               optional<fc::time_point_sec> stop,
+               optional<uint32_t> olimit,
+               optional<int64_t> operation_type )const
+    { try {
+       FC_ASSERT( _app.get_options().has_market_history_plugin, "Market history plugin is not enabled." );
+
+       uint32_t limit = olimit.valid() ? *olimit : 101;
+
+       const auto configured_limit = _app.get_options().api_limit_get_liquidity_pool_history;
+       FC_ASSERT( limit <= configured_limit,
+                  "limit can not be greater than ${configured_limit}",
+                  ("configured_limit", configured_limit) );
+
+       FC_ASSERT( _app.chain_database(), "Internal error: the chain database is not availalbe" );
+
+       const auto& db = *_app.chain_database();
+
+       vector<liquidity_pool_history_object> result;
+
+       if( limit == 0 ) // empty result
+          return result;
+
+       const auto& hist_idx = db.get_index_type<liquidity_pool_history_index>();
+
+       if( operation_type.valid() ) // one operation type
+       {
+          const auto& idx = hist_idx.indices().get<by_pool_op_type_seq>();
+          const auto& idx_t = hist_idx.indices().get<by_pool_op_type_time>();
+          auto itr = start.valid() ? idx.lower_bound( boost::make_tuple( pool_id, *operation_type, *start ) )
+                                   : idx.lower_bound( boost::make_tuple( pool_id, *operation_type ) );
+          auto itr_temp = stop.valid() ? idx_t.upper_bound( boost::make_tuple( pool_id, *operation_type, *stop ) )
+                                       : idx_t.upper_bound( boost::make_tuple( pool_id, *operation_type ) );
+          auto itr_stop = ( itr_temp == idx_t.end() ? idx.end() : idx.iterator_to( *itr_temp ) );
+          while( itr != itr_stop && result.size() < limit )
+          {
+             result.push_back( *itr );
+             ++itr;
+          }
+       }
+       else // all operation types
+       {
+          const auto& idx = hist_idx.indices().get<by_pool_seq>();
+          const auto& idx_t = hist_idx.indices().get<by_pool_time>();
+          auto itr = start.valid() ? idx.lower_bound( boost::make_tuple( pool_id, *start ) )
+                                   : idx.lower_bound( pool_id );
+          auto itr_temp = stop.valid() ? idx_t.upper_bound( boost::make_tuple( pool_id, *stop ) )
+                                       : idx_t.upper_bound( pool_id );
+          auto itr_stop = ( itr_temp == idx_t.end() ? idx.end() : idx.iterator_to( *itr_temp ) );
+          while( itr != itr_stop && result.size() < limit )
+          {
+             result.push_back( *itr );
+             ++itr;
+          }
+       }
+
+       return result;
+
+    } FC_CAPTURE_AND_RETHROW( (pool_id)(start)(stop)(olimit)(operation_type) ) }
+
 
     crypto_api::crypto_api(){};
 
@@ -600,6 +811,49 @@ namespace graphene { namespace app {
 
        return result;
     }
+
+   // orders_api
+   flat_set<uint16_t> orders_api::get_tracked_groups()const
+   {
+      auto plugin = _app.get_plugin<grouped_orders_plugin>( "grouped_orders" );
+      FC_ASSERT( plugin );
+      return plugin->tracked_groups();
+   }
+
+   vector< limit_order_group > orders_api::get_grouped_limit_orders( std::string base_asset,
+                                                               std::string quote_asset,
+                                                               uint16_t group,
+                                                               optional<price> start,
+                                                               uint32_t limit )const
+   {
+      const auto configured_limit = _app.get_options().api_limit_get_grouped_limit_orders;
+      FC_ASSERT( limit <= configured_limit,
+                 "limit can not be greater than ${configured_limit}",
+                 ("configured_limit", configured_limit) );
+
+      auto plugin = _app.get_plugin<graphene::grouped_orders::grouped_orders_plugin>( "grouped_orders" );
+      FC_ASSERT( plugin );
+      const auto& limit_groups = plugin->limit_order_groups();
+      vector< limit_order_group > result;
+
+      asset_id_type base_asset_id = database_api.get_asset_id_from_string( base_asset );
+      asset_id_type quote_asset_id = database_api.get_asset_id_from_string( quote_asset );
+
+      price max_price = price::max( base_asset_id, quote_asset_id );
+      price min_price = price::min( base_asset_id, quote_asset_id );
+      if( start.valid() && !start->is_null() )
+         max_price = std::max( std::min( max_price, *start ), min_price );
+
+      auto itr = limit_groups.lower_bound( limit_order_group_key( group, max_price ) );
+      // use an end iterator to try to avoid expensive price comparison
+      auto end = limit_groups.upper_bound( limit_order_group_key( group, min_price ) );
+      while( itr != end && result.size() < limit )
+      {
+         result.emplace_back( *itr );
+         ++itr;
+      }
+      return result;
+   }
 
    // custom operations api
    vector<account_storage_object> custom_operations_api::get_storage_info(std::string account_id_or_name,

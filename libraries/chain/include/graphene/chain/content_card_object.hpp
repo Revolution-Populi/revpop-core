@@ -38,8 +38,8 @@ namespace graphene { namespace chain {
         class content_card_object : public graphene::db::abstract_object<content_card_object>
         {
         public:
-            static const uint8_t space_id = protocol_ids;
-            static const uint8_t type_id  = content_card_object_type;
+            static constexpr uint8_t space_id = protocol_ids;
+            static constexpr uint8_t type_id  = content_card_object_type;
 
             account_id_type subject_account;
             string   hash;

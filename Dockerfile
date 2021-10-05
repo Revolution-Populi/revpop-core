@@ -25,10 +25,7 @@ RUN \
       libboost-coroutine-dev \
       libtool \
       doxygen \
-      ca-certificates \
-    && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+      ca-certificates
 
 ADD . /revpop-core
 WORKDIR /revpop-core

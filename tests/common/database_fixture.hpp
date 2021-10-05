@@ -31,13 +31,16 @@
 #include <boost/test/unit_test.hpp>
 
 #include <graphene/protocol/types.hpp>
+#include <graphene/protocol/market.hpp>
 
 #include <graphene/chain/committee_member_object.hpp>
+#include <graphene/chain/liquidity_pool_object.hpp>
 #include <graphene/chain/ticket_object.hpp>
 #include <graphene/chain/worker_object.hpp>
 #include <graphene/chain/operation_history_object.hpp>
 #include <graphene/chain/database.hpp>
 #include <graphene/app/application.hpp>
+#include <graphene/market_history/market_history_plugin.hpp>
 #include <graphene/utilities/tempdir.hpp>
 
 #include <iostream>
@@ -421,6 +424,32 @@ struct database_fixture_base {
    generic_operation_result update_ticket( const ticket_object& ticket, ticket_type type,
                                            const optional<asset>& amount );
 
+   liquidity_pool_create_operation make_liquidity_pool_create_op( account_id_type account, asset_id_type asset_a,
+                                                  asset_id_type asset_b, asset_id_type share_asset,
+                                                  uint16_t taker_fee_percent, uint16_t withdrawal_fee_percent )const;
+   const liquidity_pool_object& create_liquidity_pool( account_id_type account, asset_id_type asset_a,
+                                                  asset_id_type asset_b, asset_id_type share_asset,
+                                                  uint16_t taker_fee_percent, uint16_t withdrawal_fee_percent );
+   liquidity_pool_delete_operation make_liquidity_pool_delete_op( account_id_type account,
+                                                  liquidity_pool_id_type pool )const;
+   generic_operation_result delete_liquidity_pool( account_id_type account, liquidity_pool_id_type pool );
+   liquidity_pool_deposit_operation make_liquidity_pool_deposit_op( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& amount_a,
+                                                  const asset& amount_b )const;
+   generic_exchange_operation_result deposit_to_liquidity_pool( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& amount_a,
+                                                  const asset& amount_b );
+   liquidity_pool_withdraw_operation make_liquidity_pool_withdraw_op( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& share_amount )const;
+   generic_exchange_operation_result withdraw_from_liquidity_pool( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& share_amount );
+   liquidity_pool_exchange_operation make_liquidity_pool_exchange_op( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& amount_to_sell,
+                                                  const asset& min_to_receive )const;
+   generic_exchange_operation_result exchange_with_liquidity_pool( account_id_type account,
+                                                  liquidity_pool_id_type pool, const asset& amount_to_sell,
+                                                  const asset& min_to_receive );
+
    /**
     * NOTE: This modifies the database directly. You will probably have to call this each time you
     * finish creating a block
@@ -443,9 +472,16 @@ struct database_fixture_base {
    int64_t get_market_fee_reward( const account_object& account, const asset_object& asset )const;
 
    vector< operation_history_object > get_operation_history( account_id_type account_id )const;
-   bool validation_current_test_name_for_setting_api_limit( const string& current_test_name )const;
+   vector< graphene::market_history::order_history_object > get_market_order_history( asset_id_type a, asset_id_type b )const;
 
-
+   /****
+    * @brief return htlc fee parameters
+    */
+   flat_map< uint64_t, graphene::chain::fee_parameters > get_htlc_fee_parameters();
+   /****
+    * @brief push through a proposal that sets htlc parameters and fees
+    */
+   void set_htlc_committee_parameters();
    /****
     * Hash the preimage and put it in a vector
     * @param preimage the preimage
@@ -475,18 +511,11 @@ struct database_fixture_init : database_fixture_base {
       fixture.data_dir = fc::temp_directory( graphene::utilities::temp_directory_path() );
       fc::create_directories( fixture.data_dir.path() );
       F::init_genesis( fixture );
-      fixture.db.open(fixture.data_dir.path(), [&fixture]{return fixture.genesis_state;}, "test");
       fc::json::save_to_file( fixture.genesis_state, fixture.data_dir.path() / "genesis.json" );
       auto options = F::init_options( fixture );
       fc::set_option( *options, "genesis-json", boost::filesystem::path(fixture.data_dir.path() / "genesis.json") );
-      if( fixture.current_suite_name != "performance_tests" &&
-          fixture.validation_current_test_name_for_setting_api_limit(fixture.current_test_name) )
-      {
-          fixture.app.initialize( fixture.data_dir.path(), *options );
-          // fixture.app.initialize(graphene::utilities::temp_directory_path(), options);
-          // fixture.app.startup();
-          fixture.app.set_api_limit();
-      }
+      fixture.app.initialize( fixture.data_dir.path(), options );
+      fixture.app.startup();
 
       fixture.generate_block();
 

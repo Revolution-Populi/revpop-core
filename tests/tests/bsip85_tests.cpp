@@ -120,5 +120,137 @@ BOOST_AUTO_TEST_CASE( hardfork_time_test )
    }
 } FC_LOG_AND_RETHROW() }
 
+BOOST_AUTO_TEST_CASE( bsip85_maker_fee_discount_test )
+{
+   try
+   {
+      ACTORS((alice)(bob)(izzy));
+
+      int64_t alice_b0 = 1000000, bob_b0 = 1000000;
+      int64_t pool_0 = 1000000, accum_0 = 0;
+
+      transfer( account_id_type(), alice_id, asset(alice_b0) );
+      transfer( account_id_type(), bob_id, asset(bob_b0) );
+
+      asset_id_type core_id = asset_id_type();
+      int64_t cer_core_amount = 1801;
+      int64_t cer_usd_amount = 31;
+      price tmp_cer( asset( cer_core_amount ), asset( cer_usd_amount, asset_id_type(1) ) );
+      const auto& usd_obj = create_user_issued_asset( "IZZYUSD", izzy_id(db), charge_market_fee, tmp_cer );
+      asset_id_type usd_id = usd_obj.id;
+      issue_uia( alice_id, asset( alice_b0, usd_id ) );
+      issue_uia( bob_id, asset( bob_b0, usd_id ) );
+
+      fund_fee_pool( committee_account( db ), usd_obj, pool_0 );
+
+      // If pay fee in CORE
+      int64_t order_create_fee = 547;
+      int64_t order_maker_refund = 61; // 547 * 11.23% = 61.4281
+
+      // If pay fee in USD
+      int64_t usd_create_fee = order_create_fee * cer_usd_amount / cer_core_amount;
+      if( usd_create_fee * cer_core_amount != order_create_fee * cer_usd_amount ) usd_create_fee += 1;
+      int64_t usd_maker_refund = usd_create_fee * 1123 / 10000;
+      // amount paid by fee pool
+      int64_t core_create_fee = usd_create_fee * cer_core_amount / cer_usd_amount;
+      int64_t core_maker_refund = usd_maker_refund == 0 ? 0 : core_create_fee * 1123 / 10000;
+
+      fee_parameters::flat_set_type new_fees;
+      limit_order_create_operation::fee_parameters_type create_fee_params;
+      create_fee_params.fee = order_create_fee;
+      new_fees.insert( create_fee_params );
+
+      // Pass BSIP 85 HF time
+      // Note: no test case for the behavior before the HF since it's covered by other test cases
+      INVOKE( hardfork_time_test );
+      set_expiration( db, trx );
+
+      // enable_fees() and change_fees() modifies DB directly, and results will be overwritten by block generation
+      // so we have to do it every time we stop generating/popping blocks and start doing tx's
+      enable_fees();
+      change_fees( new_fees );
+
+      {
+         // prepare params
+         time_point_sec max_exp = time_point_sec::maximum();
+         price cer = usd_id( db ).options.core_exchange_rate;
+         const auto* usd_stat = &usd_id( db ).dynamic_asset_data_id( db );
+
+         // balance data
+         int64_t alice_bc = alice_b0, bob_bc = bob_b0; // core balance
+         int64_t alice_bu = alice_b0, bob_bu = bob_b0; // usd balance
+         int64_t pool_b = pool_0, accum_b = accum_0;
+
+         // Check order fill
+         BOOST_TEST_MESSAGE( "Creating ao1, then be filled by bo1" );
+         // pays fee in core
+         const limit_order_object* ao1 = create_sell_order( alice_id, asset(1000), asset(200, usd_id) );
+         const limit_order_id_type ao1id = ao1->id;
+         // pays fee in usd
+         const limit_order_object* bo1 = create_sell_order(   bob_id, asset(200, usd_id), asset(1000), max_exp, cer );
+
+         BOOST_CHECK( db.find<limit_order_object>( ao1id ) == nullptr );
+         BOOST_CHECK( bo1 == nullptr );
+
+         // data after order created
+         alice_bc -= 1000; // amount for sale
+         alice_bc -= order_create_fee; // fee
+         bob_bu -= 200; // amount for sale
+         bob_bu -= usd_create_fee; // fee
+         pool_b -= core_create_fee; // fee pool
+         accum_b += 0;
+
+         // data after order filled
+         alice_bu += 200; // bob pays
+         alice_bc += order_maker_refund; // maker fee refund
+         bob_bc += 1000; // alice pays
+         accum_b += usd_create_fee; // bo1 paid fee, was taker, no refund
+         pool_b += 0; // no change
+
+         BOOST_CHECK_EQUAL( get_balance( alice_id, core_id ), alice_bc );
+         BOOST_CHECK_EQUAL( get_balance( alice_id,  usd_id ), alice_bu );
+         BOOST_CHECK_EQUAL( get_balance(   bob_id, core_id ), bob_bc );
+         BOOST_CHECK_EQUAL( get_balance(   bob_id,  usd_id ), bob_bu );
+         BOOST_CHECK_EQUAL( usd_stat->fee_pool.value,          pool_b );
+         BOOST_CHECK_EQUAL( usd_stat->accumulated_fees.value,  accum_b );
+
+         // Check partial fill
+         BOOST_TEST_MESSAGE( "Creating ao2, then be partially filled by bo2" );
+         // pays fee in usd
+         const limit_order_object* ao2 = create_sell_order( alice_id, asset(1000), asset(200, usd_id), max_exp, cer );
+         const limit_order_id_type ao2id = ao2->id;
+         // pays fee in core
+         const limit_order_object* bo2 = create_sell_order(   bob_id, asset(100, usd_id), asset(500) );
+
+         BOOST_CHECK( db.find<limit_order_object>( ao2id ) != nullptr );
+         BOOST_CHECK( bo2 == nullptr );
+
+         // data after order created
+         alice_bc -= 1000; // amount to sell
+         alice_bu -= usd_create_fee; // fee
+         pool_b -= core_create_fee; // fee pool
+         accum_b += 0;
+         bob_bc -= order_create_fee; // fee
+         bob_bu -= 100; // amount to sell
+
+         // data after order filled
+         alice_bu += 100; // bob pays
+         alice_bu += usd_maker_refund; // maker fee refund
+         bob_bc += 500;
+         accum_b += usd_create_fee - usd_maker_refund; // ao2 paid fee deduct maker refund
+         pool_b += core_maker_refund; // ao2 maker refund
+
+         BOOST_CHECK_EQUAL( get_balance( alice_id, core_id ), alice_bc );
+         BOOST_CHECK_EQUAL( get_balance( alice_id,  usd_id ), alice_bu );
+         BOOST_CHECK_EQUAL( get_balance(   bob_id, core_id ), bob_bc );
+         BOOST_CHECK_EQUAL( get_balance(   bob_id,  usd_id ), bob_bu );
+         BOOST_CHECK_EQUAL( usd_stat->fee_pool.value,          pool_b );
+         BOOST_CHECK_EQUAL( usd_stat->accumulated_fees.value,  accum_b );
+
+      }
+   }
+   FC_LOG_AND_RETHROW()
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 

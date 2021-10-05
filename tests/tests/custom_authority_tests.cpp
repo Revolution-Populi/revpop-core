@@ -34,6 +34,7 @@
 #include <boost/test/unit_test.hpp>
 #include <fc/exception/exception.hpp>
 #include <graphene/protocol/restriction_predicate.hpp>
+#include <graphene/protocol/market.hpp>
 #include <graphene/chain/hardfork.hpp>
 #include <graphene/chain/custom_authority_object.hpp>
 #include <graphene/chain/market_object.hpp>
@@ -1060,6 +1061,655 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
 
       } FC_LOG_AND_RETHROW()
    }
+
+   /**
+    * Test of authorization and revocation of one account (Alice) authorizing another account (Bob)
+    * to trade with her account but not to transfer out of her account
+    */
+   BOOST_AUTO_TEST_CASE(authorized_trader_custom_auths) {
+      try {
+         //////
+         // Initialize the blockchain
+         //////
+         generate_blocks(HARDFORK_BSIP_40_TIME);
+         generate_blocks(5);
+         db.modify(global_property_id_type()(db), [](global_property_object &gpo) {
+            gpo.parameters.extensions.value.custom_authority_options = custom_authority_options_type();
+         });
+         set_expiration(db, trx);
+
+
+         //////
+         // Initialize: Define a market-issued asset called USDBIT
+         //////
+         ACTORS((feedproducer))
+         create_bitasset("USDBIT", feedproducer_id);
+         generate_blocks(1);
+         const auto& bitusd = *db.get_index_type<asset_index>().indices().get<by_symbol>().find("USDBIT");
+         const auto &core = asset_id_type()(db);
+         update_feed_producers(bitusd, {feedproducer.id});
+
+         price_feed current_feed;
+         current_feed.maintenance_collateral_ratio = 1750;
+         current_feed.maximum_short_squeeze_ratio = 1100;
+         current_feed.settlement_price = bitusd.amount(1) / core.amount(5);
+         publish_feed(bitusd, feedproducer, current_feed);
+
+
+         //////
+         // Initialize: Fund some accounts
+         //////
+         ACTORS((alice)(bob)(charlie)(diana))
+         fund(alice, asset(5000 * GRAPHENE_BLOCKCHAIN_PRECISION));
+         fund(bob, asset(100 * GRAPHENE_BLOCKCHAIN_PRECISION));
+
+
+         //////
+         // Bob attempts to create a limit order on behalf of Alice
+         // This should fail because Bob is not authorized to trade with her account
+         //////
+         set_expiration( db, trx );
+         trx.operations.clear();
+
+         limit_order_create_operation buy_order;
+         buy_order.seller = alice_id;
+         buy_order.amount_to_sell = core.amount(59);
+         buy_order.min_to_receive = bitusd.amount(7);
+         buy_order.expiration = time_point_sec::maximum();
+
+         trx.clear();
+         trx.operations = {buy_order};
+         sign(trx, bob_private_key);
+         BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+         // The failure should not indicate any rejected custom auths because no CAA applies for Bob's attempt
+         // "rejected_custom_auths":[]
+         EXPECT_EXCEPTION_STRING("\"rejected_custom_auths\":[]", [&] {PUSH_TX(db, trx);});
+
+
+         //////
+         // Alice authorizes Bob to place limit orders that offer the any asset for sale
+         //////
+         custom_authority_create_operation authorize_limit_orders;
+         authorize_limit_orders.account = alice.get_id();
+         authorize_limit_orders.auth.add_authority(bob.get_id(), 1);
+         authorize_limit_orders.auth.weight_threshold = 1;
+         authorize_limit_orders.enabled = true;
+         authorize_limit_orders.valid_to = db.head_block_time() + 1000;
+         authorize_limit_orders.operation_type = operation::tag<limit_order_create_operation>::value;
+         trx.clear();
+         trx.operations = {authorize_limit_orders};
+         sign(trx, alice_private_key);
+         PUSH_TX(db, trx);
+
+         auto caa =
+                 db.get_index_type<custom_authority_index>().indices().get<by_account_custom>().find(alice.get_id());
+         custom_authority_id_type auth_id = caa->id;
+
+         custom_authority_create_operation authorize_limit_order_cancellations;
+         authorize_limit_order_cancellations.account = alice.get_id();
+         authorize_limit_order_cancellations.auth.add_authority(bob.get_id(), 1);
+         authorize_limit_order_cancellations.auth.weight_threshold = 1;
+         authorize_limit_order_cancellations.enabled = true;
+         authorize_limit_order_cancellations.valid_to = db.head_block_time() + 1000;
+         authorize_limit_order_cancellations.operation_type = operation::tag<limit_order_cancel_operation>::value;
+         trx.clear();
+         trx.operations = {authorize_limit_order_cancellations};
+         sign(trx, alice_private_key);
+         PUSH_TX(db, trx);
+
+
+         //////
+         // Advance the blockchain to generate a distinctive hash ID for the buy order transaction
+         //////
+         generate_blocks(1);
+
+
+         //////
+         // Bob attempts to create a limit order on behalf of Alice
+         // This should succeed because Bob is authorized to create limit orders
+         //////
+         trx.clear();
+         trx.operations = {buy_order};
+         sign(trx, bob_private_key);
+         auto processed_buy = PUSH_TX(db, trx);
+         const limit_order_object *buy_order_object = db.find<limit_order_object>( processed_buy.operation_results[0].get<object_id_type>() );
+
+
+         //////
+         // Bob attempts to cancel the limit order on behalf of Alice
+         // This should succeed because Bob is authorized to cancel limit orders
+         //////
+         limit_order_cancel_operation cancel_order;
+         cancel_order.fee_paying_account = alice_id;
+         cancel_order.order = buy_order_object->id;
+         trx.clear();
+         trx.operations = {cancel_order};
+         sign(trx, bob_private_key);
+         auto processed_cancelled = PUSH_TX(db, trx);
+
+         //////
+         // Bob attempts to transfer funds out of Alice's account
+         // This should fail because Bob is not authorized to transfer funds out of her account
+         //////
+         transfer_operation top;
+         top.to = bob.get_id();
+         top.from = alice.get_id();
+         top.amount.amount = 99 * GRAPHENE_BLOCKCHAIN_PRECISION;
+         trx.operations = {top};
+         sign(trx, bob_private_key);
+         BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+         // The failure should not indicate any rejected custom auths because no CAA applies for Bob's attempt
+         // "rejected_custom_auths":[]
+         EXPECT_EXCEPTION_STRING("\"rejected_custom_auths\":[]", [&] {PUSH_TX(db, trx);});
+
+
+         //////
+         // Advance the blockchain to generate a distinctive hash ID for the buy order transaction
+         //////
+         generate_blocks(1);
+
+
+         //////
+         // Alice attempts to create her own limit order
+         // This should succeed because Alice has not relinquished her own authority to trade
+         //////
+         buy_order = limit_order_create_operation();
+         buy_order.seller = alice_id;
+         buy_order.amount_to_sell = core.amount(59);
+         buy_order.min_to_receive = bitusd.amount(7);
+         buy_order.expiration = time_point_sec::maximum();
+         trx.clear();
+         trx.operations = {buy_order};
+         sign(trx, alice_private_key);
+         PUSH_TX(db, trx);
+
+
+         //////
+         // Alice revokes/disables the authorization to create limit orders
+         //////
+         custom_authority_update_operation disable_authorizations;
+         disable_authorizations.account = alice.get_id();
+         disable_authorizations.authority_to_update = auth_id;
+         disable_authorizations.new_enabled = false;
+         trx.clear();
+         trx.operations = {disable_authorizations};
+         sign(trx, alice_private_key);
+         PUSH_TX(db, trx);
+
+
+         //////
+         // Advance the blockchain to generate a distinctive hash ID for the buy order transaction
+         //////
+         generate_blocks(1);
+
+
+         //////
+         // Bob attempts to create a limit order on behalf of Alice
+         // This should fail because Bob is not authorized to trade with her account
+         //////
+         trx.clear();
+         trx.operations = {buy_order};
+         sign(trx, bob_private_key);
+         BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+         // The failure should not indicate any rejected custom auths because no CAA applies for Bob's attempt
+         // "rejected_custom_auths":[]
+         EXPECT_EXCEPTION_STRING("\"rejected_custom_auths\":[]", [&] {PUSH_TX(db, trx);});
+
+      } FC_LOG_AND_RETHROW()
+   }
+
+
+   /**
+    * Test of authorization of one account (Alice) authorizing another key
+    * for restricted trading between between ACOIN1 and any BCOIN (BCOIN1, BCOIN2, and BCOIN3).
+    *
+    * The restricted trading authortization will be constructed with one custom authority
+    * containing two "logical_or" branches.  One branch authorizes selling ACOINs for BCOINs.
+    * Another branch authorizes selling BCOINs for ACOINs.
+    */
+   BOOST_AUTO_TEST_CASE(authorized_restricted_trading_key) {
+      try {
+         //////
+         // Initialize the blockchain
+         //////
+         generate_blocks(HARDFORK_BSIP_40_TIME);
+         generate_blocks(5);
+         db.modify(global_property_id_type()(db), [](global_property_object &gpo) {
+            gpo.parameters.extensions.value.custom_authority_options = custom_authority_options_type();
+         });
+         set_expiration(db, trx);
+
+
+         //////
+         // Initialize: Fund some accounts
+         //////
+         ACTORS((assetissuer)(alice))
+         fund(alice, asset(5000 * GRAPHENE_BLOCKCHAIN_PRECISION));
+
+
+         //////
+         // Define a key that can be authorized
+         // This can be a new key or an existing key. The existing key may even be the active key of an account.
+         //////
+         fc::ecc::private_key some_private_key = generate_private_key("some key");
+         public_key_type some_public_key = public_key_type(some_private_key.get_public_key());
+
+
+         //////
+         // Initialize: Create user-issued assets
+         //////
+         upgrade_to_lifetime_member(assetissuer);
+         create_user_issued_asset("ACOIN1", assetissuer,  DEFAULT_UIA_ASSET_ISSUER_PERMISSION);
+         create_user_issued_asset("BCOIN1", assetissuer,  DEFAULT_UIA_ASSET_ISSUER_PERMISSION);
+         create_user_issued_asset("BCOIN2", assetissuer,  DEFAULT_UIA_ASSET_ISSUER_PERMISSION);
+         create_user_issued_asset("BCOIN3", assetissuer,  DEFAULT_UIA_ASSET_ISSUER_PERMISSION);
+         create_user_issued_asset("CCOIN1", assetissuer,  DEFAULT_UIA_ASSET_ISSUER_PERMISSION);
+         generate_blocks(1);
+         const asset_object &acoin1 = *db.get_index_type<asset_index>().indices().get<by_symbol>().find("ACOIN1");
+         const asset_object &bcoin1 = *db.get_index_type<asset_index>().indices().get<by_symbol>().find("BCOIN1");
+         const asset_object &bcoin2 = *db.get_index_type<asset_index>().indices().get<by_symbol>().find("BCOIN2");
+         const asset_object &bcoin3 = *db.get_index_type<asset_index>().indices().get<by_symbol>().find("BCOIN3");
+         const asset_object &ccoin1 = *db.get_index_type<asset_index>().indices().get<by_symbol>().find("CCOIN1");
+
+         //////
+         // Initialize: Issue UIAs
+         //////
+
+         // Lambda for issuing an asset to an account
+         auto issue_amount_to = [](const account_id_type &issuer, const asset &amount, const account_id_type &to) {
+            asset_issue_operation op;
+            op.issuer = issuer;
+            op.asset_to_issue = amount;
+            op.issue_to_account = to;
+
+            return op;
+         };
+
+         // assetissuer issues A1, B1, and C1 to alice
+         asset_issue_operation issue_a1_to_alice_op
+                 = issue_amount_to(assetissuer.get_id(), asset(1000, acoin1.id), alice.get_id());
+         asset_issue_operation issue_b1_to_alice_op
+                 = issue_amount_to(assetissuer.get_id(), asset(2000, bcoin1.id), alice.get_id());
+         asset_issue_operation issue_c1_to_alice_op
+                 = issue_amount_to(assetissuer.get_id(), asset(2000, ccoin1.id), alice.get_id());
+         trx.clear();
+         trx.operations = {issue_a1_to_alice_op, issue_b1_to_alice_op, issue_c1_to_alice_op};
+         sign(trx, assetissuer_private_key);
+         PUSH_TX(db, trx);
+
+
+         //////
+         // Some key attempts to create a limit order on behalf of Alice
+         // This should fail because the key is not authorized to trade with her account
+         //////
+         set_expiration( db, trx );
+         trx.operations.clear();
+
+         limit_order_create_operation buy_order;
+         buy_order.seller = alice_id;
+         buy_order.amount_to_sell = acoin1.amount(60);
+         buy_order.min_to_receive = bcoin1.amount(15);
+         buy_order.expiration = time_point_sec::maximum();
+
+         trx.clear();
+         trx.operations = {buy_order};
+         sign(trx, some_private_key);
+         BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+         // The failure should not indicate any rejected custom auths because no CAA applies for the key's attempt
+         // "rejected_custom_auths":[]
+         EXPECT_EXCEPTION_STRING("\"rejected_custom_auths\":[]", [&] {PUSH_TX(db, trx);});
+
+
+         //////
+         // Alice authorizes a particular key to place limit orders that offer the any asset for sale
+         //////
+         custom_authority_create_operation authorize_limit_orders;
+         authorize_limit_orders.account = alice.get_id();
+         authorize_limit_orders.auth.add_authority(some_public_key, 1);
+         authorize_limit_orders.auth.weight_threshold = 1;
+         authorize_limit_orders.enabled = true;
+         authorize_limit_orders.valid_to = db.head_block_time() + 1000;
+         authorize_limit_orders.operation_type = operation::tag<limit_order_create_operation>::value;
+
+         auto amount_to_sell_index = member_index<limit_order_create_operation>("amount_to_sell");
+         auto min_to_receive_index = member_index<limit_order_create_operation>("min_to_receive");
+         auto asset_id_index = member_index<asset>("asset_id");
+
+         // Define the two set of assets: ACOINs and BCOINs
+         restriction is_acoin_rx = restriction(asset_id_index, FUNC(in),
+                                               flat_set<asset_id_type>{acoin1.id});
+         restriction is_bcoin_rx = restriction(asset_id_index, FUNC(in),
+                                               flat_set<asset_id_type>{bcoin1.id, bcoin2.id, bcoin3.id});
+
+         // Custom Authority 1: Sell ACOINs to buy BCOINs
+         restriction sell_acoin_rx = restriction(amount_to_sell_index, FUNC(attr), vector<restriction>{is_acoin_rx});
+
+         restriction buy_bcoin_rx = restriction(min_to_receive_index, FUNC(attr), vector<restriction>{is_bcoin_rx});
+
+         vector<restriction> branch_sell_acoin_buy_bcoin = {sell_acoin_rx, buy_bcoin_rx};
+
+
+         // Custom Authority 2: Sell BCOINs to buy ACOINs
+         restriction sell_bcoin_rx = restriction(amount_to_sell_index, FUNC(attr), vector<restriction>{is_bcoin_rx});
+         restriction buy_acoin_rx = restriction(min_to_receive_index, FUNC(attr), vector<restriction>{is_acoin_rx});
+
+         vector<restriction> branch_sell_bcoin_buy_acoin = {sell_bcoin_rx, buy_acoin_rx};
+
+
+         unsigned_int dummy_index = 999;
+         restriction trade_acoin_for_bcoin_rx = restriction(dummy_index, FUNC(logical_or),
+                                                            vector<vector<restriction>>{branch_sell_acoin_buy_bcoin,
+                                                                                        branch_sell_bcoin_buy_acoin});
+         authorize_limit_orders.restrictions = {trade_acoin_for_bcoin_rx};
+         //[
+         //  {
+         //    "member_index": 999,
+         //    "restriction_type": 11,
+         //    "argument": [
+         //      40,
+         //      [
+         //        [
+         //          {
+         //            "member_index": 2,
+         //            "restriction_type": 10,
+         //            "argument": [
+         //              39,
+         //              [
+         //                {
+         //                  "member_index": 1,
+         //                  "restriction_type": 6,
+         //                  "argument": [
+         //                    27,
+         //                    [
+         //                      "1.3.2"
+         //                    ]
+         //                  ],
+         //                  "extensions": []
+         //                }
+         //              ]
+         //            ],
+         //            "extensions": []
+         //          },
+         //          {
+         //            "member_index": 3,
+         //            "restriction_type": 10,
+         //            "argument": [
+         //              39,
+         //              [
+         //                {
+         //                  "member_index": 1,
+         //                  "restriction_type": 6,
+         //                  "argument": [
+         //                    27,
+         //                    [
+         //                      "1.3.3",
+         //                      "1.3.4",
+         //                      "1.3.5"
+         //                    ]
+         //                  ],
+         //                  "extensions": []
+         //                }
+         //              ]
+         //            ],
+         //            "extensions": []
+         //          }
+         //        ],
+         //        [
+         //          {
+         //            "member_index": 2,
+         //            "restriction_type": 10,
+         //            "argument": [
+         //              39,
+         //              [
+         //                {
+         //                  "member_index": 1,
+         //                  "restriction_type": 6,
+         //                  "argument": [
+         //                    27,
+         //                    [
+         //                      "1.3.3",
+         //                      "1.3.4",
+         //                      "1.3.5"
+         //                    ]
+         //                  ],
+         //                  "extensions": []
+         //                }
+         //              ]
+         //            ],
+         //            "extensions": []
+         //          },
+         //          {
+         //            "member_index": 3,
+         //            "restriction_type": 10,
+         //            "argument": [
+         //              39,
+         //              [
+         //                {
+         //                  "member_index": 1,
+         //                  "restriction_type": 6,
+         //                  "argument": [
+         //                    27,
+         //                    [
+         //                      "1.3.2"
+         //                    ]
+         //                  ],
+         //                  "extensions": []
+         //                }
+         //              ]
+         //            ],
+         //            "extensions": []
+         //          }
+         //        ]
+         //      ]
+         //    ],
+         //    "extensions": []
+         //  }
+         //]
+
+         // Broadcast the authorization
+         trx.clear();
+         trx.operations = {authorize_limit_orders};
+         sign(trx, alice_private_key);
+         PUSH_TX(db, trx);
+
+
+         // Authorize the cancellation of orders
+         custom_authority_create_operation authorize_limit_order_cancellations;
+         authorize_limit_order_cancellations.account = alice.get_id();
+         authorize_limit_order_cancellations.auth.add_authority(some_public_key, 1);
+         authorize_limit_order_cancellations.auth.weight_threshold = 1;
+         authorize_limit_order_cancellations.enabled = true;
+         authorize_limit_order_cancellations.valid_to = db.head_block_time() + 1000;
+         authorize_limit_order_cancellations.operation_type = operation::tag<limit_order_cancel_operation>::value;
+         trx.clear();
+         trx.operations = {authorize_limit_order_cancellations};
+         sign(trx, alice_private_key);
+         PUSH_TX(db, trx);
+
+
+         //////
+         // Advance the blockchain to generate a distinctive hash ID for the buy order transaction
+         //////
+         generate_blocks(1);
+
+
+         //////
+         // The key attempts to create a limit order on behalf of Alice
+         // This should succeed because Bob is authorized to create limit orders
+         //////
+         trx.clear();
+         trx.operations = {buy_order};
+         sign(trx, some_private_key);
+         auto processed_buy = PUSH_TX(db, trx);
+         const limit_order_object *buy_order_object =
+            db.find<limit_order_object>( processed_buy.operation_results[0].get<object_id_type>() );
+
+
+         //////
+         // The key attempts to cancel the limit order on behalf of Alice
+         // This should succeed because the key is authorized to cancel limit orders
+         //////
+         limit_order_cancel_operation cancel_order;
+         cancel_order.fee_paying_account = alice_id;
+         cancel_order.order = buy_order_object->id;
+         trx.clear();
+         trx.operations = {cancel_order};
+         sign(trx, some_private_key);
+         auto processed_cancelled = PUSH_TX(db, trx);
+
+
+         //////
+         // Advance the blockchain to generate a distinctive hash ID for the buy order transaction
+         //////
+         generate_blocks(1);
+
+
+         //////
+         // The key attempts to create a limit order on behalf of Alice to sell ACOIN1 for CCOIN1
+         // This should fail because the key is not authorized to sell ACOIN1 for CCOIN1
+         //////
+         buy_order = limit_order_create_operation();
+         buy_order.seller = alice_id;
+         buy_order.amount_to_sell = acoin1.amount(60);
+         buy_order.min_to_receive = ccoin1.amount(15);
+         buy_order.expiration = time_point_sec::maximum();
+
+         trx.clear();
+         trx.operations = {buy_order};
+         sign(trx, some_private_key);
+         BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+
+
+         //////
+         // The key attempts to create a limit order on behalf of Alice to sell CCOIN1 for ACOIN1
+         // This should fail because the key is not authorized to create this exchange offer
+         //////
+         buy_order = limit_order_create_operation();
+         buy_order.seller = alice_id;
+         buy_order.amount_to_sell = ccoin1.amount(60);
+         buy_order.min_to_receive = acoin1.amount(15);
+         buy_order.expiration = time_point_sec::maximum();
+
+         trx.clear();
+         trx.operations = {buy_order};
+         sign(trx, some_private_key);
+         BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+
+
+         //////
+         // The key attempts to create a limit order on behalf of Alice to sell BCOIN1 for CCOIN1
+         // This should fail because the key is not authorized to create this exchange offer
+         //////
+         buy_order = limit_order_create_operation();
+         buy_order.seller = alice_id;
+         buy_order.amount_to_sell = bcoin1.amount(60);
+         buy_order.min_to_receive = ccoin1.amount(15);
+         buy_order.expiration = time_point_sec::maximum();
+
+         trx.clear();
+         trx.operations = {buy_order};
+         sign(trx, some_private_key);
+         BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+
+
+         //////
+         // The key attempts to create a limit order on behalf of Alice to sell CCOIN1 for BCOIN1
+         // This should fail because the key is not authorized to create this exchange offer
+         //////
+         buy_order = limit_order_create_operation();
+         buy_order.seller = alice_id;
+         buy_order.amount_to_sell = ccoin1.amount(60);
+         buy_order.min_to_receive = bcoin1.amount(15);
+         buy_order.expiration = time_point_sec::maximum();
+
+         trx.clear();
+         trx.operations = {buy_order};
+         sign(trx, some_private_key);
+         BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+
+
+         //////
+         // The key attempts to create a limit order on behalf of Alice to sell BCOIN1 for BCOIN2
+         // This should fail because the key is NOT authorized to create this exchange offer
+         //////
+         buy_order = limit_order_create_operation();
+         buy_order.seller = alice_id;
+         buy_order.amount_to_sell = bcoin1.amount(60);
+         buy_order.min_to_receive = bcoin2.amount(15);
+         buy_order.expiration = time_point_sec::maximum();
+
+         trx.clear();
+         trx.operations = {buy_order};
+         sign(trx, some_private_key);
+         BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+
+
+         //////
+         // The key attempts to create a limit order on behalf of Alice to sell ACOIN1 for BCOIN1
+         // This should succeed because the key is authorized to create this offer
+         //////
+         buy_order = limit_order_create_operation();
+         buy_order.seller = alice_id;
+         buy_order.amount_to_sell = acoin1.amount(60);
+         buy_order.min_to_receive = bcoin1.amount(15);
+         buy_order.expiration = time_point_sec::maximum();
+
+         trx.clear();
+         trx.operations = {buy_order};
+         sign(trx, some_private_key);
+         PUSH_TX(db, trx);
+
+
+         //////
+         // The key attempts to create a limit order on behalf of Alice to sell ACOIN1 for BCOIN2
+         // This should succeed because the key is authorized to create this offer
+         //////
+         buy_order = limit_order_create_operation();
+         buy_order.seller = alice_id;
+         buy_order.amount_to_sell = acoin1.amount(60);
+         buy_order.min_to_receive = bcoin2.amount(15);
+         buy_order.expiration = time_point_sec::maximum();
+
+         trx.clear();
+         trx.operations = {buy_order};
+         sign(trx, some_private_key);
+         PUSH_TX(db, trx);
+
+
+         //////
+         // The key attempts to create a limit order on behalf of Alice to sell ACOIN1 for BCOIN3
+         // This should succeed because the key is authorized to create this offer
+         //////
+         buy_order = limit_order_create_operation();
+         buy_order.seller = alice_id;
+         buy_order.amount_to_sell = acoin1.amount(60);
+         buy_order.min_to_receive = bcoin3.amount(15);
+         buy_order.expiration = time_point_sec::maximum();
+
+         trx.clear();
+         trx.operations = {buy_order};
+         sign(trx, some_private_key);
+         PUSH_TX(db, trx);
+
+
+         //////
+         // The key attempts to create a limit order on behalf of Alice to sell BCOIN1 for ACOIN1
+         // This should succeed because the key is authorized to create this offer
+         //////
+         buy_order = limit_order_create_operation();
+         buy_order.seller = alice_id;
+         buy_order.amount_to_sell = bcoin1.amount(60);
+         buy_order.min_to_receive = acoin1.amount(15);
+         buy_order.expiration = time_point_sec::maximum();
+
+         trx.clear();
+         trx.operations = {buy_order};
+         sign(trx, some_private_key);
+         PUSH_TX(db, trx);
+
+      } FC_LOG_AND_RETHROW()
+   }
+
 
    /**
     * Test of authorization of one account (feedproducer) authorizing another account (Bob)
@@ -2198,6 +2848,186 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
 
 
    /**
+    * Test of authorization of a key to transfer one asset type (USDBIT) from one account (coldwallet)
+    * to another account (hotwallet)
+    */
+   BOOST_AUTO_TEST_CASE(authorized_cold_wallet_key_custom_auths) {
+      try {
+         //////
+         // Initialize the blockchain
+         //////
+         generate_blocks(HARDFORK_BSIP_40_TIME);
+         generate_blocks(5);
+         db.modify(global_property_id_type()(db), [](global_property_object &gpo) {
+            gpo.parameters.extensions.value.custom_authority_options = custom_authority_options_type();
+         });
+         set_expiration(db, trx);
+
+
+         //////
+         // Initialize: Accounts
+         ACTORS((feedproducer)(coldwallet)(hotwallet)(hacker));
+         int64_t init_balance(100 * GRAPHENE_BLOCKCHAIN_PRECISION);
+
+         //////
+         // Initialize: Define a market-issued asset called USDBIT
+         //////
+         // Define core asset
+         const auto &core = asset_id_type()(db);
+         asset_id_type core_id = core.id;
+
+         // Create a smart asset
+         const asset_object &bitusd = create_bitasset("USDBIT", feedproducer_id);
+         asset_id_type usd_id = bitusd.id;
+         update_feed_producers(bitusd, {feedproducer.id});
+         price_feed current_feed;
+         current_feed.maintenance_collateral_ratio = 1750;
+         current_feed.maximum_short_squeeze_ratio = 1100;
+         current_feed.settlement_price = bitusd.amount(1) / core.amount(5);
+         publish_feed(bitusd, feedproducer, current_feed);
+
+
+         //////
+         // Fund coldwallet with core asset
+         //////
+         fund(coldwallet, asset(init_balance));
+         // coldwallet will borrow 1000 bitUSD
+         borrow(coldwallet, bitusd.amount(1000), asset(15000));
+         int64_t coldwallet_balance_usd_before_offer = get_balance(coldwallet_id, usd_id);
+         BOOST_CHECK_EQUAL( 1000,  coldwallet_balance_usd_before_offer);
+         int64_t coldwallet_balance_core_before_offer = get_balance(coldwallet_id, core_id);
+         BOOST_CHECK_EQUAL( init_balance - 15000, coldwallet_balance_core_before_offer );
+
+
+         //////
+         // Define a key that can be authorized
+         // This can be a new key or an existing key. The existing key may even be the active key of an account.
+         //////
+         fc::ecc::private_key some_private_key = generate_private_key("some key");
+         public_key_type some_public_key = public_key_type(some_private_key.get_public_key());
+
+
+         //////
+         // Create a custom authority where the key is authorized to transfer from the coldwallet account
+         // if and only if the transfer asset type is USDBIT and the recipient account is hotwallet.
+         //////
+         custom_authority_create_operation op;
+         op.account = coldwallet.get_id();
+         op.auth.add_authority(some_public_key, 1);
+         op.auth.weight_threshold = 1;
+         op.enabled = true;
+         op.valid_to = db.head_block_time() + 1000;
+
+         op.operation_type = operation::tag<transfer_operation>::value;
+
+         auto to_index = member_index<transfer_operation>("to");
+         op.restrictions.emplace_back(to_index, FUNC(eq), hotwallet_id);
+
+         auto transfer_amount_index = member_index<transfer_operation>("amount");
+         auto asset_id_index = member_index<asset>("asset_id");
+         op.restrictions.emplace_back(restriction(transfer_amount_index, restriction::func_attr, vector<restriction>{
+                 restriction(asset_id_index, restriction::func_eq, usd_id)}));
+         //[
+         //  {
+         //    "member_index": 2,
+         //    "restriction_type": 0,
+         //    "argument": [
+         //      7,
+         //      "1.2.18"
+         //    ],
+         //    "extensions": []
+         //  },
+         //  {
+         //    "member_index": 3,
+         //    "restriction_type": 10,
+         //    "argument": [
+         //      39,
+         //      [
+         //        {
+         //          "member_index": 1,
+         //          "restriction_type": 0,
+         //          "argument": [
+         //            8,
+         //            "1.3.2"
+         //          ],
+         //          "extensions": []
+         //        }
+         //      ]
+         //    ],
+         //    "extensions": []
+         //  }
+         //]
+         BOOST_CHECK_EQUAL(restriction::restriction_count(op.restrictions), 3);
+
+         // Publish the new custom authority
+         trx.clear();
+         trx.operations = {op};
+         sign(trx, coldwallet_private_key);
+         PUSH_TX(db, trx);
+
+
+         //////
+         // Attempt to transfer USDBIT asset out of the coldwallet to the hacker account
+         // This should fail because the key is not authorized to transfer to the hacker account
+         //////
+         transfer_operation top;
+         top.from = coldwallet.get_id();
+         top.to = hacker.get_id();
+         top.amount.asset_id = usd_id;
+         top.amount.amount = 99;
+         top.fee.asset_id = core_id;
+         trx.clear();
+         trx.operations = {top};
+         sign(trx, some_private_key);
+         BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+         // The failure should indicate the rejection path
+         // "rejection_path":[[0,0],[2,"predicate_was_false"]
+         // [0,0]: 0 is the rejection_indicator for an index to a sub-restriction; 0 is the index value for Restriction 1
+         // [2,"predicate_was_false"]: 0 is the rejection_indicator for rejection_reason; "predicate_was_false" is the reason
+         EXPECT_EXCEPTION_STRING("\"rejection_path\":[[0,0],[2,\"predicate_was_false\"]]", [&] {PUSH_TX(db, trx);});
+
+
+         //////
+         // Attempt to transfer CORE asset out of the coldwallet to the hotwallet account
+         // This should fail because the key is not authorized to transfer core asset to the hotwallet account
+         //////
+         top = transfer_operation();
+         top.from = coldwallet.get_id();
+         top.to = hotwallet.get_id();
+         top.amount.asset_id = core_id;
+         top.amount.amount = 99;
+         top.fee.asset_id = core_id;
+         trx.clear();
+         trx.operations = {top};
+         sign(trx, some_private_key);
+         BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+         // The failure should indicate the rejection path
+         // "rejection_path":[[0,1],[0,0],[2,"predicate_was_false"]
+         // [0,1]: 0 is the rejection_indicator for an index to a sub-restriction; 1 is the index value for Restriction 2
+         // [0,0]: 0 is the rejection_indicator for an index to a sub-restriction; 0 is the index value for the only argument
+         // [2,"predicate_was_false"]: 0 is the rejection_indicator for rejection_reason; "predicate_was_false" is the reason
+         EXPECT_EXCEPTION_STRING("\"rejection_path\":[[0,1],[0,0],[2,\"predicate_was_false\"]]", [&] {PUSH_TX(db, trx);});
+
+
+         //////
+         // Attempt to transfer USDBIT asset out of the coldwallet to the hotwallet account
+         // This should succeed because the key is authorized to transfer USDBIT asset to the hotwallet account
+         //////
+         top = transfer_operation();
+         top.from = coldwallet.get_id();
+         top.to = hotwallet.get_id();
+         top.amount.asset_id = usd_id;
+         top.amount.amount = 99;
+         top.fee.asset_id = core_id;
+         trx.clear();
+         trx.operations = {top};
+         sign(trx, some_private_key);
+         PUSH_TX(db, trx);
+
+      } FC_LOG_AND_RETHROW()
+   }
+
+   /**
     * Test of a restriction on an optional operation field
     * Variation of the the original transfer_with_memo test for CAA
     * Bob is authorized to transfer Alice's account to Charlies's account if
@@ -3148,6 +3978,688 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
 
 
    /**
+    * Generate a random pre-image for HTLC-related tests
+    */
+   void generate_random_preimage(uint16_t key_size, std::vector<char>& vec)
+   {
+      std::independent_bits_engine<std::default_random_engine, sizeof(unsigned), unsigned int> rbe;
+      std::generate(begin(vec), end(vec), std::ref(rbe));
+      return;
+   }
+
+
+   /**
+    * Test of greater than or equal to (ge) restriction on a field
+    * Test of CAA for htlc_create_operation
+    *
+    * Scenario: Test of authorization of one account (alice) authorizing another account (bob)
+    * to create an HTLC operation as long as the pre-image size is greater than or equal to a specified size
+    *
+    * This test is similar to the HTLC test called "other_peoples_money"
+    */
+   BOOST_AUTO_TEST_CASE(authorized_htlc_creation) {
+      try {
+         //////
+         // Initialize the blockchain
+         //////
+         time_point_sec LATER_HF_TIME
+                 = (HARDFORK_BSIP_40_TIME > HARDFORK_CORE_1468_TIME) ? HARDFORK_BSIP_40_TIME : HARDFORK_CORE_1468_TIME;
+         generate_blocks(LATER_HF_TIME);
+         generate_blocks(5);
+         set_expiration(db, trx);
+
+         // Initialize HTLC blockchain parameters
+         trx.clear();
+         set_htlc_committee_parameters();
+         generate_blocks(5);
+
+         // Initialize CAA blockchain parameters
+         trx.clear();
+         db.modify(global_property_id_type()(db), [](global_property_object &gpo) {
+            gpo.parameters.extensions.value.custom_authority_options = custom_authority_options_type();
+         });
+         set_expiration(db, trx);
+
+
+         //////
+         // Initialize: Accounts
+         //////
+         ACTORS((alice)(bob)(gateway));
+         int64_t init_balance(100 * GRAPHENE_BLOCKCHAIN_PRECISION );
+         transfer( committee_account, alice_id, graphene::chain::asset(init_balance) );
+
+
+         //////
+         // Initialize: Pre-image sizes and pre-images to reduce the test variability
+         //////
+         uint16_t pre_image_size_256 = 256;
+         std::vector<char> pre_image_256(pre_image_size_256);
+         generate_random_preimage(pre_image_size_256, pre_image_256);
+
+         // The minimum pre-image size that will be authorized by Alice
+         uint16_t authorized_minimum_pre_image_size_512 = 512;
+
+         int64_t pre_image_size_512 = int64_t(authorized_minimum_pre_image_size_512 + 0);
+         std::vector<char> pre_image_512(pre_image_size_512);
+         generate_random_preimage(pre_image_size_512, pre_image_512);
+
+         int64_t pre_image_size_600 = int64_t(authorized_minimum_pre_image_size_512 + 88);
+         std::vector<char> pre_image_600(pre_image_size_600);
+         generate_random_preimage(pre_image_size_600, pre_image_600);
+
+
+         //////
+         // Alice attempts to put a contract on the blockchain using Alice's funds
+         // This should succeed because Alice is authorized to create HTLC for her own account
+         //////
+         {
+            graphene::chain::htlc_create_operation create_operation;
+            create_operation.amount = graphene::chain::asset( 1 * GRAPHENE_BLOCKCHAIN_PRECISION );
+            create_operation.from = alice_id;
+            create_operation.to = gateway_id;
+            create_operation.claim_period_seconds = 3;
+            create_operation.preimage_hash = hash_it<fc::ripemd160>( pre_image_256 );
+            create_operation.preimage_size = pre_image_size_256;
+            create_operation.fee = db.current_fee_schedule().calculate_fee( create_operation );
+            trx.clear();
+            trx.operations.push_back(create_operation);
+            sign(trx, alice_private_key);
+            PUSH_TX( db, trx );
+         }
+
+
+         //////
+         // Advance the blockchain to generate distinctive hash IDs for the similar transactions
+         //////
+         generate_blocks(1);
+
+
+         //////
+         // Bob attempts to put a contract on the blockchain using Alice's funds
+         // This should fail because Bob is not authorized to create HTLC on behalf of Alice
+         //////
+         {
+            graphene::chain::htlc_create_operation create_operation;
+            create_operation.amount = graphene::chain::asset( 1 * GRAPHENE_BLOCKCHAIN_PRECISION );
+            create_operation.from = alice_id;
+            create_operation.to = gateway_id;
+            create_operation.claim_period_seconds = 3;
+            create_operation.preimage_hash = hash_it<fc::ripemd160>( pre_image_256 );
+            create_operation.preimage_size = pre_image_size_256;
+            create_operation.fee = db.current_fee_schedule().calculate_fee( create_operation );
+            trx.clear();
+            trx.operations.push_back(create_operation);
+            sign(trx, bob_private_key);
+            BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+            // The failure should not indicate any rejected custom auths because no CAA applies for Bob's attempt
+            // "rejected_custom_auths":[]
+            EXPECT_EXCEPTION_STRING("\"rejected_custom_auths\":[]", [&] {PUSH_TX(db, trx);});
+
+         }
+
+
+         //////
+         // Alice authorizes Bob to create HTLC only to an account (gateway)
+         // and if the pre-image size is greater than or equal to 512 bytes
+         //////
+         custom_authority_create_operation authorize_htlc_create;
+         authorize_htlc_create.account = alice.get_id();
+         authorize_htlc_create.auth.add_authority(bob.get_id(), 1);
+         authorize_htlc_create.auth.weight_threshold = 1;
+         authorize_htlc_create.enabled = true;
+         authorize_htlc_create.valid_to = db.head_block_time() + 1000;
+         authorize_htlc_create.operation_type = operation::tag<htlc_create_operation>::value;
+
+         auto to_index = member_index<htlc_create_operation>("to");
+         authorize_htlc_create.restrictions.emplace_back(to_index, FUNC(eq), gateway.get_id());
+
+         auto preimage_size_index = member_index<htlc_create_operation>("preimage_size");
+         authorize_htlc_create.restrictions.emplace_back(restriction(preimage_size_index, FUNC(ge), pre_image_size_512));
+         //[
+         //  {
+         //    "member_index": 2,
+         //    "restriction_type": 0,
+         //    "argument": [
+         //      7,
+         //      "1.2.18"
+         //    ],
+         //    "extensions": []
+         //  },
+         //  {
+         //    "member_index": 5,
+         //    "restriction_type": 5,
+         //    "argument": [
+         //      2,
+         //      512
+         //    ],
+         //    "extensions": []
+         //  }
+         //]
+         trx.clear();
+         trx.operations = {authorize_htlc_create};
+         sign(trx, alice_private_key);
+         PUSH_TX(db, trx);
+
+
+         //////
+         // Advance the blockchain to generate distinctive hash IDs for the similar transactions
+         //////
+         generate_blocks(1);
+
+
+         //////
+         // Bob attempts to put a contract on the blockchain using Alice's funds
+         // with a preimage size of 256.
+         // This should fail because Bob is not authorized to create HTLC on behalf of Alice
+         // if the preimage size is below the minimum value restriction.
+         //////
+         {
+            graphene::chain::htlc_create_operation create_operation;
+            create_operation.amount = graphene::chain::asset( 1 * GRAPHENE_BLOCKCHAIN_PRECISION );
+            create_operation.from = alice_id;
+            create_operation.to = gateway_id;
+            create_operation.claim_period_seconds = 3;
+            create_operation.preimage_hash = hash_it<fc::ripemd160>( pre_image_256 );
+            create_operation.preimage_size = pre_image_size_256;
+            create_operation.fee = db.current_fee_schedule().calculate_fee( create_operation );
+            trx.clear();
+            trx.operations.push_back(create_operation);
+            sign(trx, bob_private_key);
+            BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+            // The failure should indicate the rejection path
+            // "rejection_path":[[0,1],[2,"predicate_was_false"]
+            // [0,1]: 0 is the rejection_indicator for an index to a sub-restriction; 1 is the index value for Restriction 2
+            // [2,"predicate_was_false"]: 0 is the rejection_indicator for rejection_reason; "predicate_was_false" is the reason
+            EXPECT_EXCEPTION_STRING("\"rejection_path\":[[0,1],[2,\"predicate_was_false\"]]", [&] {PUSH_TX(db, trx);});
+
+         }
+
+         //////
+         // Bob attempts to put a contract on the blockchain using Alice's funds
+         // with a preimage size of 512.
+         // This should succeed because Bob is authorized to create HTLC on behalf of Alice
+         // and the preimage size equals the minimum value restriction.
+         //////
+         {
+            graphene::chain::htlc_create_operation create_operation;
+            create_operation.amount = graphene::chain::asset( 1 * GRAPHENE_BLOCKCHAIN_PRECISION );
+            create_operation.from = alice_id;
+            create_operation.to = gateway_id;
+            create_operation.claim_period_seconds = 3;
+            create_operation.preimage_hash = hash_it<fc::ripemd160>( pre_image_512 );
+            create_operation.preimage_size = pre_image_size_512;
+            create_operation.fee = db.current_fee_schedule().calculate_fee( create_operation );
+            trx.clear();
+            trx.operations.push_back(create_operation);
+            sign(trx, bob_private_key);
+            PUSH_TX( db, trx );
+
+         }
+
+
+         //////
+         // Bob attempts to put a contract on the blockchain using Alice's funds
+         // with a preimage size of 600.
+         // This should succeed because Bob is authorized to create HTLC on behalf of Alice
+         // and the preimage size is greater than the minimum value restriction.
+         //////
+         {
+            graphene::chain::htlc_create_operation create_operation;
+            create_operation.amount = graphene::chain::asset( 1 * GRAPHENE_BLOCKCHAIN_PRECISION );
+            create_operation.from = alice_id;
+            create_operation.to = gateway_id;
+            create_operation.claim_period_seconds = 3;
+            create_operation.preimage_hash = hash_it<fc::ripemd160>( pre_image_600 );
+            create_operation.preimage_size = pre_image_size_600;
+            create_operation.fee = db.current_fee_schedule().calculate_fee( create_operation );
+            trx.clear();
+            trx.operations.push_back(create_operation);
+            sign(trx, bob_private_key);
+            PUSH_TX( db, trx );
+
+         }
+
+      } FC_LOG_AND_RETHROW()
+   }
+
+
+   /**
+    * Test of vector field size comparison
+    * Test of CAA for htlc_redeem_operation
+    *
+    * Scenario: Test of authorization of one account (gateway) authorizing another account (bob)
+    * to redeem an HTLC operation
+    */
+   BOOST_AUTO_TEST_CASE(authorized_htlc_redeem) {
+      try {
+         //////
+         // Initialize the blockchain
+         //////
+         time_point_sec LATER_HF_TIME
+                 = (HARDFORK_BSIP_40_TIME > HARDFORK_CORE_1468_TIME) ? HARDFORK_BSIP_40_TIME : HARDFORK_CORE_1468_TIME;
+         generate_blocks(LATER_HF_TIME);
+         generate_blocks(5);
+         set_expiration(db, trx);
+
+         // Initialize HTLC blockchain parameters
+         trx.clear();
+         set_htlc_committee_parameters();
+         generate_blocks(5);
+
+         // Initialize CAA blockchain parameters
+         trx.clear();
+         db.modify(global_property_id_type()(db), [](global_property_object &gpo) {
+            gpo.parameters.extensions.value.custom_authority_options = custom_authority_options_type();
+         });
+
+         // Update the expiration of the re-usable trx relative to the head block time
+         set_expiration(db, trx);
+
+
+         //////
+         // Initialize: Accounts
+         //////
+         ACTORS((alice)(bob)(gateway));
+         int64_t init_balance(1000 * GRAPHENE_BLOCKCHAIN_PRECISION );
+         transfer( committee_account, alice_id, graphene::chain::asset(init_balance) );
+         int64_t init_gateway_balance(50 * GRAPHENE_BLOCKCHAIN_PRECISION);
+         transfer( committee_account, gateway_id, graphene::chain::asset(init_gateway_balance) );
+
+
+         //////
+         // Initialize: Pre-image sizes and pre-images to reduce the test variability
+         //////
+         uint16_t pre_image_size_256 = 256;
+         std::vector<char> pre_image_256(pre_image_size_256);
+         generate_random_preimage(pre_image_size_256, pre_image_256);
+
+
+         //////
+         // Gateway puts a contract on the blockchain
+         // This should succeed because the gateway is authorized to create HTLC for its own account
+         //////
+         share_type htlc_amount = 25 * GRAPHENE_BLOCKCHAIN_PRECISION;
+         {
+            graphene::chain::htlc_create_operation create_operation;
+            create_operation.amount = graphene::chain::asset( htlc_amount );
+            create_operation.from = alice_id;
+            create_operation.to = gateway_id;
+            create_operation.claim_period_seconds = 86400;
+            create_operation.preimage_hash = hash_it<fc::ripemd160>( pre_image_256 );
+            create_operation.preimage_size = pre_image_size_256;
+            create_operation.fee = db.current_fee_schedule().calculate_fee( create_operation );
+            trx.clear();
+            trx.operations.push_back(create_operation);
+            sign(trx, alice_private_key);
+            PUSH_TX( db, trx );
+         }
+
+
+         //////
+         // Advance the blockchain to get the finalized HTLC ID
+         //////
+         generate_blocks(1);
+         graphene::chain::htlc_id_type alice_htlc_id =
+                 db.get_index_type<htlc_index>().indices().get<by_from_id>().find(alice.get_id())->id;
+
+
+         //////
+         // Bob attempts to redeem the HTLC on behalf of the gateway
+         // This should fail because Bob is not authorized to redeem on behalf of the gateway
+         //////
+         graphene::chain::htlc_redeem_operation redeem_operation;
+         {
+            redeem_operation.redeemer = gateway_id;
+            redeem_operation.htlc_id = alice_htlc_id;
+            redeem_operation.preimage = pre_image_256;
+            redeem_operation.fee = db.current_fee_schedule().calculate_fee( redeem_operation );
+            trx.clear();
+            trx.operations.push_back(redeem_operation);
+            sign(trx, bob_private_key);
+            BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+            // The failure should not indicate any rejected custom auths because no CAA applies for Bob's attempt
+            // "rejected_custom_auths":[]
+            EXPECT_EXCEPTION_STRING("\"rejected_custom_auths\":[]", [&] {PUSH_TX(db, trx);});
+
+         }
+
+
+         //////
+         // Gateway authorizes Bob to redeem an HTLC
+         // only if the preimage length equals 200 bytes
+         // This length is incompatible with the HTLC pre-image that is already on the blockchain
+         //////
+         custom_authority_create_operation authorize_htlc_redeem;
+         authorize_htlc_redeem.account = gateway.get_id();
+         authorize_htlc_redeem.auth.add_authority(bob.get_id(), 1);
+         authorize_htlc_redeem.auth.weight_threshold = 1;
+         authorize_htlc_redeem.enabled = true;
+         authorize_htlc_redeem.valid_to = db.head_block_time() + 1000;
+         authorize_htlc_redeem.operation_type = operation::tag<htlc_redeem_operation>::value;
+
+         auto preimage_index = member_index<htlc_redeem_operation>("preimage");
+         authorize_htlc_redeem.restrictions.emplace_back(preimage_index, FUNC(eq), int64_t(200));
+         //[
+         //  {
+         //    "member_index": 3,
+         //    "restriction_type": 0,
+         //    "argument": [
+         //      2,
+         //      200
+         //    ],
+         //    "extensions": []
+         //  }
+         //]
+
+         trx.clear();
+         trx.operations = {authorize_htlc_redeem};
+         sign(trx, gateway_private_key);
+         PUSH_TX(db, trx);
+
+
+         //////
+         // Advance the blockchain to get the finalized CAA ID
+         //////
+         generate_blocks(1);
+         auto caa = db.get_index_type<custom_authority_index>().indices().get<by_account_custom>().find(gateway.get_id());
+         custom_authority_id_type caa_id = caa->id;
+
+
+         //////
+         // Bob attempts to redeem the HTLC
+         // This should fail because the authorization's restriction prohibits the redemption of this HTLC
+         //////
+         {
+            trx.clear();
+            trx.operations.push_back(redeem_operation);
+            sign(trx, bob_private_key);
+
+            BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+            // The failure should indicate the rejection path
+            // [0,0]: 0 is the rejection_indicator for an index to a sub-restriction; 0 is the index value for Restriction 1
+            // [2,"predicate_was_false"]: 0 is the rejection_indicator for rejection_reason; "predicate_was_false" is the reason
+            EXPECT_EXCEPTION_STRING("\"rejection_path\":[[0,0],[2,\"predicate_was_false\"]]", [&] {PUSH_TX(db, trx);});
+
+         }
+
+
+         //////
+         // Advance the blockchain to generate distinctive hash IDs for the similar transactions
+         //////
+         generate_blocks(1);
+
+
+         //////
+         // Gateway updates the authorization for to redeem an HTLC
+         // only if the preimage length equals 256 bytes
+         // This length is compatible with the HTLC pre-image that is already on the blockchain
+         //////
+         custom_authority_update_operation update_authorization;
+         update_authorization.account = gateway.get_id();
+         update_authorization.authority_to_update = caa_id;
+         uint16_t existing_restriction_index = 0; // The 0-based index of the first and only existing restriction
+         update_authorization.restrictions_to_remove = {existing_restriction_index};
+         update_authorization.restrictions_to_add =
+                 {restriction(preimage_index, FUNC(eq), int64_t(pre_image_size_256))};
+         trx.clear();
+         trx.operations = {update_authorization};
+         sign(trx, gateway_private_key);
+         PUSH_TX(db, trx);
+
+
+         //////
+         // Bob attempts to redeem the HTLC
+         // This should succeed because the redemption satisfies the authorization
+         //////
+         {
+            trx.clear();
+            trx.operations.push_back(redeem_operation);
+            sign(trx, bob_private_key);
+            PUSH_TX(db, trx);
+
+         }
+
+      } FC_LOG_AND_RETHROW()
+   }
+
+
+   /**
+    * Test of greater than (gt) and less than or equal to (le) restriction on a field
+    * Test of CAA for htlc_extend_operation
+    *
+    * Scenario: Test of authorization of one account (alice) authorizing another account (bob)
+    * to extend an HTLC operation as long as the extension is within a specified duration
+    */
+   BOOST_AUTO_TEST_CASE(authorized_htlc_extension) {
+      try {
+         //////
+         // Initialize the blockchain
+         //////
+         time_point_sec LATER_HF_TIME
+                 = (HARDFORK_BSIP_40_TIME > HARDFORK_CORE_1468_TIME) ? HARDFORK_BSIP_40_TIME : HARDFORK_CORE_1468_TIME;
+         generate_blocks(LATER_HF_TIME);
+         generate_blocks(5);
+         set_expiration(db, trx);
+
+         // Initialize HTLC blockchain parameters
+         trx.clear();
+         set_htlc_committee_parameters();
+         generate_blocks(5);
+
+         // Initialize CAA blockchain parameters
+         trx.clear();
+         db.modify(global_property_id_type()(db), [](global_property_object &gpo) {
+            gpo.parameters.extensions.value.custom_authority_options = custom_authority_options_type();
+         });
+         set_expiration(db, trx);
+
+
+         //////
+         // Initialize: Accounts
+         //////
+         ACTORS((alice)(bob)(gateway));
+         int64_t init_balance(1000 * GRAPHENE_BLOCKCHAIN_PRECISION );
+         transfer( committee_account, alice_id, graphene::chain::asset(init_balance) );
+         int64_t init_gateway_balance(50 * GRAPHENE_BLOCKCHAIN_PRECISION);
+         transfer( committee_account, gateway_id, graphene::chain::asset(init_gateway_balance) );
+
+
+         //////
+         // Initialize: Pre-image sizes and pre-images to reduce the test variability
+         //////
+         uint16_t pre_image_size_256 = 256;
+         std::vector<char> pre_image_256(pre_image_size_256);
+         generate_random_preimage(pre_image_size_256, pre_image_256);
+
+
+         //////
+         // Gateway puts a contract on the blockchain
+         // This should succeed because the gateway is authorized to create HTLC for its own account
+         //////
+         share_type htlc_amount = 25 * GRAPHENE_BLOCKCHAIN_PRECISION;
+         {
+            graphene::chain::htlc_create_operation create_operation;
+            create_operation.amount = graphene::chain::asset( htlc_amount );
+            create_operation.from = alice_id;
+            create_operation.to = gateway_id;
+            create_operation.claim_period_seconds = 86400;
+            create_operation.preimage_hash = hash_it<fc::ripemd160>( pre_image_256 );
+            create_operation.preimage_size = pre_image_size_256;
+            create_operation.fee = db.current_fee_schedule().calculate_fee( create_operation );
+            trx.clear();
+            trx.operations.push_back(create_operation);
+            sign(trx, alice_private_key);
+            PUSH_TX( db, trx );
+         }
+
+
+         //////
+         // Advance the blockchain to get the finalized HTLC ID
+         //////
+         generate_blocks(1);
+         graphene::chain::htlc_id_type alice_htlc_id =
+                 db.get_index_type<htlc_index>().indices().get<by_from_id>().find(alice.get_id())->id;
+
+
+         //////
+         // Bob attempts to extend the HTLC
+         // This should fail because Bob is not authorized to extend an HTLC on behalf of Alice
+         //////
+         graphene::chain::htlc_extend_operation extend_operation;
+         {
+            extend_operation.update_issuer = alice_id;
+            extend_operation.htlc_id = alice_htlc_id;
+            extend_operation.seconds_to_add = int64_t(24 * 3600);
+            extend_operation.fee = db.current_fee_schedule().calculate_fee( extend_operation );
+            trx.clear();
+            trx.operations.push_back(extend_operation);
+            sign(trx, bob_private_key);
+            BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+            // The failure should not indicate any rejected custom auths because no CAA applies for Bob's attempt
+            // "rejected_custom_auths":[]
+            EXPECT_EXCEPTION_STRING("\"rejected_custom_auths\":[]", [&] {PUSH_TX(db, trx);});
+
+         }
+
+
+         //////
+         // Alice authorizes Bob to extend an HTLC
+         // by greater than 1 hour and less than or equal to 24 hours
+         //////
+         custom_authority_create_operation authorize_htlc_extension;
+         authorize_htlc_extension.account = alice.get_id();
+         authorize_htlc_extension.auth.add_authority(bob.get_id(), 1);
+         authorize_htlc_extension.auth.weight_threshold = 1;
+         authorize_htlc_extension.enabled = true;
+         authorize_htlc_extension.valid_to = db.head_block_time() + 1000;
+         authorize_htlc_extension.operation_type = operation::tag<htlc_extend_operation>::value;
+
+         // Authorization to extend is restricted to greater than 1 hour and less than or equal to 24 hours
+         vector<restriction> restrictions;
+         auto extension_duration_index = member_index<htlc_extend_operation>("seconds_to_add");
+         // Duration extension greater than one hour
+         restriction restriction_gt_duration = restriction(extension_duration_index, FUNC(gt), int64_t(1 * 3600));
+         restrictions.emplace_back(restriction_gt_duration);
+         // Duration extension less than or equal to 24 hours
+         restriction restriction_le_duration = restriction(extension_duration_index, FUNC(le), int64_t(24 * 3600));
+         restrictions.emplace_back(restriction_le_duration);
+         authorize_htlc_extension.restrictions = restrictions;
+         //[
+         //  {
+         //    "member_index": 3,
+         //    "restriction_type": 4,
+         //    "argument": [
+         //      2,
+         //      3600
+         //    ],
+         //    "extensions": []
+         //  },
+         //  {
+         //    "member_index": 3,
+         //    "restriction_type": 3,
+         //    "argument": [
+         //      2,
+         //      86400
+         //    ],
+         //    "extensions": []
+         //  }
+         //]
+         trx.clear();
+         trx.operations = {authorize_htlc_extension};
+         sign(trx, alice_private_key);
+         PUSH_TX(db, trx);
+
+
+         //////
+         // Advance the blockchain to generate distinctive hash IDs for the similar transactions
+         //////
+         generate_blocks(1);
+
+
+         //////
+         // Bob attempts to extend the HTLC
+         // This should succeed because Bob is conditionally authorized to extend
+         //////
+         {
+            trx.clear();
+            trx.operations.push_back(extend_operation);
+            sign(trx, bob_private_key);
+            PUSH_TX(db, trx);
+
+         }
+
+
+         //////
+         // Bob attempts to extend the HTLC by exactly 10 hours
+         // This should succeed because Bob is authorized to extend the HTLC
+         // if greater than 1 hour and less than or equal to 24 hours
+         //////
+         {
+            extend_operation = htlc_extend_operation();
+            extend_operation.update_issuer = alice_id;
+            extend_operation.htlc_id = alice_htlc_id;
+            extend_operation.seconds_to_add = int64_t(10 * 3600);
+            extend_operation.fee = db.current_fee_schedule().calculate_fee( extend_operation );
+            trx.clear();
+            trx.operations.push_back(extend_operation);
+            sign(trx, bob_private_key);
+            PUSH_TX(db, trx);
+
+         }
+
+
+         //////
+         // Bob attempts to extend the HTLC by exactly 1 hour
+         // This should fail because Bob is authorized to extend the HTLC
+         // if greater than 1 hour and less than or equal to 24 hours
+         //////
+         {
+            extend_operation = htlc_extend_operation();
+            extend_operation.update_issuer = alice_id;
+            extend_operation.htlc_id = alice_htlc_id;
+            extend_operation.seconds_to_add = int64_t(1 * 3600);
+            extend_operation.fee = db.current_fee_schedule().calculate_fee( extend_operation );
+            trx.clear();
+            trx.operations.push_back(extend_operation);
+            sign(trx, bob_private_key);
+            BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+            // The failure should indicate the rejection path
+            // "rejection_path":[[0,0],[2,"predicate_was_false"]
+            // [0,0]: 0 is the rejection_indicator for an index to a sub-restriction; 0 is the index value for Restriction 1
+            // [2,"predicate_was_false"]: 0 is the rejection_indicator for rejection_reason; "predicate_was_false" is the reason
+            EXPECT_EXCEPTION_STRING("\"rejection_path\":[[0,0],[2,\"predicate_was_false\"]]", [&] {PUSH_TX(db, trx);});
+
+         }
+
+
+         //////
+         // Bob attempts to extend the HTLC by 24 hours plus 1 second
+         // This should fail because Bob is authorized to extend the HTLC
+         // if greater than 1 hour and less than or equal to 24 hours
+         //////
+         {
+            extend_operation = htlc_extend_operation();
+            extend_operation.update_issuer = alice_id;
+            extend_operation.htlc_id = alice_htlc_id;
+            extend_operation.seconds_to_add = int64_t( (24 * 3600) + 1);
+            extend_operation.fee = db.current_fee_schedule().calculate_fee( extend_operation );
+            trx.clear();
+            trx.operations.push_back(extend_operation);
+            sign(trx, bob_private_key);
+            BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+            // The failure should indicate the rejection path
+            // "rejection_path":[[0,1],[2,"predicate_was_false"]
+            // [0,1]: 0 is the rejection_indicator for an index to a sub-restriction; 1 is the index value for Restriction 2
+            // [2,"predicate_was_false"]: 0 is the rejection_indicator for rejection_reason; "predicate_was_false" is the reason
+            EXPECT_EXCEPTION_STRING("\"rejection_path\":[[0,1],[2,\"predicate_was_false\"]]", [&] {PUSH_TX(db, trx);});
+
+         }
+
+      } FC_LOG_AND_RETHROW()
+   }
+
+
+   /**
     * Test of variant assert (variant_assert) restriction on a field
     * Test of CAA for vesting_balance_create_operation
     *
@@ -3504,6 +5016,7 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
          // Initialize: Accounts
          //////
          ACTORS((feedproducer)(alice)(bob));
+         int64_t init_balance(100 * GRAPHENE_BLOCKCHAIN_PRECISION);
 
 
          //////
@@ -3511,12 +5024,14 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
          //////
          // Define core asset
          const auto &core = asset_id_type()(db);
+         asset_id_type core_id = core.id;
 
          // Create a smart asset
          create_bitasset("USDBIT", feedproducer_id);
          generate_blocks(1);
          const asset_object &bitusd
                  = *db.get_index_type<asset_index>().indices().get<by_symbol>().find("USDBIT");
+         asset_id_type usd_id = bitusd.id;
 
          // Configure the smart asset
          update_feed_producers(bitusd, {feedproducer.id});
@@ -3525,6 +5040,52 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
          current_feed.maximum_short_squeeze_ratio = 1100;
          current_feed.settlement_price = bitusd.amount(1) / core.amount(5);
          publish_feed(bitusd, feedproducer, current_feed);
+
+
+         //////
+         // Fund alice with core asset
+         //////
+         fund(alice, asset(init_balance));
+         // alice will borrow 1000 bitUSD
+         borrow(alice, bitusd.amount(1000), asset(15000));
+         int64_t alice_balance_usd_before_offer = get_balance(alice_id, usd_id);
+         BOOST_CHECK_EQUAL( 1000,  alice_balance_usd_before_offer);
+         int64_t alice_balance_core_before_offer = get_balance(alice_id, core_id);
+         BOOST_CHECK_EQUAL( init_balance - 15000, alice_balance_core_before_offer );
+
+
+         //////
+         // Alice updates the collateral for the Alice debt position
+         //////
+         {
+            call_order_update_operation op;
+            op.funding_account = alice_id;
+            op.delta_collateral = asset(1000);
+            op.delta_debt = asset(0, usd_id);
+            trx.clear();
+            trx.operations.push_back(op);
+            sign(trx, alice_private_key);
+            PUSH_TX(db, trx);
+         }
+
+
+         //////
+         // Bob attempts to update the collateral for Alice's debt position
+         // This attempt should fail because Bob is not authorized by Alice
+         //////
+         {
+            call_order_update_operation op;
+            op.funding_account = alice_id;
+            op.delta_collateral = asset(2000);
+            op.delta_debt = asset(0, usd_id);
+            trx.clear();
+            trx.operations.push_back(op);
+            sign(trx, bob_private_key);
+            BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+            // The failure should not indicate any rejected custom auths because no CAA applies for Bob's attempt
+            // "rejected_custom_auths":[]
+            EXPECT_EXCEPTION_STRING("\"rejected_custom_auths\":[]", [&] {PUSH_TX(db, trx);});
+         }
 
 
          //////
@@ -3547,7 +5108,7 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
          time_point_sec after_authorization_end_time = authorization_end_time + 86400;
          authorize_call_order_update.valid_from = authorization_start_time;
          authorize_call_order_update.valid_to = authorization_end_time;
-         //authorize_call_order_update.operation_type = operation::tag<call_order_update_operation>::value;
+         authorize_call_order_update.operation_type = operation::tag<call_order_update_operation>::value;
          trx.clear();
          trx.operations = {authorize_call_order_update};
          sign(trx, alice_private_key);
@@ -3563,11 +5124,46 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
 
 
          //////
+         // Bob attempts to update the collateral for Alice's debt position
+         // This attempt should fail because authorization is not yet active
+         //////
+         {
+            call_order_update_operation op;
+            op.funding_account = alice_id;
+            op.delta_collateral = asset(3000);
+            op.delta_debt = asset(0, usd_id);
+            trx.clear();
+            trx.operations.push_back(op);
+            sign(trx, bob_private_key);
+            BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+            // The failure should not indicate any rejected custom auths because the CAA is not yet active
+            // "rejected_custom_auths":[]
+            EXPECT_EXCEPTION_STRING("\"rejected_custom_auths\":[]", [&] {PUSH_TX(db, trx);});
+         }
+
+
+         //////
          // Advance the blockchain to the start of the authorization period
          //////
          generate_blocks(authorization_start_time);
          set_expiration(db, trx);
          publish_feed(bitusd, feedproducer, current_feed); // Update the price feed
+
+         //////
+         // Bob attempts to update the collateral for Alice's debt position
+         // This attempt should succeed because the Alice authorization is active
+         //////
+         {
+            call_order_update_operation op;
+            op.funding_account = alice_id;
+            op.delta_collateral = asset(4000);
+            op.delta_debt = asset(0, usd_id);
+            trx.clear();
+            trx.operations.push_back(op);
+            sign(trx, bob_private_key);
+            PUSH_TX(db, trx);
+         }
+
 
          //////
          // Advance the blockchain to the end of the authorization period
@@ -3578,11 +5174,46 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
 
 
          //////
+         // Bob attempts to update the collateral for Alice's debt position
+         // This attempt should succeed because the Alice authorization is active
+         //////
+         {
+            call_order_update_operation op;
+            op.funding_account = alice_id;
+            op.delta_collateral = asset(5000);
+            op.delta_debt = asset(0, usd_id);
+            trx.clear();
+            trx.operations.push_back(op);
+            sign(trx, bob_private_key);
+            PUSH_TX(db, trx);
+         }
+
+
+         //////
          // Advance the blockchain to after the authorization expires
          //////
          generate_blocks(after_authorization_end_time);
          set_expiration(db, trx);
          publish_feed(bitusd, feedproducer, current_feed); // Update the price feed
+
+
+         //////
+         // Bob attempts to update the collateral for Alice's debt position
+         // This attempt should fail because the authorization has expired
+         //////
+         {
+            call_order_update_operation op;
+            op.funding_account = alice_id;
+            op.delta_collateral = asset(6000);
+            op.delta_debt = asset(0, usd_id);
+            trx.clear();
+            trx.operations.push_back(op);
+            sign(trx, bob_private_key);
+            BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+            // The failure should not indicate any rejected custom auths because no CAA applies for Bob's attempt
+            // "rejected_custom_auths":[]
+            EXPECT_EXCEPTION_STRING("\"rejected_custom_auths\":[]", [&] {PUSH_TX(db, trx);});
+         }
 
       } FC_LOG_AND_RETHROW()
    }

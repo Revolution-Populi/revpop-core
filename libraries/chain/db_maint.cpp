@@ -24,6 +24,8 @@
 
 #include <fc/uint128.hpp>
 
+#include <graphene/protocol/market.hpp>
+
 #include <graphene/chain/database.hpp>
 #include <graphene/chain/fba_accumulator_id.hpp>
 #include <graphene/chain/hardfork.hpp>
@@ -39,6 +41,7 @@
 #include <graphene/chain/global_property_object.hpp>
 #include <graphene/chain/market_object.hpp>
 #include <graphene/chain/special_authority_object.hpp>
+#include <graphene/chain/ticket_object.hpp>
 #include <graphene/chain/vesting_balance_object.hpp>
 #include <graphene/chain/vote_count.hpp>
 #include <graphene/chain/witness_object.hpp>
@@ -543,6 +546,7 @@ void database::initialize_budget_record( fc::time_point_sec now, budget_record& 
    rec.from_initial_reserve = core.reserved(*this);
    rec.from_accumulated_fees = core_dd.accumulated_fees;
    rec.from_unused_witness_budget = dpo.witness_budget;
+   rec.max_supply = core.options.max_supply;
 
    if(    (dpo.last_budget_time == fc::time_point_sec())
        || (now <= dpo.last_budget_time) )
@@ -667,6 +671,7 @@ void database::process_budget()
          _dpo.last_budget_time = now;
       });
 
+      rec.current_supply = core.current_supply;
       create< budget_record_object >( [&]( budget_record_object& _rec )
       {
          _rec.time = head_block_time();
@@ -853,6 +858,39 @@ void create_buyback_orders( database& db )
          if( buyback_account.allowed_assets->find( asset_to_sell ) == buyback_account.allowed_assets->end() )
          {
             wlog( "buyback account ${b} not selling disallowed holdings of asset ${a} at block ${n}", ("b", buyback_account)("a", asset_to_sell)("n", db.head_block_num()) );
+            continue;
+         }
+
+         try
+         {
+            transaction_evaluation_state buyback_context(&db);
+            buyback_context.skip_fee_schedule_check = true;
+
+            limit_order_create_operation create_vop;
+            create_vop.fee = asset( 0, asset_id_type() );
+            create_vop.seller = buyback_account.id;
+            create_vop.amount_to_sell = asset( amount_to_sell, asset_to_sell );
+            create_vop.min_to_receive = asset( 1, asset_to_buy.id );
+            create_vop.expiration = time_point_sec::maximum();
+            create_vop.fill_or_kill = false;
+
+            limit_order_id_type order_id = db.apply_operation( buyback_context, create_vop ).get< object_id_type >();
+
+            if( db.find( order_id ) != nullptr )
+            {
+               limit_order_cancel_operation cancel_vop;
+               cancel_vop.fee = asset( 0, asset_id_type() );
+               cancel_vop.order = order_id;
+               cancel_vop.fee_paying_account = buyback_account.id;
+
+               db.apply_operation( buyback_context, cancel_vop );
+            }
+         }
+         catch( const fc::exception& e )
+         {
+            // we can in fact get here, e.g. if asset issuer of buy/sell asset blacklists/whitelists the buyback account
+            wlog( "Skipping buyback processing selling ${as} for ${ab} for buyback account ${b} at block ${n}; exception was ${e}",
+                  ("as", asset_to_sell)("ab", asset_to_buy)("b", buyback_account)("n", db.head_block_num())("e", e.to_detail_string()) );
             continue;
          }
       }
@@ -1190,6 +1228,22 @@ void delete_expired_custom_authorities( database& db )
       db.remove(*index.begin());
 }
 
+/// A one-time data process to set values of existing liquid tickets to zero.
+void process_hf_2262( database& db )
+{
+   for( const auto& ticket_obj : db.get_index_type<ticket_index>().indices().get<by_id>() )
+   {
+      if( ticket_obj.current_type != liquid ) // only update liquid tickets
+         continue;
+      db.modify( db.get_account_stats_by_owner( ticket_obj.account ), [&ticket_obj](account_statistics_object& aso) {
+         aso.total_pol_value -= ticket_obj.value;
+      });
+      db.modify( ticket_obj, []( ticket_object& t ) {
+         t.value = 0;
+      });
+   }
+}
+
 namespace detail {
 
    struct vote_recalc_times
@@ -1268,6 +1322,7 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
 {
    const auto& gpo = get_global_properties();
    const auto& dgpo = get_dynamic_global_properties();
+   auto last_vote_tally_time = head_block_time();
 
    distribute_fba_balances(*this);
    create_buyback_orders(*this);
@@ -1278,6 +1333,7 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
       const dynamic_global_property_object& dprops;
       const time_point_sec now;
       const bool hf2103_passed;
+      const bool hf2262_passed;
       const bool pob_activated;
 
       optional<detail::vote_recalc_times> witness_recalc_times;
@@ -1286,8 +1342,9 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
       optional<detail::vote_recalc_times> delegator_recalc_times;
 
       vote_tally_helper( database& db )
-         : d(db), props( d.get_global_properties() ), dprops( d.get_dynamic_global_properties() ),
+         : d(db), props( d.get_global_properties() ), dprops( d.get_dynamic_global_properties() ), 
            now( d.head_block_time() ), hf2103_passed( HARDFORK_CORE_2103_PASSED( now ) ),
+           hf2262_passed( HARDFORK_CORE_2262_PASSED( now ) ),
            pob_activated( dprops.total_pob > 0 || dprops.total_inactive > 0 )
       {
          d._vote_tally_buffer.resize( props.next_available_vote_id, 0 );
@@ -1322,8 +1379,16 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
             uint64_t voting_stake[3]; // 0=committee, 1=witness, 2=worker, as in vote_id_type::vote_type
             uint64_t num_committee_voting_stake; // number of committee members
             voting_stake[2] = ( pob_activated ? 0 : stats.total_core_in_orders.value )
-                  + (stake_account.cashback_vb.valid() ? (*stake_account.cashback_vb)(d).balance.amount.value: 0)
-                  + stats.core_in_balance.value;
+                  + ( ( !hf2262_passed && stake_account.cashback_vb.valid() ) ?
+                           (*stake_account.cashback_vb)(d).balance.amount.value : 0 )
+                  + ( hf2262_passed ? 0 : stats.core_in_balance.value );
+
+            // voting power stats
+            uint64_t vp_all = 0;       ///<  all voting power.
+            uint64_t vp_active = 0;    ///<  the voting power of the proxy, if there is no attenuation, it is equal to vp_all.
+            uint64_t vp_committee = 0; ///<  the final voting power for the committees.
+            uint64_t vp_witness = 0;   ///<  the final voting power for the witnesses.
+            uint64_t vp_worker = 0;    ///<  the final voting power for the workers.
 
             //PoB
             const uint64_t pol_amount = stats.total_core_pol.value;
@@ -1374,32 +1439,56 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
             if( voting_stake[2] == 0 )
                return;
 
+            const account_statistics_object& opinion_account_stats = ( directly_voting ? stats : opinion_account.statistics( d ) );
+
             // Recalculate votes
             if( !hf2103_passed )
             {
                voting_stake[0] = voting_stake[2];
                voting_stake[1] = voting_stake[2];
                num_committee_voting_stake = voting_stake[2];
+               vp_all = vp_active = vp_committee = vp_witness = vp_worker = voting_stake[2];
             }
             else
             {
+               vp_all = vp_active = voting_stake[2];
                if( !directly_voting )
                {
-                  voting_stake[2] = detail::vote_recalc_options::delegator().get_recalced_voting_stake(
-                                          voting_stake[2], stats.last_vote_time, *delegator_recalc_times );
+                  vp_active = voting_stake[2] = detail::vote_recalc_options::delegator().get_recalced_voting_stake( 
+                     voting_stake[2], stats.last_vote_time, *delegator_recalc_times );
                }
-               const account_statistics_object& opinion_account_stats = ( directly_voting ? stats
-                                          : opinion_account.statistics( d ) );
-               voting_stake[1] = detail::vote_recalc_options::witness().get_recalced_voting_stake(
-                                    voting_stake[2], opinion_account_stats.last_vote_time, *witness_recalc_times );
-               voting_stake[0] = detail::vote_recalc_options::committee().get_recalced_voting_stake(
-                                    voting_stake[2], opinion_account_stats.last_vote_time, *committee_recalc_times );
+               vp_witness = voting_stake[1] = detail::vote_recalc_options::witness().get_recalced_voting_stake( 
+                  voting_stake[2], opinion_account_stats.last_vote_time, *witness_recalc_times );
+               vp_committee = voting_stake[0] = detail::vote_recalc_options::committee().get_recalced_voting_stake( 
+                  voting_stake[2], opinion_account_stats.last_vote_time, *committee_recalc_times );
                num_committee_voting_stake = voting_stake[0];
                if( opinion_account.num_committee_voted > 1 )
                   voting_stake[0] /= opinion_account.num_committee_voted;
-               voting_stake[2] = detail::vote_recalc_options::worker().get_recalced_voting_stake(
-                                    voting_stake[2], opinion_account_stats.last_vote_time, *worker_recalc_times );
+               vp_worker = voting_stake[2] = detail::vote_recalc_options::worker().get_recalced_voting_stake( 
+                  voting_stake[2], opinion_account_stats.last_vote_time, *worker_recalc_times );
             }
+
+            // update voting power
+            d.modify( opinion_account_stats, [=]( account_statistics_object& update_stats ) {
+               if (update_stats.vote_tally_time != now)
+               {
+                  update_stats.vp_all = vp_all;
+                  update_stats.vp_active = vp_active;
+                  update_stats.vp_committee = vp_committee;
+                  update_stats.vp_witness = vp_witness;
+                  update_stats.vp_worker = vp_worker;
+                  update_stats.vote_tally_time = now;
+               }
+               else
+               {
+                  update_stats.vp_all += vp_all;
+                  update_stats.vp_active += vp_active;
+                  update_stats.vp_committee += vp_committee;
+                  update_stats.vp_witness += vp_witness;
+                  update_stats.vp_worker += vp_worker;
+                  // update_stats.vote_tally_time = now; 
+               }
+            });
 
             for( vote_id_type id : opinion_account.options.votes )
             {
@@ -1432,7 +1521,7 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
    } tally_helper(*this);
 
    perform_account_maintenance( tally_helper );
-
+   
    struct clear_canary {
       clear_canary(vector<uint64_t>& target): target(target){}
       ~clear_canary() { target.clear(); }
@@ -1515,8 +1604,13 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
    if ( dgpo.next_maintenance_time <= HARDFORK_CORE_2103_TIME && next_maintenance_time > HARDFORK_CORE_2103_TIME )
       process_hf_2103(*this);
 
-   modify(dgpo, [next_maintenance_time](dynamic_global_property_object& d) {
+   // Update tickets. Note: the new values will take effect only on the next maintenance interval
+   if ( dgpo.next_maintenance_time <= HARDFORK_CORE_2262_TIME && next_maintenance_time > HARDFORK_CORE_2262_TIME )
+      process_hf_2262(*this);
+
+   modify(dgpo, [last_vote_tally_time, next_maintenance_time](dynamic_global_property_object& d) {
       d.next_maintenance_time = next_maintenance_time;
+      d.last_vote_tally_time = last_vote_tally_time;
       d.accounts_registered_this_interval = 0;
    });
 

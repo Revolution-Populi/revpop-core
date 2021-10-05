@@ -21,6 +21,8 @@ list(APPEND SOURCES account.cpp
                     custom_authority.cpp
                     committee_member.cpp
                     custom.cpp
+                    market.cpp
+                    liquidity_pool.cpp
                     ticket.cpp
                     operations.cpp
                     pts_address.cpp
@@ -34,7 +36,9 @@ list(APPEND SOURCES account.cpp
                     content_vote.cpp
                     commit_reveal.cpp
                     commit_reveal_v2.cpp
-                    commit_reveal_v3.cpp)
+                    commit_reveal_v3.cpp
+                    worker.cpp
+                    htlc.cpp)
 
 
 list(APPEND CUSTOM_AUTHS_FILES
@@ -53,7 +57,8 @@ list(APPEND CUSTOM_AUTHS_FILES
      custom_authorities/list_9.cpp
      custom_authorities/list_10.cpp
      custom_authorities/list_11.cpp
-     custom_authorities/list_12.cpp)
+     custom_authorities/list_12.cpp
+     custom_authorities/list_13.cpp)
 
 file(GLOB CUSTOM_AUTHS_HEADERS "custom_authorities/*.hxx")
 

@@ -438,6 +438,135 @@ BOOST_AUTO_TEST_CASE( reset_backing_asset_on_non_witness_asset )
    }
 }
 
+/*********
+ * @brief Update median feeds after feed_lifetime_sec changed
+ */
+BOOST_AUTO_TEST_CASE( hf_890_test )
+{
+   uint32_t skip = database::skip_witness_signature
+                 | database::skip_transaction_signatures
+                 | database::skip_transaction_dupe_check
+                 | database::skip_block_size_check
+                 | database::skip_tapos_check
+                 | database::skip_merkle_check
+                 ;
+   generate_blocks(HARDFORK_615_TIME, true, skip); // get around Graphene issue #615 feed expiration bug
+   generate_blocks(db.get_dynamic_global_properties().next_maintenance_time, true, skip);
+
+   auto hf_time = HARDFORK_CORE_868_890_TIME;
+   if(hf1270)
+      hf_time = HARDFORK_CORE_1270_TIME;
+
+   for( int i=0; i<2; ++i )
+   {
+      int blocks = 0;
+      auto mi = db.get_global_properties().parameters.maintenance_interval;
+
+      if( i == 1 ) // go beyond hard fork
+      {
+         blocks += generate_blocks(hf_time - mi, true, skip);
+         blocks += generate_blocks(db.get_dynamic_global_properties().next_maintenance_time, true, skip);
+      }
+      set_expiration( db, trx );
+
+      ACTORS((buyer)(seller)(borrower)(feedproducer));
+
+      int64_t init_balance(1000000);
+
+      transfer(committee_account, buyer_id, asset(init_balance));
+      transfer(committee_account, borrower_id, asset(init_balance));
+
+      const auto& bitusd = create_bitasset("USDBIT", feedproducer_id);
+      asset_id_type usd_id = bitusd.id;
+
+      {
+         // change feed lifetime
+         const asset_object& asset_to_update = usd_id(db);
+         asset_update_bitasset_operation ba_op;
+         ba_op.asset_to_update = usd_id;
+         ba_op.issuer = asset_to_update.issuer;
+         ba_op.new_options = asset_to_update.bitasset_data(db).options;
+         ba_op.new_options.feed_lifetime_sec = 600;
+         trx.operations.push_back(ba_op);
+         PUSH_TX(db, trx, ~0);
+         trx.clear();
+      }
+
+      // prepare feed data
+      price_feed current_feed;
+      current_feed.maintenance_collateral_ratio = 1750;
+      current_feed.maximum_short_squeeze_ratio = 1100;
+
+      // set price feed
+      update_feed_producers( usd_id(db), {feedproducer_id} );
+      current_feed.settlement_price = asset(100, usd_id) / asset(5);
+      publish_feed( usd_id, feedproducer_id, current_feed );
+
+      // Place some collateralized orders
+      // start out with 300% collateral, call price is 15/175 CORE/USD = 60/700
+      borrow( borrower_id, asset(100, usd_id), asset(15) );
+
+      transfer( borrower_id, seller_id, asset(100, usd_id) );
+
+      // Adjust price feed to get call order into margin call territory
+      current_feed.settlement_price = asset(100, usd_id) / asset(10);
+      publish_feed( usd_id, feedproducer_id, current_feed );
+      // settlement price = 100 USD / 10 CORE, mssp = 100/11 USD/CORE
+
+      // let the feed expire
+      blocks += generate_blocks( db.head_block_time() + 1200, true, skip );
+      set_expiration( db, trx );
+
+      // check: median feed should be null
+      BOOST_CHECK( usd_id(db).bitasset_data(db).current_feed.settlement_price.is_null() );
+
+      // place a sell order, it won't be matched with the call order
+      limit_order_id_type sell_id = create_sell_order(seller_id, asset(10, usd_id), asset(1))->id;
+
+      {
+         // change feed lifetime to longer
+         const asset_object& asset_to_update = usd_id(db);
+         asset_update_bitasset_operation ba_op;
+         ba_op.asset_to_update = usd_id;
+         ba_op.issuer = asset_to_update.issuer;
+         ba_op.new_options = asset_to_update.bitasset_data(db).options;
+         ba_op.new_options.feed_lifetime_sec = hf_time.sec_since_epoch()
+                                             - db.head_block_time().sec_since_epoch()
+                                             + mi
+                                             + 1800;
+         trx.operations.push_back(ba_op);
+         PUSH_TX(db, trx, ~0);
+         trx.clear();
+      }
+
+      // check
+      if( i == 0 ) // before hard fork, median feed is still null, and limit order is still there
+      {
+         BOOST_CHECK( usd_id(db).bitasset_data(db).current_feed.settlement_price.is_null() );
+         BOOST_CHECK( db.find<limit_order_object>( sell_id ) );
+
+         // go beyond hard fork
+         blocks += generate_blocks(hf_time - mi, true, skip);
+         blocks += generate_blocks(db.get_dynamic_global_properties().next_maintenance_time, true, skip);
+      }
+
+      // after hard fork, median feed should become valid, and the limit order should be filled
+      {
+         BOOST_CHECK( usd_id(db).bitasset_data(db).current_feed.settlement_price == current_feed.settlement_price );
+         BOOST_CHECK( !db.find<limit_order_object>( sell_id ) );
+      }
+
+      // undo above tx's and reset
+      generate_block( skip );
+      ++blocks;
+      while( blocks > 0 )
+      {
+         db.pop_block();
+         --blocks;
+      }
+   }
+}
+
 class bitasset_evaluator_wrapper : public asset_update_bitasset_evaluator
 {
 public:
@@ -782,6 +911,250 @@ BOOST_AUTO_TEST_CASE( bitasset_evaluator_test_after_922_931 )
 
 }
 
+/*********
+ * @brief Call price inconsistent when MCR changed
+ */
+BOOST_AUTO_TEST_CASE( hf_1270_test )
+{ try {
+   uint32_t skip = database::skip_witness_signature
+                 | database::skip_transaction_signatures
+                 | database::skip_transaction_dupe_check
+                 | database::skip_block_size_check
+                 | database::skip_tapos_check
+                 | database::skip_merkle_check
+                 ;
+   generate_blocks( HARDFORK_615_TIME, true, skip ); // get around Graphene issue #615 feed expiration bug
+   generate_blocks( db.get_dynamic_global_properties().next_maintenance_time, true, skip );
+   generate_block( skip );
+
+   for( int i = 0; i < 10; ++i )
+   {
+      idump( (i) );
+      int blocks = 0;
+      auto mi = db.get_global_properties().parameters.maintenance_interval;
+
+      if( i == 2) // go beyond hard fork 890 (which is the same as 935 BTW)
+      {
+         generate_blocks( HARDFORK_CORE_868_890_TIME - mi, true, skip );
+         generate_blocks( db.get_dynamic_global_properties().next_maintenance_time, true, skip );
+      }
+      else if( i == 6 ) // go beyond hard fork 1270
+      {
+         generate_blocks( HARDFORK_CORE_1270_TIME - mi, true, skip );
+         generate_blocks( db.get_dynamic_global_properties().next_maintenance_time, true, skip );
+      }
+      else if( i == 8 ) // go beyond hard fork BSIP77
+      {
+         generate_blocks( HARDFORK_BSIP_77_TIME, true, skip );
+      }
+      set_expiration( db, trx );
+
+      ACTORS( (seller)(borrower)(feedproducer)(feedproducer2)(feedproducer3) );
+
+      int64_t init_balance( 1000000 );
+
+      transfer( committee_account, borrower_id, asset(init_balance) );
+
+      const auto& bitusd = create_bitasset( "USDBIT", feedproducer_id );
+      asset_id_type usd_id = bitusd.id;
+
+      {
+         // set a short feed lifetime
+         const asset_object& asset_to_update = usd_id(db);
+         asset_update_bitasset_operation ba_op;
+         ba_op.asset_to_update = usd_id;
+         ba_op.issuer = asset_to_update.issuer;
+         ba_op.new_options = asset_to_update.bitasset_data(db).options;
+         ba_op.new_options.feed_lifetime_sec = 300;
+         trx.operations.push_back(ba_op);
+         PUSH_TX(db, trx, ~0);
+         trx.clear();
+      }
+
+      // set feed producers
+      flat_set<account_id_type> producers;
+      producers.insert( feedproducer_id );
+      producers.insert( feedproducer2_id );
+      producers.insert( feedproducer3_id );
+      update_feed_producers( usd_id(db), producers );
+
+      // prepare feed data
+      price_feed current_feed;
+      if( i % 2 == 0 ) // MCR test
+      {
+         current_feed.maintenance_collateral_ratio = 3500;
+         current_feed.maximum_short_squeeze_ratio = 1100;
+         current_feed.settlement_price = asset(100, usd_id) / asset(5);
+      }
+      else // MSSR test
+      {
+         current_feed.maintenance_collateral_ratio = 1750;
+         current_feed.maximum_short_squeeze_ratio = 1250;
+         current_feed.settlement_price = asset(100, usd_id) / asset(10);
+         // mssp = 1000/125
+      }
+
+      // set 2 price feeds which should call some later
+      publish_feed( usd_id, feedproducer_id, current_feed );
+      publish_feed( usd_id, feedproducer2_id, current_feed );
+
+      // check median
+      BOOST_CHECK( usd_id(db).bitasset_data(db).current_feed.settlement_price == current_feed.settlement_price );
+      if( i % 2 == 0 ) // MCR test, MCR should be 350%
+         BOOST_CHECK_EQUAL( usd_id(db).bitasset_data(db).current_feed.maintenance_collateral_ratio, 3500 );
+      else // MSSR test, MSSR should be 125%
+         BOOST_CHECK_EQUAL( usd_id(db).bitasset_data(db).current_feed.maximum_short_squeeze_ratio, 1250 );
+
+      // generate some blocks, let the feeds expire
+      blocks += generate_blocks( db.head_block_time() + 360, true, skip );
+      set_expiration( db, trx );
+
+      // check median, should be null
+      BOOST_CHECK( usd_id(db).bitasset_data(db).current_feed.settlement_price.is_null() );
+
+      // publish a new feed with 175% MCR and 110% MSSR
+      current_feed.settlement_price = asset(100, usd_id) / asset(5);
+      current_feed.maintenance_collateral_ratio = 1750;
+      current_feed.maximum_short_squeeze_ratio = 1100;
+      publish_feed( usd_id, feedproducer3_id, current_feed );
+
+      // check median, MCR would be 175%, MSSR would be 110%
+      BOOST_CHECK( usd_id(db).bitasset_data(db).current_feed.settlement_price == current_feed.settlement_price );
+      BOOST_CHECK_EQUAL( usd_id(db).bitasset_data(db).current_feed.maintenance_collateral_ratio, 1750 );
+      BOOST_CHECK_EQUAL( usd_id(db).bitasset_data(db).current_feed.maximum_short_squeeze_ratio, 1100 );
+
+      // Place some collateralized orders
+      // start out with 300% collateral, call price is 15/175 CORE/USD = 60/700
+      borrow( borrower_id, asset(100, usd_id), asset(15) );
+
+      transfer( borrower_id, seller_id, asset(100, usd_id) );
+
+      if( i % 2 == 1) // MSSR test
+      {
+         // publish a new feed to put the call order into margin call territory
+         current_feed.settlement_price = asset(100, usd_id) / asset(10);
+         current_feed.maintenance_collateral_ratio = 1750;
+         current_feed.maximum_short_squeeze_ratio = 1100;
+         publish_feed( usd_id, feedproducer3_id, current_feed );
+         // mssp = 100/11
+      }
+
+      // place a sell order, it won't be matched with the call order now.
+      // For MCR test, the sell order is at feed price (100/5),
+      //   when median MCR changed to 350%, the call order with 300% collateral will be in margin call territory,
+      //   then this limit order should be filled
+      // For MSSR test, the sell order is above 110% of feed price (100/10) but below 125% of feed price,
+      //   when median MSSR changed to 125%, the call order will be matched,
+      //   then this limit order should be filled
+      limit_order_id_type sell_id = ( i % 2 == 0 ) ?
+                                    create_sell_order( seller_id, asset(20, usd_id), asset(1) )->id : // for MCR test
+                                    create_sell_order( seller_id, asset(8, usd_id), asset(1) )->id;  // for MSSR test
+
+      {
+         // change feed lifetime to longer, let all 3 feeds be valid
+         const asset_object& asset_to_update = usd_id(db);
+         asset_update_bitasset_operation ba_op;
+         ba_op.asset_to_update = usd_id;
+         ba_op.issuer = asset_to_update.issuer;
+         ba_op.new_options = asset_to_update.bitasset_data(db).options;
+         ba_op.new_options.feed_lifetime_sec = HARDFORK_CORE_1270_TIME.sec_since_epoch()
+                                             + mi * 3 + 86400 * 2
+                                             - db.head_block_time().sec_since_epoch();
+         trx.operations.push_back(ba_op);
+         PUSH_TX(db, trx, ~0);
+         trx.clear();
+      }
+
+      bool affected_by_hf_343 = false;
+
+      // check
+      if( i / 2 == 0 ) // before hard fork 890
+      {
+         // median feed won't change (issue 890)
+         BOOST_CHECK( usd_id(db).bitasset_data(db).current_feed.settlement_price == current_feed.settlement_price );
+         BOOST_CHECK_EQUAL( usd_id(db).bitasset_data(db).current_feed.maintenance_collateral_ratio, 1750 );
+         BOOST_CHECK_EQUAL( usd_id(db).bitasset_data(db).current_feed.maximum_short_squeeze_ratio, 1100 );
+         // limit order is still there
+         BOOST_CHECK( db.find<limit_order_object>( sell_id ) );
+
+         // go beyond hard fork 890
+         blocks += generate_blocks( HARDFORK_CORE_868_890_TIME - mi, true, skip );
+         bool was_before_hf_343 = ( db.get_dynamic_global_properties().next_maintenance_time <= HARDFORK_CORE_343_TIME );
+
+         blocks += generate_blocks( db.get_dynamic_global_properties().next_maintenance_time, true, skip );
+         bool now_after_hf_343 = ( db.get_dynamic_global_properties().next_maintenance_time > HARDFORK_CORE_343_TIME );
+
+         if( was_before_hf_343 && now_after_hf_343 ) // if hf 343 executed at same maintenance interval, actually after hf 890
+            affected_by_hf_343 = true;
+      }
+
+      // after hard fork 890, if it's before hard fork 935
+      if( db.get_dynamic_global_properties().next_maintenance_time <= HARDFORK_CORE_935_TIME )
+      {
+         // median should have changed
+         BOOST_CHECK( usd_id(db).bitasset_data(db).current_feed.settlement_price == current_feed.settlement_price );
+         if( i % 2 == 0 ) // MCR test, MCR should be 350%
+            BOOST_CHECK_EQUAL( usd_id(db).bitasset_data(db).current_feed.maintenance_collateral_ratio, 3500 );
+         else // MSSR test, MSSR should be 125%
+            BOOST_CHECK_EQUAL( usd_id(db).bitasset_data(db).current_feed.maximum_short_squeeze_ratio, 1250 );
+
+         if( affected_by_hf_343 ) // if updated bitasset before hf 890, and hf 343 executed after hf 890
+            // the limit order should have been filled
+            BOOST_CHECK( !db.find<limit_order_object>( sell_id ) );
+         else // if not affected by hf 343
+            // the limit order should be still there, because `check_call_order` was incorrectly skipped
+            BOOST_CHECK( db.find<limit_order_object>( sell_id ) );
+
+         // go beyond hard fork 935
+         blocks += generate_blocks(HARDFORK_CORE_935_TIME - mi, true, skip);
+         blocks += generate_blocks(db.get_dynamic_global_properties().next_maintenance_time, true, skip);
+      }
+
+      // after hard fork 935, the limit order is filled only for the MSSR test
+      if( db.get_dynamic_global_properties().next_maintenance_time > HARDFORK_CORE_935_TIME &&
+          db.get_dynamic_global_properties().next_maintenance_time <= HARDFORK_CORE_1270_TIME)
+      {
+         // check median
+         BOOST_CHECK( usd_id(db).bitasset_data(db).current_feed.settlement_price == current_feed.settlement_price );
+         if( i % 2 == 0) { // MCR test, median MCR should be 350% and order will not be filled except when i = 0
+            BOOST_CHECK_EQUAL(usd_id(db).bitasset_data(db).current_feed.maintenance_collateral_ratio, 3500);
+            if( affected_by_hf_343 )
+               BOOST_CHECK(!db.find<limit_order_object>(sell_id));
+            else
+               BOOST_CHECK(db.find<limit_order_object>(sell_id)); // MCR bug, order still there
+         }
+         else { // MSSR test, MSSR should be 125% and order is filled
+            BOOST_CHECK_EQUAL(usd_id(db).bitasset_data(db).current_feed.maximum_short_squeeze_ratio, 1250);
+            BOOST_CHECK(!db.find<limit_order_object>(sell_id)); // order filled
+         }
+
+         // go beyond hard fork 1270
+         blocks += generate_blocks(HARDFORK_CORE_1270_TIME - mi, true, skip);
+         blocks += generate_blocks(db.get_dynamic_global_properties().next_maintenance_time, true, skip);
+      }
+
+      // after hard fork 1270, the limit order should be filled for MCR test
+      if( db.get_dynamic_global_properties().next_maintenance_time > HARDFORK_CORE_1270_TIME)
+      {
+         // check median
+         BOOST_CHECK( usd_id(db).bitasset_data(db).current_feed.settlement_price == current_feed.settlement_price );
+         if( i % 2 == 0 ) { // MCR test, order filled
+            BOOST_CHECK_EQUAL(usd_id(db).bitasset_data(db).current_feed.maintenance_collateral_ratio, 3500);
+            BOOST_CHECK(!db.find<limit_order_object>(sell_id));
+         }
+      }
+
+      // undo above tx's and reset
+      generate_block( skip );
+      ++blocks;
+      while( blocks > 0 )
+      {
+         db.pop_block();
+         --blocks;
+      }
+   }
+} FC_LOG_AND_RETHROW() }
+
 BOOST_AUTO_TEST_CASE( bitasset_secondary_index )
 {
    ACTORS( (nathan) );
@@ -1027,6 +1400,12 @@ BOOST_AUTO_TEST_CASE( reset_backing_asset_switching_to_witness_fed )
    }
 }
 */
+BOOST_AUTO_TEST_CASE(hf_890_test_hf1270)
+{ try {
+   hf1270 = true;
+   INVOKE(hf_890_test);
+
+} FC_LOG_AND_RETHROW() }
 
 
    /**

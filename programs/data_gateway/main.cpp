@@ -248,6 +248,7 @@ int main( int argc, char** argv )
       if( options.count("rpc-endpoint") > 0 )
       {
          _websocket_server = std::make_shared<fc::http::websocket_server>("");
+         _websocket_server->set_max_http_body_size(2000000000);
          _websocket_server->on_connection([&wapi]( const fc::http::websocket_connection_ptr& c ){
             auto wsc = std::make_shared<fc::rpc::websocket_api_connection>(c, GRAPHENE_MAX_NESTED_OBJECTS);
             wsc->register_api(wapi);

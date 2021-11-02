@@ -1,4 +1,4 @@
 [submodule "libraries/fc"]
     path = libraries/fc
-    url = https://github.com/bitshares/bitshares-fc.git
+    url = https://github.com/Revolution-Populi/fc.git
     ignore = dirty

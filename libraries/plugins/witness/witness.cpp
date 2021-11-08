@@ -523,7 +523,7 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
       );
       _reveal_hash[acc_id] = commit_op.hash;
       tx.operations.push_back(commit_op);
-      ilog("[${b}: ${nme}(${acc})] Commit operation was send, value: ${v}, hash: ${h} | ${wk}",
+      ilog("[${b}: ${nme}(${acc})] Commit operation was sent, value: ${v}, hash: ${h} | ${wk}",
            ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())("v", _reveal_value[acc_id])("h", commit_op.hash)("wk", commit_op.witness_key));
    }
    else if (HARDFORK_REVPOP_12_PASSED(db.head_block_time()))
@@ -553,7 +553,7 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
       commit_op.maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
       commit_op.witness_key = *_witness_key_cache[_witness_account[acc_id]];
       tx.operations.push_back(commit_op);
-      ilog("[${b}: ${nme}(${acc})] Commit operation was send, value: ${v}, hash: ${h} | ${wk}",
+      ilog("[${b}: ${nme}(${acc})] Commit operation was sent, value: ${v}, hash: ${h} | ${wk}",
            ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())("v", _reveal_value[acc_id])("h", commit_op.hash)("wk", commit_op.witness_key));
    }
    else if (HARDFORK_REVPOP_11_PASSED(db.head_block_time()))
@@ -576,7 +576,7 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
       commit_op.hash = fc::sha512::hash(std::to_string(_reveal_value[acc_id]));
       commit_op.maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
       tx.operations.push_back(commit_op);
-      ilog("[${b}: ${nme}(${acc})] Commit operation was send, value: ${v}, hash: ${h}",
+      ilog("[${b}: ${nme}(${acc})] Commit operation was sent, value: ${v}, hash: ${h}",
            ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())("v", _reveal_value[acc_id])("h", commit_op.hash));
    }
    else
@@ -597,7 +597,7 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
       commit_op.account = acc_id;
       commit_op.hash = fc::sha512::hash(std::to_string(_reveal_value[acc_id]));
       tx.operations.push_back(commit_op);
-      ilog("[${b}: ${nme}(${acc})] Commit operation was send, value: ${v}, hash: ${h}",
+      ilog("[${b}: ${nme}(${acc})] Commit operation was sent, value: ${v}, hash: ${h}",
            ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())("v", _reveal_value[acc_id])("h", commit_op.hash));
    }
 
@@ -676,7 +676,7 @@ void witness_plugin::broadcast_reveal(const chain::account_id_type& acc_id) {
       reveal_op.maintenance_time = fc::time_point::now().sec_since_epoch();
       reveal_op.witness_key = *_witness_key_cache[_witness_account[acc_id]];
       tx.operations.push_back(reveal_op);
-      ilog("[${b}: ${nme}(${acc})] Reveal operation was send, value: ${v}, hash: ${h}",
+      ilog("[${b}: ${nme}(${acc})] Reveal operation was sent, value: ${v}, hash: ${h}",
             ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
             ("v", _reveal_value[acc_id])("h", _reveal_hash[acc_id]));
       _reveal_value[acc_id] = 0;
@@ -719,7 +719,7 @@ void witness_plugin::broadcast_reveal(const chain::account_id_type& acc_id) {
       reveal_op.maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
       reveal_op.witness_key = *_witness_key_cache[_witness_account[acc_id]];
       tx.operations.push_back(reveal_op);
-      ilog("[${b}: ${nme}(${acc})] Reveal operation was send, value: ${v}, hash: ${h}",
+      ilog("[${b}: ${nme}(${acc})] Reveal operation was sent, value: ${v}, hash: ${h}",
             ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
             ("v", _reveal_value[acc_id])("h", hash));
       _reveal_value[acc_id] = 0;
@@ -742,7 +742,7 @@ void witness_plugin::broadcast_reveal(const chain::account_id_type& acc_id) {
             reveal_op.value = _reveal_value[acc_id];
             reveal_op.maintenance_time = dgpo.next_maintenance_time.sec_since_epoch();
             tx.operations.push_back(reveal_op);
-            ilog("[${b}: ${nme}(${acc})] Reveal operation was send, value: ${v}, hash: ${h}",
+            ilog("[${b}: ${nme}(${acc})] Reveal operation was sent, value: ${v}, hash: ${h}",
                  ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
                  ("v", _reveal_value[acc_id])("h", hash));
             _reveal_value[acc_id] = 0;
@@ -779,13 +779,13 @@ void witness_plugin::broadcast_reveal(const chain::account_id_type& acc_id) {
             reveal_op.account = acc_id;
             reveal_op.value = _reveal_value[acc_id];
             tx.operations.push_back(reveal_op);
-            ilog("[${b}: ${nme}(${acc})] Reveal operation was send, value: ${v}, hash: ${h}",
+            ilog("[${b}: ${nme}(${acc})] Reveal operation was sent, value: ${v}, hash: ${h}",
                  ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
                  ("v", _reveal_value[acc_id])("h", hash));
          }
          else
          {
-            ilog("[${b}: ${nme}(${acc})] Reveal operation was not send, value: ${v}, hash: ${h}",
+            ilog("[${b}: ${nme}(${acc})] Reveal operation was not sent, value: ${v}, hash: ${h}",
                  ("b", db.head_block_num() + 1)("nme", acc_id(db).name)("acc", acc_id(db).get_id())
                  ("v", _reveal_value[acc_id])("h", hash));
             return;

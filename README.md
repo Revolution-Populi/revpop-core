@@ -21,7 +21,7 @@ A Dockerfile can be used to build and run a fully functional blockchain node. [R
 Getting Started
 ---------------
 Build instructions and additional documentation are available in the
-[Wiki]().
+[Wiki](https://github.com/Revolution-Populi/revpop-core/wiki).
 
 We recommend building on Ubuntu 18.04 LTS (64-bit)
 

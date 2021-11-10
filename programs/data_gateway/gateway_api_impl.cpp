@@ -18,13 +18,9 @@
 #include <string>
 
 #include <boost/algorithm/string/replace.hpp>
-// #include <boost/range/adaptors.hpp>
 
 #include <fc/rpc/api_connection.hpp>
-// #include <fc/popcount.hpp>
 #include <fc/git_revision.hpp>
-// #include <fc/thread/scoped_lock.hpp>
-// #include <fc/io/fstream.hpp>
 
 #include "gateway.hpp"
 #include "gateway_api_impl.hpp"
@@ -101,13 +97,15 @@ namespace graphene { namespace gateway { namespace detail {
       throw fc::canceled_exception();
    }
 
-
    /** Receive content file and give it to storage adapter.
     *
     * .
     */
-   void gateway_api_impl::store_content()
-   {         
+   void gateway_api_impl::store_content(const std::vector<file_upload> &files)
+   {
+         for (auto &f : files) {
+               ilog("Storing file: ${name}, path: ${path}", ("name", f.name)("path", f.path));
+         }
    }
 
    /** .

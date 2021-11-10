@@ -15,64 +15,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-// #include <algorithm>
-// #include <cctype>
-// #include <iomanip>
-// #include <iostream>
-// #include <iterator>
-// #include <sstream>
-// #include <string>
-// #include <list>
-
-// #include <boost/version.hpp>
-// #include <boost/lexical_cast.hpp>
-// #include <boost/algorithm/string/replace.hpp>
-
-// #include <boost/range/adaptor/map.hpp>
-// #include <boost/range/algorithm_ext/erase.hpp>
-// #include <boost/range/algorithm/unique.hpp>
-// #include <boost/range/algorithm/sort.hpp>
-
-// #include <boost/multi_index_container.hpp>
-// #include <boost/multi_index/ordered_index.hpp>
-// #include <boost/multi_index/mem_fun.hpp>
-// #include <boost/multi_index/member.hpp>
-// #include <boost/multi_index/random_access_index.hpp>
-// #include <boost/multi_index/tag.hpp>
-// #include <boost/multi_index/sequenced_index.hpp>
-// #include <boost/multi_index/hashed_index.hpp>
-
-// #include <fc/git_revision.hpp>
-// #include <fc/io/fstream.hpp>
-// #include <fc/io/json.hpp>
-// #include <fc/io/stdio.hpp>
-// #include <fc/network/http/websocket.hpp>
-// #include <fc/rpc/cli.hpp>
-// #include <fc/rpc/websocket_api.hpp>
-// #include <fc/crypto/hex.hpp>
-// #include <fc/thread/mutex.hpp>
-// #include <fc/thread/scoped_lock.hpp>
-// #include <fc/crypto/base58.hpp>
-// #include <fc/crypto/aes.hpp>
 
 #include <graphene/app/api.hpp>
-// #include <graphene/app/util.hpp>
-// #include <graphene/chain/asset_object.hpp>
-// #include <graphene/protocol/fee_schedule.hpp>
-// #include <graphene/protocol/pts_address.hpp>
-// #include <graphene/chain/hardfork.hpp>
-// #include <graphene/utilities/git_revision.hpp>
-// #include <graphene/utilities/key_conversion.hpp>
-// #include <graphene/utilities/words.hpp>
-#include "gateway.hpp"
-// #include <graphene/wallet/api_documentation.hpp>
-#include "gateway_api_impl.hpp"
-// #include <graphene/debug_witness/debug_api.hpp>
 
-// #include "operation_printer.hpp"
-// #include <graphene/wallet/reflect_util.hpp>
+#include "gateway.hpp"
+#include "gateway_api_impl.hpp"
 
 namespace graphene { namespace gateway {
+
+void from_variant( const fc::variant& var,  file_upload& vo, uint32_t max_depth )
+{
+   if (var.is_object()) {
+      fc::variant_object var_obj = var.get_object();
+      if (var_obj.contains("name") && var_obj["name"].is_string())
+         vo.name = var_obj["name"].get_string();
+      if (var_obj.contains("path") && var_obj["path"].is_string())
+         vo.path = var_obj["path"].get_string();
+   }
+}
 
 gateway_api::gateway_api()
    : my( std::make_unique<detail::gateway_api_impl>(*this) )
@@ -131,9 +91,9 @@ std::string gateway_api::gethelp(const std::string& method)const
  *
  * .
  */
-void gateway_api::store_content()
+void gateway_api::store_content(const std::vector<file_upload>& files)
 {
-   my->store_content();
+   my->store_content(files);
 }
 
 /** .

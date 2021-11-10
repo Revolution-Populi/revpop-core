@@ -17,29 +17,17 @@
  */
 #pragma once
 
-// #include <fc/thread/mutex.hpp>
 #include <fc/variant_object.hpp>
 
 #include <graphene/app/api.hpp>
 
 #include <graphene/wallet/api_documentation.hpp>
-// #include <graphene/wallet/wallet_structs.hpp>
-// #include <graphene/wallet/reflect_util.hpp>
 
 namespace graphene { namespace gateway { 
 
 class gateway_api;
 
 namespace detail {
-
-// using namespace graphene::protocol;
-// using namespace graphene::chain;
-// using namespace graphene::app;
-
-// static const string ENC_HEADER( "-----BEGIN REVPOP SIGNED MESSAGE-----\n" );
-// static const string ENC_META(   "-----BEGIN META-----\n" );
-// static const string ENC_SIG(    "-----BEGIN SIGNATURE-----\n" );
-// static const string ENC_FOOTER( "-----END REVPOP SIGNED MESSAGE-----" );
 
 class gateway_api_impl
 {
@@ -62,7 +50,7 @@ public:
     *
     * .
     */
-   void store_content();
+   void store_content(const std::vector<file_upload>& files);
 
    /** .
     *

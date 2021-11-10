@@ -18,17 +18,26 @@
 #pragma once
 
 #include <string>
+#include <fc/variant.hpp>
 #include <fc/variant_object.hpp>
-// #include <graphene/chain/htlc_object.hpp>
 #include <graphene/app/api.hpp>
-// #include <graphene/utilities/key_conversion.hpp>
-// #include "gateway_structs.hpp"
 
 namespace graphene { namespace gateway {
 
 namespace detail {
 class gateway_api_impl;
 }
+
+typedef struct file_upload {
+    std::string name;
+    std::string path;
+    explicit file_upload(const std::string& name, const std::string& path)
+        : name(name), path(path) {}
+    file_upload(){}
+} file_upload;
+
+// void to_variant( const file_upload& var,  variant& vo, uint32_t max_depth );
+void from_variant( const fc::variant& var,  file_upload& vo, uint32_t max_depth );
 
 /**
  * This gateway assumes it is connected to the database server with a high-bandwidth, low-latency connection and
@@ -69,7 +78,7 @@ class gateway_api
        *
        * .
        */
-      void store_content();
+      void store_content(const std::vector<file_upload>& files);
 
       /** .
        *

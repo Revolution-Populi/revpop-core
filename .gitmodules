@@ -2,3 +2,4 @@
     path = libraries/fc
     url = https://github.com/Revolution-Populi/fc.git
     ignore = dirty
+    branch = feature/revpop

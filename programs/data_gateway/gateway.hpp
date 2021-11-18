@@ -24,10 +24,6 @@
 
 namespace graphene { namespace gateway {
 
-namespace detail {
-class gateway_api_impl;
-}
-
 typedef struct file_upload {
     std::string name;
     std::string path;
@@ -39,6 +35,12 @@ typedef struct file_upload {
 // void to_variant( const file_upload& var,  variant& vo, uint32_t max_depth );
 void from_variant( const fc::variant& var,  file_upload& vo, uint32_t max_depth );
 
+namespace detail {
+class gateway_api_impl;
+}
+
+class storage_adapter;
+
 /**
  * This gateway assumes it is connected to the database server with a high-bandwidth, low-latency connection and
  * performs minimal caching. This API could be provided locally to be used by a web interface.
@@ -46,7 +48,7 @@ void from_variant( const fc::variant& var,  file_upload& vo, uint32_t max_depth 
 class gateway_api
 {
    public:
-      gateway_api();
+      gateway_api(std::unique_ptr<storage_adapter>&& storage);
       virtual ~gateway_api();
 
       /** Returns info such as client version, git version of graphene/fc, version of boost, openssl.
@@ -76,25 +78,24 @@ class gateway_api
 
       /** Receive content file and give it to storage adapter.
        *
-       * .
+       *
        */
       void store_content(const std::vector<file_upload>& files);
 
-      /** .
+      /**
        *
-       * .
+       *
        */
       void remove_content();
 
-      /** .
+      /**
        *
-       * .
+       *
        */
       void get_content_list();
 
   private:
       std::shared_ptr<detail::gateway_api_impl> my;
-
 };
 
 } }

@@ -24,6 +24,7 @@
 
 #include "gateway.hpp"
 #include "gateway_api_impl.hpp"
+#include "storage_adapter.hpp"
 #include <graphene/utilities/git_revision.hpp>
 
 #ifndef WIN32
@@ -42,8 +43,9 @@ namespace fc {
 
 namespace graphene { namespace gateway { namespace detail {
 
-   gateway_api_impl::gateway_api_impl( gateway_api& s)
+   gateway_api_impl::gateway_api_impl( gateway_api& s, std::unique_ptr<storage_adapter>&& storage)
       : self(s)
+      , storage(std::move(storage))
    {
    }
 
@@ -99,26 +101,27 @@ namespace graphene { namespace gateway { namespace detail {
 
    /** Receive content file and give it to storage adapter.
     *
-    * .
+    *
     */
    void gateway_api_impl::store_content(const std::vector<file_upload> &files)
    {
          for (auto &f : files) {
                ilog("Storing file: ${name}, path: ${path}", ("name", f.name)("path", f.path));
+               storage->store_content(f);
          }
    }
 
-   /** .
+   /**
     *
-    * .
+    *
     */
    void gateway_api_impl::remove_content()
    {
    }
 
-   /** .
+   /**
     *
-    * .
+    *
     */
    void gateway_api_impl::get_content_list()
    {

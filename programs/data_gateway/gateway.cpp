@@ -34,8 +34,8 @@ void from_variant( const fc::variant& var,  file_upload& vo, uint32_t max_depth 
    }
 }
 
-gateway_api::gateway_api()
-   : my( std::make_unique<detail::gateway_api_impl>(*this) )
+gateway_api::gateway_api(std::unique_ptr<storage_adapter>&& storage)
+   : my( std::make_unique<detail::gateway_api_impl>(*this, std::move(storage)) )
 {
 }
 

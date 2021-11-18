@@ -10,8 +10,17 @@ if( GPERFTOOLS_FOUND )
     list( APPEND PLATFORM_SPECIFIC_LIBS tcmalloc )
 endif()
 
+find_curl()
+
+include_directories(${CURL_INCLUDE_DIRS})
+
+if(CURL_STATICLIB)
+  SET_TARGET_PROPERTIES(data_gateway PROPERTIES
+  COMPILE_DEFINITIONS "CURL_STATICLIB")
+endif(CURL_STATICLIB)
+
 target_link_libraries( data_gateway
-      PRIVATE graphene_app graphene_egenesis_brief graphene_wallet fc ${CMAKE_DL_LIBS} ${PLATFORM_SPECIFIC_LIBS} )
+      PRIVATE graphene_app graphene_egenesis_brief graphene_wallet fc ${CMAKE_DL_LIBS} ${PLATFORM_SPECIFIC_LIBS} ${CURL_LIBRARIES})
 
 if(MSVC)
   set_source_files_properties( main.cpp PROPERTIES COMPILE_FLAGS "/bigobj" )

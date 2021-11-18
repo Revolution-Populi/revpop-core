@@ -17,56 +17,38 @@
  */
 #pragma once
 
-#include <fc/variant_object.hpp>
+#include <vector>
+#include <string>
 
-#include <graphene/app/api.hpp>
+#include "storage_adapter.hpp"
 
-#include <graphene/wallet/api_documentation.hpp>
+namespace graphene { namespace gateway {
 
-namespace graphene { namespace gateway { 
-
-class gateway_api;
-class storage_adapter;
-
-namespace detail {
-
-class gateway_api_impl
+class storage_adapter_ipfs : public storage_adapter
 {
 public:
-   graphene::wallet::api_documentation method_documentation;
-   gateway_api& self;
+   storage_adapter_ipfs(const std::string& url);
+   virtual ~storage_adapter_ipfs();
 
-   gateway_api_impl( gateway_api& s, std::unique_ptr<storage_adapter>&& storage);
-
-   virtual ~gateway_api_impl();
-
-   /***
-    * @brief return basic information about this program
-    */
-   fc::variant_object about() const;
-
-   void quit();
-
-   /** Receive content file and give it to storage adapter.
-    *
+   /** Receive content file and move to the storage
+    *  @return link to stored file
     *
     */
-   void store_content(const std::vector<file_upload>& files);
+   std::string store_content(const file_upload& file) override;
 
    /**
     *
     *
     */
-   void remove_content();
+   void remove_content() override;
 
    /**
     *
     *
     */
-   void get_content_list();
-
+   void get_content_list() override;
 private:
-   std::unique_ptr<storage_adapter> storage;
+   std::string ipfs_node_url;
 };
 
-}}} // namespace graphene::gateway::detail
+}} // namespace graphene::gateway

@@ -48,6 +48,8 @@
 #include <websocketpp/version.hpp>
 
 #include "gateway.hpp"
+#include "storage_adapter.hpp"
+#include "storage_adapter_ipfs.hpp"
 
 #ifdef WIN32
 # include <signal.h>
@@ -150,6 +152,8 @@ int main( int argc, char** argv )
          ("logs-rpc-file-level", bpo::value<string>()->default_value("debug"),
                "Level of file logging. Allowed levels: info, debug, warn, error, all")
          ("logs-rpc-file-name", bpo::value<string>()->default_value("rpc.log"), "File name for file rpc logs")
+         ("storage-type", bpo::value<string>()->default_value("ipfs"), "Type of storage adapter")
+         ("storage-url", bpo::value<string>()->default_value("127.0.0.1:5001"), "Base url of storage provider")
          ("version,v", "Display version information");
 
       bpo::variables_map options;
@@ -237,7 +241,11 @@ int main( int argc, char** argv )
       edump((wdata.ws_user)(wdata.ws_password) );
       FC_ASSERT( remote_api->login( wdata.ws_user, wdata.ws_password ), "Failed to log in to API server" );
 
-      auto wapiptr = std::make_shared<gateway_api>();
+      std::unique_ptr<storage_adapter> storage;
+      if( options.at("storage-type").as<std::string>() == "ipfs" ) {
+         storage = make_unique<storage_adapter_ipfs>(storage_adapter_ipfs(options.at("storage-url").as<std::string>()));
+      }
+      auto wapiptr = std::make_shared<gateway_api>(std::move(storage));
       // auto wapiptr = std::make_shared<gateway_api>( wdata, remote_api );
       // wapiptr->set_wallet_filename( wallet_file.generic_string() );
       // wapiptr->load_wallet_file();

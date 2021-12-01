@@ -49,6 +49,7 @@ namespace graphene { namespace chain {
             string   description;
             string   content_key;
             uint64_t vote_counter;
+            string   storage_data;
         };
 
         struct by_subject_account;

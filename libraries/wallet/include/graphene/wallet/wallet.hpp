@@ -1489,6 +1489,7 @@ class wallet_api
        * @param type a type of a content (jpg, mp3, mp4, html, est.).
        * @param description a text description of content to convenient full text search.
        * @param content_key a encrypted symmetric key to decrypt content, can be decrypted by subject account.
+       * @param storage_data data specific to the cloud storage (content id in the cloud storage).
        * @param broadcast true if you wish to broadcast the transaction.
        * @returns the signed version of the transaction.
        */
@@ -1499,6 +1500,7 @@ class wallet_api
             const string& type,
             const string& description,
             const string& content_key,
+            const string& storage_data,
             bool broadcast = false ) const;
 
       /**
@@ -1510,6 +1512,7 @@ class wallet_api
        * @param type a type of a content (jpg, mp3, mp4, html, est.).
        * @param description a text description of content to convenient full text search.
        * @param content_key a encrypted symmetric key to decrypt content, can be decrypted by subject account.
+       * @param storage_data data specific to the cloud storage (content id in the cloud storage).
        * @param broadcast true if you wish to broadcast the transaction.
        * @returns the signed version of the transaction.
        */
@@ -1520,6 +1523,7 @@ class wallet_api
             const string& type,
             const string& description,
             const string& content_key,
+            const string& storage_data,
             bool broadcast = false ) const;
 
       /**

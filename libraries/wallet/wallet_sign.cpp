@@ -572,7 +572,7 @@ namespace graphene { namespace wallet { namespace detail {
    signed_transaction wallet_api_impl::create_content_card( const string subject_account,
       const string hash, const string url,
       const string type, const string description,
-      const string content_key,
+      const string content_key, const string storage_data,
       bool broadcast )
    { try {
       auto subject_id = get_account(subject_account).get_id();
@@ -585,19 +585,20 @@ namespace graphene { namespace wallet { namespace detail {
       create_content_op.type = type;
       create_content_op.description = description;
       create_content_op.content_key = content_key;
+      create_content_op.storage_data = storage_data;
 
       signed_transaction tx;
       tx.operations.push_back(create_content_op);         
       tx.validate();
 
       return sign_transaction(tx, broadcast);
-   } FC_CAPTURE_AND_RETHROW( (subject_account)(hash)(url)(type)(description)(content_key)(broadcast) ) }
+   } FC_CAPTURE_AND_RETHROW( (subject_account)(hash)(url)(type)(description)(content_key)(storage_data)(broadcast) ) }
 
 
    signed_transaction wallet_api_impl::update_content_card( const string subject_account,
       const string hash, const string url,
       const string type, const string description,
-      const string content_key,
+      const string content_key, const string storage_data,
       bool broadcast )
    { try {
       auto subject_id = get_account(subject_account).get_id();
@@ -610,13 +611,14 @@ namespace graphene { namespace wallet { namespace detail {
       update_content_op.type = type;
       update_content_op.description = description;
       update_content_op.content_key = content_key;
+      update_content_op.storage_data = storage_data;
 
       signed_transaction tx;
       tx.operations.push_back(update_content_op);         
       tx.validate();
 
       return sign_transaction(tx, broadcast);
-   } FC_CAPTURE_AND_RETHROW( (subject_account)(hash)(url)(type)(description)(content_key)(broadcast) ) }
+   } FC_CAPTURE_AND_RETHROW( (subject_account)(hash)(url)(type)(description)(content_key)(storage_data)(broadcast) ) }
 
    signed_transaction wallet_api_impl::remove_content_card( const string subject_account,
                                              uint64_t content_id,

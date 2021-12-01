@@ -366,13 +366,13 @@ public:
    signed_transaction create_content_card( const string subject_account,
          const string hash, const string url,
          const string type, const string description,
-         const string content_key,
+         const string content_key, const string storage_data,
          bool broadcast = false );
 
    signed_transaction update_content_card( const string subject_account,
          const string hash, const string url,
          const string type, const string description,
-         const string content_key,
+         const string content_key, const string storage_data,
          bool broadcast = false );
 
    signed_transaction remove_content_card( const string subject_account,

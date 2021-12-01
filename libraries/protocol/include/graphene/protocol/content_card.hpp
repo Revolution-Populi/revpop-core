@@ -47,6 +47,7 @@ namespace graphene { namespace protocol {
       string          type;
       string          description;
       string          content_key;
+      string          storage_data;
 
       account_id_type fee_payer()const { return subject_account; }
       void            validate()const;
@@ -79,6 +80,7 @@ namespace graphene { namespace protocol {
       string          type;
       string          description;
       string          content_key;
+      string          storage_data;
 
       account_id_type fee_payer()const { return subject_account; }
       void            validate()const;
@@ -148,12 +150,12 @@ namespace graphene { namespace protocol {
 FC_REFLECT( graphene::protocol::content_card_create_operation::fee_parameters_type, (fee)(price_per_kbyte) )
 FC_REFLECT( graphene::protocol::content_card_create_operation,
             (fee)
-            (subject_account)(hash)(url)(type)(description)(content_key)
+            (subject_account)(hash)(url)(type)(description)(content_key)(storage_data)
           )
 FC_REFLECT( graphene::protocol::content_card_update_operation::fee_parameters_type, (fee)(price_per_kbyte) )
 FC_REFLECT( graphene::protocol::content_card_update_operation,
             (fee)
-            (subject_account)(hash)(url)(type)(description)(content_key)
+            (subject_account)(hash)(url)(type)(description)(content_key)(storage_data)
           )
 FC_REFLECT( graphene::protocol::content_card_remove_operation::fee_parameters_type, (fee) )
 FC_REFLECT( graphene::protocol::content_card_remove_operation,

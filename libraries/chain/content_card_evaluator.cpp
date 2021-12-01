@@ -57,6 +57,7 @@ object_id_type content_card_create_evaluator::do_apply( const content_card_creat
          obj.content_key     = o.content_key;
          obj.timestamp       = time_point::now().sec_since_epoch();
          obj.vote_counter    = 0;
+         obj.storage_data    = o.storage_data;
    });
    return new_content_object.id;
 } FC_CAPTURE_AND_RETHROW((o)) }
@@ -94,6 +95,7 @@ object_id_type content_card_update_evaluator::do_apply( const content_card_updat
          obj.description     = o.description;
          obj.content_key     = o.content_key;
          obj.timestamp       = time_point::now().sec_since_epoch();
+         obj.storage_data    = o.storage_data;
    });
 
    return itr->id;

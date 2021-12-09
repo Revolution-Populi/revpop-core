@@ -28,7 +28,7 @@ namespace graphene { namespace chain {
 
 FC_REFLECT_DERIVED_NO_TYPENAME( graphene::chain::personal_data_object,
                     (graphene::db::object),
-                    (subject_account)(operator_account)(url)(hash)
+                    (subject_account)(operator_account)(url)(hash)(storage_data)
                     )
 
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::personal_data_object )

@@ -352,6 +352,7 @@ public:
          const string& operator_account,
          const string& url,
          const string& hash,
+         const string& storage_data,
          bool broadcast = false );
 
    signed_transaction remove_personal_data( const string subject_account, 

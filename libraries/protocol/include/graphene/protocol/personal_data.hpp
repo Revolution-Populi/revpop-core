@@ -45,6 +45,7 @@ namespace graphene { namespace protocol {
       account_id_type operator_account;
       string          url;
       string          hash;
+      string          storage_data;
 
       account_id_type fee_payer()const { return subject_account; }
       void            validate()const;
@@ -89,7 +90,7 @@ FC_REFLECT( graphene::protocol::personal_data_create_operation::fee_parameters_t
 FC_REFLECT( graphene::protocol::personal_data_create_operation,
             (fee)
             (subject_account)(operator_account)
-            (url)(hash)
+            (url)(hash)(storage_data)
           )
 FC_REFLECT( graphene::protocol::personal_data_remove_operation::fee_parameters_type, (fee) )
 FC_REFLECT( graphene::protocol::personal_data_remove_operation,

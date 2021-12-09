@@ -46,6 +46,7 @@ namespace graphene { namespace chain {
             account_id_type operator_account;
             string url;
             string hash;
+            string storage_data;
         };
 
         struct by_subject_account;

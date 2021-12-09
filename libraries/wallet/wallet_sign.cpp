@@ -508,6 +508,7 @@ namespace graphene { namespace wallet { namespace detail {
                      const string& operator_account,
                      const string& url,
                      const string& hash,
+                     const string& storage_data,
                      bool broadcast )
    { try {
       FC_ASSERT( !self.is_locked() );
@@ -521,13 +522,14 @@ namespace graphene { namespace wallet { namespace detail {
       create_pd_op.operator_account = operator_id;
       create_pd_op.url = url;
       create_pd_op.hash = hash;
+      create_pd_op.storage_data = storage_data;
 
       signed_transaction tx;
       tx.operations.push_back(create_pd_op);         
       tx.validate();
 
       return sign_transaction(tx, broadcast);
-   } FC_CAPTURE_AND_RETHROW( (subject_account)(operator_account)(url)(hash)(broadcast) ) }
+   } FC_CAPTURE_AND_RETHROW( (subject_account)(operator_account)(url)(hash)(storage_data)(broadcast) ) }
 
    signed_transaction wallet_api_impl::remove_personal_data( const string subject_account, 
                      const string operator_account,

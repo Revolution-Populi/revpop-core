@@ -845,9 +845,10 @@ signed_transaction wallet_api::create_personal_data(
       const string& operator_account,
       const string& url,
       const string& hash,
+      const string& storage_data,
       bool broadcast )
 { 
-   return my->create_personal_data( subject_account, operator_account, url, hash, broadcast );
+   return my->create_personal_data( subject_account, operator_account, url, hash, storage_data, broadcast );
 }
 
 signed_transaction wallet_api::remove_personal_data(

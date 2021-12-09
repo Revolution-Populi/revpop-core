@@ -1434,6 +1434,7 @@ class wallet_api
        * @param operator_account an account who is permitted to use personal data.
        * @param url a url to the content storage.
        * @param hash a hash of a personal data.
+       * @param storage_data data specific to the cloud storage (content id in the cloud storage).
        * @param broadcast true if you wish to broadcast the transaction.
        * @return the signed version of the transaction.
       */
@@ -1442,6 +1443,7 @@ class wallet_api
             const string& operator_account,
             const string& url,
             const string& hash,
+            const string& storage_data,
             bool broadcast = false );
       /**
        * Removes the personal data object.

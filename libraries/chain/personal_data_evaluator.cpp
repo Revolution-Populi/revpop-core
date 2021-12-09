@@ -32,6 +32,7 @@ void_result personal_data_create_evaluator::do_evaluate( const personal_data_cre
    database& d = db();
    FC_ASSERT(!op.url.empty(), "URL can not be empty.");
    FC_ASSERT(!op.hash.empty(), "Hash can not be empty.");
+   FC_ASSERT(!op.storage_data.empty(), "Storage data can not be empty.");
 
    // check personal data already exist
    const auto& pd_idx = d.get_index_type<personal_data_index>();
@@ -59,6 +60,7 @@ object_id_type personal_data_create_evaluator::do_apply( const personal_data_cre
          obj.operator_account = o.operator_account;
          obj.url              = o.url;
          obj.hash             = o.hash;
+         obj.storage_data     = o.storage_data;
 
    });
    return new_pd_object.id;

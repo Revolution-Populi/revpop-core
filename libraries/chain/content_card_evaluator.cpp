@@ -34,6 +34,7 @@ void_result content_card_create_evaluator::do_evaluate( const content_card_creat
    database& d = db();
    FC_ASSERT(!op.url.empty(), "URL can not be empty.");
    FC_ASSERT(!op.hash.empty(), "Hash can not be empty.");
+   FC_ASSERT(!op.storage_data.empty(), "Storage data can not be empty.");
 
    const auto& content_idx = d.get_index_type<content_card_index>();
    const auto& content_op_idx = content_idx.indices().get<by_subject_account_and_hash>();

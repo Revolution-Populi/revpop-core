@@ -30,6 +30,7 @@ list(APPEND SOURCES account.cpp
                     withdraw_permission.cpp
                     personal_data.cpp
                     content_card.cpp
+                    content_card_v2.cpp
                     permission.cpp
                     content_vote.cpp
                     commit_reveal.cpp

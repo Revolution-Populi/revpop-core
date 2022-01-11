@@ -1502,6 +1502,29 @@ class wallet_api
             bool broadcast = false ) const;
 
       /**
+       * Create a content card.
+       * 
+       * @param subject_account an owner of a content.
+       * @param hash an hash value getted from content.
+       * @param url a url to the content storage.
+       * @param type a type of a content (jpg, mp3, mp4, html, est.).
+       * @param description a text description of content to convenient full text search.
+       * @param content_key a encrypted symmetric key to decrypt content, can be decrypted by subject account.
+       * @param storage_data data specific to the cloud storage (content id in the cloud storage).
+       * @param broadcast true if you wish to broadcast the transaction.
+       * @returns the signed version of the transaction.
+       */
+      signed_transaction create_content_card_v2(
+            const string& subject_account,
+            const string& hash,
+            const string& url,
+            const string& type,
+            const string& description,
+            const string& content_key,
+            const string& storage_data,
+            bool broadcast = false ) const;
+
+      /**
        * Update a content card.
        * 
        * @param subject_account an owner of a content.
@@ -1523,6 +1546,29 @@ class wallet_api
             bool broadcast = false ) const;
 
       /**
+       * Update a content card.
+       * 
+       * @param subject_account an owner of a content.
+       * @param hash an hash value getted from content.
+       * @param url a url to the content storage.
+       * @param type a type of a content (jpg, mp3, mp4, html, est.).
+       * @param description a text description of content to convenient full text search.
+       * @param content_key a encrypted symmetric key to decrypt content, can be decrypted by subject account.
+       * @param storage_data data specific to the cloud storage (content id in the cloud storage).
+       * @param broadcast true if you wish to broadcast the transaction.
+       * @returns the signed version of the transaction.
+       */
+      signed_transaction update_content_card_v2(
+            const string& subject_account,
+            const string& hash,
+            const string& url,
+            const string& type,
+            const string& description,
+            const string& content_key,
+            const string& storage_data,
+            bool broadcast = false ) const;
+
+      /**
        * Remove a content card.
        * 
        * @param subject_account an owner of a content.
@@ -1535,6 +1581,18 @@ class wallet_api
             uint64_t content_id,
             bool broadcast = false ) const;
 
+      /**
+       * Remove a content card v2.
+       * 
+       * @param subject_account an owner of a content.
+       * @param content_id a content card id.
+       * @param broadcast true if you wish to broadcast the transaction.
+       * @returns the signed version of the transaction
+       */
+      signed_transaction remove_content_card_v2(
+            const string& subject_account,
+            uint64_t content_id,
+            bool broadcast = false ) const;
 
       /**
        * Create a permission object.
@@ -1576,6 +1634,7 @@ class wallet_api
        * @returns the content card object.
        */
       content_card_object get_content_card_by_id( uint64_t content_id ) const;
+      content_card_v2_object get_content_card_v2_by_id( uint64_t content_id ) const;
 
       /**
        * Returns a list of content card objects for choosen account
@@ -1588,7 +1647,9 @@ class wallet_api
       std::vector<content_card_object> get_content_cards( const string& subject_account,
             uint64_t content_id,
             unsigned limit = 100 ) const;
-
+      std::vector<content_card_v2_object> get_content_cards_v2( const string& subject_account,
+            uint64_t content_id,
+            unsigned limit = 100 ) const;
       /**
        * Returns a permission object by id.
        * 
@@ -1960,4 +2021,9 @@ FC_API( graphene::wallet::wallet_api,
         (filter_commit_reveal_participant_v2)
         (send_commit2)
         (send_reveal2)
+        (create_content_card_v2)
+        (update_content_card_v2)
+        (remove_content_card_v2)
+        (get_content_card_v2_by_id)
+        (get_content_cards_v2)
       )

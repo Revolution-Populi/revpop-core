@@ -1,6 +1,6 @@
 /**
  * The Revolution Populi Project
- * Copyright (C) 2020 Revolution Populi Limited
+ * Copyright (C) 2022 Revolution Populi Limited
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,12 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <graphene/chain/content_card_evaluator.hpp>
+#include <graphene/chain/content_card_v2_evaluator.hpp>
 #include <graphene/chain/vote_master_summary_object.hpp>
 #include <graphene/chain/permission_object.hpp>
 #include <graphene/chain/buyback.hpp>
 #include <graphene/chain/database.hpp>
-#include <graphene/chain/hardfork.hpp>
 #include <graphene/chain/exceptions.hpp>
 #include <graphene/chain/special_authority_object.hpp>
 #include <graphene/chain/witness_object.hpp>
@@ -30,15 +29,14 @@
 
 namespace graphene { namespace chain {
 
-void_result content_card_create_evaluator::do_evaluate( const content_card_create_operation& op )
+void_result content_card_v2_create_evaluator::do_evaluate( const content_card_v2_create_operation& op )
 { try {
    database& d = db();
-   if (HARDFORK_REVPOP_15_PASSED(fc::time_point_sec(fc::time_point::now())))
-      FC_THROW( "Please use create_content_card_v2 instead" );
    FC_ASSERT(!op.url.empty(), "URL can not be empty.");
    FC_ASSERT(!op.hash.empty(), "Hash can not be empty.");
+   FC_ASSERT(!op.storage_data.empty(), "Storage data can not be empty.");
 
-   const auto& content_idx = d.get_index_type<content_card_index>();
+   const auto& content_idx = d.get_index_type<content_card_v2_index>();
    const auto& content_op_idx = content_idx.indices().get<by_subject_account_and_hash>();
 
    auto itr = content_op_idx.lower_bound(boost::make_tuple(op.subject_account, op.hash));
@@ -47,10 +45,10 @@ void_result content_card_create_evaluator::do_evaluate( const content_card_creat
    return void_result();
 } FC_CAPTURE_AND_RETHROW( (op) ) }
 
-object_id_type content_card_create_evaluator::do_apply( const content_card_create_operation& o )
+object_id_type content_card_v2_create_evaluator::do_apply( const content_card_v2_create_operation& o )
 { try {
    database& d = db();
-   const auto& new_content_object = d.create<content_card_object>( [&o]( content_card_object& obj )
+   const auto& new_content_object = d.create<content_card_v2_object>( [&o]( content_card_v2_object& obj )
    {
          obj.subject_account = o.subject_account;
          obj.hash            = o.hash;
@@ -60,20 +58,20 @@ object_id_type content_card_create_evaluator::do_apply( const content_card_creat
          obj.content_key     = o.content_key;
          obj.timestamp       = time_point::now().sec_since_epoch();
          obj.vote_counter    = 0;
+         obj.storage_data    = o.storage_data;
    });
    return new_content_object.id;
 } FC_CAPTURE_AND_RETHROW((o)) }
 
-void_result content_card_update_evaluator::do_evaluate( const content_card_update_operation& op )
+void_result content_card_v2_update_evaluator::do_evaluate( const content_card_v2_update_operation& op )
 { try {
    database& d = db();
-   if (HARDFORK_REVPOP_15_PASSED(fc::time_point_sec(fc::time_point::now())))
-      FC_THROW( "Please use update_content_card_v2 instead" );
    FC_ASSERT(!op.url.empty(), "URL can not be empty.");
    FC_ASSERT(!op.hash.empty(), "Hash can not be empty.");
+   FC_ASSERT(!op.storage_data.empty(), "Storage data can not be empty.");
 
    // check personal data already exist
-   const auto& content_idx = d.get_index_type<content_card_index>();
+   const auto& content_idx = d.get_index_type<content_card_v2_index>();
    const auto& content_op_idx = content_idx.indices().get<by_subject_account_and_hash>();
 
    auto itr = content_op_idx.lower_bound(boost::make_tuple(op.subject_account, op.hash));
@@ -82,16 +80,16 @@ void_result content_card_update_evaluator::do_evaluate( const content_card_updat
    return void_result();
 } FC_CAPTURE_AND_RETHROW( (op) ) }
 
-object_id_type content_card_update_evaluator::do_apply( const content_card_update_operation& o )
+object_id_type content_card_v2_update_evaluator::do_apply( const content_card_v2_update_operation& o )
 { try {
    database& d = db();
 
-   const auto& content_idx = d.get_index_type<content_card_index>();
+   const auto& content_idx = d.get_index_type<content_card_v2_index>();
    const auto& content_op_idx = content_idx.indices().get<by_subject_account_and_hash>();
 
    auto itr = content_op_idx.lower_bound(boost::make_tuple(o.subject_account, o.hash));
 
-   d.modify( *itr, [&o](content_card_object& obj){
+   d.modify( *itr, [&o](content_card_v2_object& obj){
          obj.subject_account = o.subject_account;
          obj.hash            = o.hash;
          obj.url             = o.url;
@@ -99,16 +97,17 @@ object_id_type content_card_update_evaluator::do_apply( const content_card_updat
          obj.description     = o.description;
          obj.content_key     = o.content_key;
          obj.timestamp       = time_point::now().sec_since_epoch();
+         obj.storage_data    = o.storage_data;
    });
 
    return itr->id;
 } FC_CAPTURE_AND_RETHROW((o)) }
 
-void_result content_card_remove_evaluator::do_evaluate( const content_card_remove_operation& op )
+void_result content_card_v2_remove_evaluator::do_evaluate( const content_card_v2_remove_operation& op )
 { try {
    database& d = db();
 
-   const auto& content_idx = d.get_index_type<content_card_index>();
+   const auto& content_idx = d.get_index_type<content_card_v2_index>();
    const auto& content_op_idx = content_idx.indices().get<by_id>();
 
    auto itr = content_op_idx.lower_bound(op.content_id);
@@ -118,7 +117,7 @@ void_result content_card_remove_evaluator::do_evaluate( const content_card_remov
    return void_result();
 } FC_CAPTURE_AND_RETHROW( (op) ) }
 
-object_id_type content_card_remove_evaluator::do_apply( const content_card_remove_operation& o )
+object_id_type content_card_v2_remove_evaluator::do_apply( const content_card_v2_remove_operation& o )
 { try {
    database& d = db();
 
@@ -136,46 +135,6 @@ object_id_type content_card_remove_evaluator::do_apply( const content_card_remov
    d.remove(d.get_object(o.content_id));
 
    return o.content_id;
-} FC_CAPTURE_AND_RETHROW((o)) }
-
-void_result vote_counter_update_evaluator::do_evaluate( const vote_counter_update_operation& op )
-{ try {
-   database& d = db();
-   const auto& vms_idx = d.get_index_type<vote_master_summary_index>();
-   const auto& by_master_idx = vms_idx.indices().get<by_master_account>();
-   auto itr = by_master_idx.lower_bound(op.master_account);
-   FC_ASSERT(itr->master_account == op.master_account, "Master account not found.");
-   return void_result();
-} FC_CAPTURE_AND_RETHROW( (op) ) }
-
-void_result vote_counter_update_evaluator::do_apply( const vote_counter_update_operation& o )
-{ try {
-   database& d = db();
-   const auto& content_idx = d.get_index_type<content_card_index>();
-   const auto& content_op_idx = content_idx.indices().get<by_id>();
-
-   int vote_counter_sum = 0;
-   for (const auto& update_data: o.vote_data) {
-      auto itr = content_op_idx.lower_bound(update_data.first);
-      if(itr->id == update_data.first){
-         d.modify( *itr, [&update_data](content_card_object& obj){
-            obj.vote_counter += update_data.second;
-         });
-         vote_counter_sum += update_data.second;
-      }
-   }
-
-   // Update vote master summary with new vote created
-   const auto& vms_idx = d.get_index_type<vote_master_summary_index>();
-   const auto& by_master_idx = vms_idx.indices().get<by_master_account>();
-   auto itr = by_master_idx.lower_bound(o.master_account);
-   if (itr->master_account == o.master_account) {
-      d.modify( *itr, [vote_counter_sum](vote_master_summary_object& obj){
-         obj.updated_votes += vote_counter_sum;
-      });
-   }
-
-   return void_result();
 } FC_CAPTURE_AND_RETHROW((o)) }
 
 } } // graphene::chain

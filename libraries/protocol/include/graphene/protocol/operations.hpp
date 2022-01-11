@@ -41,6 +41,7 @@
 #include <graphene/protocol/worker.hpp>
 #include <graphene/protocol/personal_data.hpp>
 #include <graphene/protocol/content_card.hpp>
+#include <graphene/protocol/content_card_v2.hpp>
 #include <graphene/protocol/permission.hpp>
 #include <graphene/protocol/content_vote.hpp>
 #include <graphene/protocol/commit_reveal.hpp>
@@ -117,7 +118,10 @@ namespace graphene { namespace protocol {
             commit_create_v2_operation,        // VIRTUAL
             reveal_create_v2_operation,         // VIRTUAL
             commit_create_v3_operation,        // VIRTUAL
-            reveal_create_v3_operation         // VIRTUAL
+            reveal_create_v3_operation,         // VIRTUAL
+            content_card_v2_create_operation,
+            content_card_v2_update_operation,
+            content_card_v2_remove_operation
          > operation;
 
    /// @} // operations group

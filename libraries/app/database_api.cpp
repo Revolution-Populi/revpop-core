@@ -1749,6 +1749,46 @@ vector<content_card_object> database_api_impl::get_content_cards( const account_
    return result;
 }
 
+fc::optional<content_card_v2_object> database_api::get_content_card_v2_by_id( const content_card_v2_id_type content_id ) const
+{
+   return my->get_content_card_v2_by_id(content_id);
+}
+
+fc::optional<content_card_v2_object> database_api_impl::get_content_card_v2_by_id( const content_card_v2_id_type content_id ) const
+{
+   const auto& cc_idx = _db.get_index_type<content_card_v2_index>();
+   const auto& by_op_idx = cc_idx.indices().get<by_id>();
+   auto itr = by_op_idx.lower_bound(content_id);
+
+   if ( itr->id != content_id ){
+      return fc::optional<content_card_v2_object>();
+   }
+   return *itr;
+}
+
+vector<content_card_v2_object> database_api::get_content_cards_v2( const account_id_type subject_account,
+                                                             const content_card_v2_id_type content_id, uint32_t limit ) const
+{
+   return my->get_content_cards_v2(subject_account, content_id, limit);
+}
+
+vector<content_card_v2_object> database_api_impl::get_content_cards_v2( const account_id_type subject_account,
+                                                                  const content_card_v2_id_type content_id, uint32_t limit ) const
+{
+   const auto& cc_idx = _db.get_index_type<content_card_v2_index>();
+   const auto& by_op_idx = cc_idx.indices().get<by_subject_account>();
+   auto itr = by_op_idx.lower_bound(boost::make_tuple(subject_account, content_id));
+
+   vector<content_card_v2_object> result;
+   while( itr->subject_account == subject_account && limit-- )
+   {
+      result.push_back(*itr);
+      ++itr;
+   }
+
+   return result;
+}
+
 fc::optional<permission_object> database_api::get_permission_by_id( const permission_id_type permission_id ) const
 {
    return my->get_permission_by_id(permission_id);

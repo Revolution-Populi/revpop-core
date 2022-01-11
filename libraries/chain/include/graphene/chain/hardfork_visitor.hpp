@@ -57,6 +57,8 @@ struct hardfork_visitor {
                                   commit_create_operation, reveal_create_operation>;
    using RevPop_11_ops = TL::list<commit_create_v2_operation, reveal_create_v2_operation>;
    using RevPop_12_ops = TL::list<commit_create_v3_operation, reveal_create_v3_operation>;
+   using RevPop_15_ops = TL::list<content_card_v2_create_operation, content_card_v2_update_operation,
+                                  content_card_v2_remove_operation>;
 
    fc::time_point_sec now;
 
@@ -82,6 +84,9 @@ struct hardfork_visitor {
    template<typename Op>
    std::enable_if_t<TL::contains<RevPop_12_ops, Op>(), bool>
    visit() { return HARDFORK_REVPOP_12_PASSED(now); }
+   template<typename Op>
+   std::enable_if_t<TL::contains<RevPop_15_ops, Op>(), bool>
+   visit() { return HARDFORK_REVPOP_15_PASSED(now); }
    /// @}
 
    /// typelist::runtime::dispatch adaptor

@@ -368,14 +368,27 @@ public:
          const string type, const string description,
          const string content_key,
          bool broadcast = false );
+   signed_transaction create_content_card_v2( const string subject_account,
+         const string hash, const string url,
+         const string type, const string description,
+         const string content_key, const string& storage_data,
+         bool broadcast = false );
 
    signed_transaction update_content_card( const string subject_account,
          const string hash, const string url,
          const string type, const string description,
          const string content_key,
          bool broadcast = false );
+   signed_transaction update_content_card_v2( const string subject_account,
+         const string hash, const string url,
+         const string type, const string description,
+         const string content_key, const string& storage_data,
+         bool broadcast = false );
 
    signed_transaction remove_content_card( const string subject_account,
+         uint64_t content_id,
+         bool broadcast = false );
+   signed_transaction remove_content_card_v2( const string subject_account,
          uint64_t content_id,
          bool broadcast = false );
 
@@ -391,8 +404,12 @@ public:
          bool broadcast = false );
 
    content_card_object get_content_card_by_id( uint64_t content_id ) const;
+   content_card_v2_object get_content_card_v2_by_id( uint64_t content_id ) const;
 
    std::vector<content_card_object> get_content_cards( const string subject_account,
+         uint64_t content_id,
+         unsigned limit = 100 ) const;
+   std::vector<content_card_v2_object> get_content_cards_v2( const string subject_account,
          uint64_t content_id,
          unsigned limit = 100 ) const;
 

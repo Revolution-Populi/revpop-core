@@ -885,6 +885,19 @@ signed_transaction wallet_api::create_content_card(
    return my->create_content_card(subject_account, hash, url, type, description, content_key, broadcast);
 }
 
+signed_transaction wallet_api::create_content_card_v2(
+      const string& subject_account,
+      const string& hash,
+      const string& url,
+      const string& type,
+      const string& description,
+      const string& content_key,
+      const string& storage_data,
+      bool broadcast ) const
+{
+   return my->create_content_card_v2(subject_account, hash, url, type, description, content_key, storage_data, broadcast);
+}
+
 signed_transaction wallet_api::update_content_card(
       const string& subject_account,
       const string& hash,
@@ -897,11 +910,31 @@ signed_transaction wallet_api::update_content_card(
    return my->update_content_card(subject_account, hash, url, type, description, content_key, broadcast);
 }
 
+signed_transaction wallet_api::update_content_card_v2(
+      const string& subject_account,
+      const string& hash,
+      const string& url,
+      const string& type,
+      const string& description,
+      const string& content_key,
+      const string& storage_data,
+      bool broadcast ) const
+{
+   return my->update_content_card_v2(subject_account, hash, url, type, description, content_key, storage_data, broadcast);
+}
+
 signed_transaction wallet_api::remove_content_card( const string& subject_account,
       uint64_t content_id,
       bool broadcast ) const
 {
    return my->remove_content_card(subject_account, content_id, broadcast);
+}
+
+signed_transaction wallet_api::remove_content_card_v2( const string& subject_account,
+      uint64_t content_id,
+      bool broadcast ) const
+{
+   return my->remove_content_card_v2(subject_account, content_id, broadcast);
 }
 
 signed_transaction wallet_api::create_permission(
@@ -927,12 +960,25 @@ content_card_object wallet_api::get_content_card_by_id( uint64_t content_id ) co
    return my->get_content_card_by_id(content_id);
 }
 
+content_card_v2_object wallet_api::get_content_card_v2_by_id( uint64_t content_id ) const
+{
+   return my->get_content_card_v2_by_id(content_id);
+}
+
 std::vector<content_card_object> wallet_api::get_content_cards(
       const string& subject_account,
       uint64_t content_id,
       unsigned limit ) const
 {
    return my->get_content_cards(subject_account, content_id, limit);
+}
+
+std::vector<content_card_v2_object> wallet_api::get_content_cards_v2(
+      const string& subject_account,
+      uint64_t content_id,
+      unsigned limit ) const
+{
+   return my->get_content_cards_v2(subject_account, content_id, limit);
 }
 
 permission_object wallet_api::get_permission_by_id( uint64_t permission_id ) const

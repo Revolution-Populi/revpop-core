@@ -151,6 +151,10 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
                                                       const account_id_type operator_account ) const;
       fc::optional<personal_data_object> get_last_personal_data( const account_id_type subject_account,
                                                                  const account_id_type operator_account ) const;
+      vector<personal_data_v2_object> get_personal_data_v2( const account_id_type subject_account,
+                                                      const account_id_type operator_account ) const;
+      fc::optional<personal_data_v2_object> get_last_personal_data_v2( const account_id_type subject_account,
+                                                                 const account_id_type operator_account ) const;
       fc::optional<content_card_object> get_content_card_by_id( const content_card_id_type content_id ) const;
       vector<content_card_object> get_content_cards( const account_id_type subject_account,
                                                      const content_card_id_type content_id, uint32_t limit ) const;

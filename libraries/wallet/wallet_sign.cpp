@@ -529,6 +529,33 @@ namespace graphene { namespace wallet { namespace detail {
       return sign_transaction(tx, broadcast);
    } FC_CAPTURE_AND_RETHROW( (subject_account)(operator_account)(url)(hash)(broadcast) ) }
 
+   signed_transaction wallet_api_impl::create_personal_data_v2( const string& subject_account,
+                     const string& operator_account,
+                     const string& url,
+                     const string& hash,
+                     const string& storage_data,
+                     bool broadcast )
+   { try {
+      FC_ASSERT( !self.is_locked() );
+
+      auto subject_id = get_account(subject_account).get_id();
+      auto operator_id = get_account(operator_account).get_id();
+
+      personal_data_v2_create_operation create_pd_op;
+
+      create_pd_op.subject_account = subject_id;
+      create_pd_op.operator_account = operator_id;
+      create_pd_op.url = url;
+      create_pd_op.hash = hash;
+      create_pd_op.storage_data = storage_data;
+
+      signed_transaction tx;
+      tx.operations.push_back(create_pd_op);         
+      tx.validate();
+
+      return sign_transaction(tx, broadcast);
+   } FC_CAPTURE_AND_RETHROW( (subject_account)(operator_account)(url)(hash)(storage_data)(broadcast) ) }
+
    signed_transaction wallet_api_impl::remove_personal_data( const string subject_account, 
                      const string operator_account,
                      const string hash,
@@ -550,11 +577,40 @@ namespace graphene { namespace wallet { namespace detail {
       return sign_transaction(tx, broadcast);
    } FC_CAPTURE_AND_RETHROW( (subject_account)(operator_account)(broadcast) ) }
 
+   signed_transaction wallet_api_impl::remove_personal_data_v2( const string subject_account, 
+                     const string operator_account,
+                     const string hash,
+                     bool broadcast )
+   { try {
+      auto subject_id = get_account(subject_account).get_id();
+      auto operator_id = get_account(operator_account).get_id();
+
+      personal_data_v2_remove_operation remove_pd_op;
+
+      remove_pd_op.subject_account = subject_id;
+      remove_pd_op.operator_account = operator_id;
+      remove_pd_op.hash = hash;
+
+      signed_transaction tx;
+      tx.operations.push_back(remove_pd_op);         
+      tx.validate();
+
+      return sign_transaction(tx, broadcast);
+   } FC_CAPTURE_AND_RETHROW( (subject_account)(operator_account)(broadcast) ) }
+
    std::vector<personal_data_object> wallet_api_impl::get_personal_data( const string subject_account, const string operator_account) const
    {
       auto subject_id = get_account(subject_account).get_id();
       auto operator_id = get_account(operator_account).get_id();
       auto pd_data = _remote_db->get_personal_data(subject_id, operator_id);      
+      return pd_data;
+   }
+
+   std::vector<personal_data_v2_object> wallet_api_impl::get_personal_data_v2( const string subject_account, const string operator_account) const
+   {
+      auto subject_id = get_account(subject_account).get_id();
+      auto operator_id = get_account(operator_account).get_id();
+      auto pd_data = _remote_db->get_personal_data_v2(subject_id, operator_id);      
       return pd_data;
    }
 
@@ -567,6 +623,17 @@ namespace graphene { namespace wallet { namespace detail {
          return *pd_data;
       }
       return personal_data_object();
+   }
+
+   personal_data_v2_object wallet_api_impl::get_last_personal_data_v2( const string subject_account, const string operator_account) const
+   {
+      auto subject_id = get_account(subject_account).get_id();
+      auto operator_id = get_account(operator_account).get_id();
+      auto pd_data = _remote_db->get_last_personal_data_v2(subject_id, operator_id);  
+      if (pd_data.valid()){
+         return *pd_data;
+      }
+      return personal_data_v2_object();
    }
 
    signed_transaction wallet_api_impl::create_content_card( const string subject_account,

@@ -21,6 +21,7 @@
 #include <graphene/chain/impacted.hpp>
 #include <graphene/chain/hardfork.hpp>
 #include <graphene/chain/personal_data_object.hpp>
+#include <graphene/chain/personal_data_v2_object.hpp>
 #include <graphene/chain/content_card_object.hpp>
 #include <graphene/chain/content_card_v2_object.hpp>
 #include <graphene/chain/permission_object.hpp>
@@ -281,6 +282,16 @@ struct get_impacted_account_visitor
       _impacted.insert( op.fee_payer() );
       _impacted.insert( op.subject_account );
    }
+   void operator()( const personal_data_v2_create_operation& op )
+   {
+       _impacted.insert( op.fee_payer() );
+       _impacted.insert( op.subject_account );
+   }
+   void operator()( const personal_data_v2_remove_operation& op )
+   {
+      _impacted.insert( op.fee_payer() );
+      _impacted.insert( op.subject_account );
+   }
    void operator()( const content_card_create_operation& op )
    {
       _impacted.insert( op.fee_payer() );
@@ -478,6 +489,12 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
            break;
         } case personal_data_object_type:{
            const auto& pd_obj = dynamic_cast<const personal_data_object*>(obj);
+           FC_ASSERT( pd_obj != nullptr );
+           accounts.insert( pd_obj->subject_account );
+           accounts.insert( pd_obj->operator_account );
+           break;
+        } case personal_data_v2_object_type:{
+           const auto& pd_obj = dynamic_cast<const personal_data_v2_object*>(obj);
            FC_ASSERT( pd_obj != nullptr );
            accounts.insert( pd_obj->subject_account );
            accounts.insert( pd_obj->operator_account );

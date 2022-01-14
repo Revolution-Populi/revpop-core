@@ -1709,6 +1709,59 @@ fc::optional<personal_data_object> database_api_impl::get_last_personal_data( co
    return fc::optional<personal_data_object>(last_pd);
 }
 
+vector<personal_data_v2_object> database_api::get_personal_data_v2( const account_id_type subject_account,
+                                                              const account_id_type operator_account) const
+{
+   return my->get_personal_data_v2(subject_account, operator_account);
+}
+
+vector<personal_data_v2_object> database_api_impl::get_personal_data_v2( const account_id_type subject_account,
+                                                                   const account_id_type operator_account) const
+{
+   const auto& pd_idx = _db.get_index_type<personal_data_v2_index>();
+   const auto& by_op_idx = pd_idx.indices().get<by_subject_account>();
+   auto itr = by_op_idx.lower_bound(boost::make_tuple(subject_account, operator_account));
+
+   vector<personal_data_v2_object> result;
+   while( itr->subject_account == subject_account && itr->operator_account == operator_account )
+   {
+      result.push_back(*itr);
+      ++itr;
+   }
+
+   return result;
+}
+
+fc::optional<personal_data_v2_object> database_api::get_last_personal_data_v2( const account_id_type subject_account,
+                                                                         const account_id_type operator_account) const
+{
+   return my->get_last_personal_data_v2(subject_account, operator_account);
+}
+
+fc::optional<personal_data_v2_object> database_api_impl::get_last_personal_data_v2( const account_id_type subject_account,
+                                                                              const account_id_type operator_account) const
+{
+   const auto& pd_idx = _db.get_index_type<personal_data_v2_index>();
+   const auto& by_op_idx = pd_idx.indices().get<by_subject_account>();
+   auto itr = by_op_idx.lower_bound(boost::make_tuple(subject_account, operator_account));
+
+   if ( itr->subject_account != subject_account || itr->operator_account != operator_account ){
+      return fc::optional<personal_data_v2_object>();
+   }
+
+   auto last_pd = *itr;
+   ++itr;
+   while( itr->subject_account == subject_account && itr->operator_account == operator_account )
+   {
+      if (itr->id > last_pd.id){
+         last_pd = *itr;
+      }
+      ++itr;
+   }
+
+   return fc::optional<personal_data_v2_object>(last_pd);
+}
+
 fc::optional<content_card_object> database_api::get_content_card_by_id( const content_card_id_type content_id ) const
 {
    return my->get_content_card_by_id(content_id);

@@ -37,6 +37,7 @@
 #include <graphene/chain/worker_object.hpp>
 #include <graphene/chain/witness_object.hpp>
 #include <graphene/chain/personal_data_object.hpp>
+#include <graphene/chain/personal_data_v2_object.hpp>
 #include <graphene/chain/content_card_object.hpp>
 #include <graphene/chain/content_card_v2_object.hpp>
 #include <graphene/chain/permission_object.hpp>
@@ -669,6 +670,23 @@ class database_api
                                                                  const account_id_type operator_account ) const;
 
       /**
+       * @brief Get personal data v2
+       * @param owner_account The owner of personal data.
+       * @param permission_account An account who is permitted to use personal data.
+       * @return The personal data object list
+      */
+      vector<personal_data_v2_object> get_personal_data_v2( const account_id_type subject_account,
+                                                      const account_id_type operator_account ) const;
+      /**
+       * @brief Get personal data v2 with maximum id
+       * @param owner_account The owner of personal data.
+       * @param permission_account An account who is permitted to use personal data.
+       * @return The personal data object
+       */
+      fc::optional<personal_data_v2_object> get_last_personal_data_v2( const account_id_type subject_account,
+                                                                 const account_id_type operator_account ) const;
+
+      /**
        * @brief Get content card by id
        * @param content_id The id of content card
        * @return The content card object
@@ -895,4 +913,6 @@ FC_API(graphene::app::database_api,
    (filter_commit_reveal_participant_v2)
    (get_content_card_v2_by_id)
    (get_content_cards_v2)
+   (get_personal_data_v2)
+   (get_last_personal_data_v2)
 )

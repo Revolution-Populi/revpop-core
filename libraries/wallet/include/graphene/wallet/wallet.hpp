@@ -1443,6 +1443,25 @@ class wallet_api
             const string& url,
             const string& hash,
             bool broadcast = false );
+
+      /** Create personal data v2 with permission.
+       *
+       * @param subject_account the owner of personal data.
+       * @param operator_account an account who is permitted to use personal data.
+       * @param url a url to the content storage.
+       * @param hash a hash of a personal data.
+       * @param storage_data data specific to the cloud storage (content id in the cloud storage).
+       * @param broadcast true if you wish to broadcast the transaction.
+       * @return the signed version of the transaction.
+      */
+      signed_transaction create_personal_data_v2(
+            const string& subject_account,
+            const string& operator_account,
+            const string& url,
+            const string& hash,
+            const string& storage_data,
+            bool broadcast = false );
+
       /**
        * Removes the personal data object.
        * 
@@ -1453,6 +1472,21 @@ class wallet_api
        * @returns the signed version of the transaction.
        */
       signed_transaction remove_personal_data(
+            const string& subject_account,
+            const string& operator_account,
+            const string& hash,
+            bool broadcast = false );
+
+      /**
+       * Removes the personal data v2 object.
+       * 
+       * @param subject_account the owner of personal data.
+       * @param operator_account an account who is permitted to use personal data.
+       * @param hash a hash of a personal data
+       * @param broadcast true if you wish to broadcast the transaction.
+       * @returns the signed version of the transaction.
+       */
+      signed_transaction remove_personal_data_v2(
             const string& subject_account,
             const string& operator_account,
             const string& hash,
@@ -1470,6 +1504,17 @@ class wallet_api
             const string& operator_account) const;
 
       /**
+       * Returns the personal data v2 object list.
+       * 
+       * @param subject_account the owner of personal data.
+       * @param operator_account an account who is permitted to use personal data.
+       * @returns the personal data object list.
+       */
+      std::vector<personal_data_v2_object> get_personal_data_v2(
+            const string& subject_account,
+            const string& operator_account) const;
+
+      /**
        * Returns last added personal data object.
        * 
        * @param subject_account the owner of personal data.
@@ -1477,6 +1522,17 @@ class wallet_api
        * @returns the personal data object.
        */
       personal_data_object get_last_personal_data(
+            const string& subject_account,
+            const string& operator_account) const;
+
+      /**
+       * Returns last added personal data v2 object.
+       * 
+       * @param subject_account the owner of personal data.
+       * @param operator_account an account who is permitted to use personal data.
+       * @returns the personal data object.
+       */
+      personal_data_v2_object get_last_personal_data_v2(
             const string& subject_account,
             const string& operator_account) const;
 
@@ -2026,4 +2082,8 @@ FC_API( graphene::wallet::wallet_api,
         (remove_content_card_v2)
         (get_content_card_v2_by_id)
         (get_content_cards_v2)
+        (create_personal_data_v2)        
+        (remove_personal_data_v2)
+        (get_personal_data_v2)
+        (get_last_personal_data_v2)
       )

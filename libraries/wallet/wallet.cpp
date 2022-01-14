@@ -850,6 +850,17 @@ signed_transaction wallet_api::create_personal_data(
    return my->create_personal_data( subject_account, operator_account, url, hash, broadcast );
 }
 
+signed_transaction wallet_api::create_personal_data_v2(
+      const string& subject_account,
+      const string& operator_account,
+      const string& url,
+      const string& hash,
+      const string& storage_data,
+      bool broadcast )
+{ 
+   return my->create_personal_data_v2( subject_account, operator_account, url, hash, storage_data, broadcast );
+}
+
 signed_transaction wallet_api::remove_personal_data(
       const string& subject_account,
       const string& operator_account,
@@ -859,6 +870,15 @@ signed_transaction wallet_api::remove_personal_data(
    return my->remove_personal_data(subject_account, operator_account, hash, broadcast );
 }
 
+signed_transaction wallet_api::remove_personal_data_v2(
+      const string& subject_account,
+      const string& operator_account,
+      const string& hash,
+      bool broadcast )
+{
+   return my->remove_personal_data_v2(subject_account, operator_account, hash, broadcast );
+}
+
 std::vector<personal_data_object> wallet_api::get_personal_data(
       const string& subject_account,
       const string& operator_account) const
@@ -866,11 +886,25 @@ std::vector<personal_data_object> wallet_api::get_personal_data(
    return my->get_personal_data(subject_account, operator_account);
 }
 
+std::vector<personal_data_v2_object> wallet_api::get_personal_data_v2(
+      const string& subject_account,
+      const string& operator_account) const
+{
+   return my->get_personal_data_v2(subject_account, operator_account);
+}
+
 personal_data_object wallet_api::get_last_personal_data(
       const string& subject_account,
       const string& operator_account) const
 {
    return my->get_last_personal_data(subject_account, operator_account);
+}
+
+personal_data_v2_object wallet_api::get_last_personal_data_v2(
+      const string& subject_account,
+      const string& operator_account) const
+{
+   return my->get_last_personal_data_v2(subject_account, operator_account);
 }
 
 signed_transaction wallet_api::create_content_card(

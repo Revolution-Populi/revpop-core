@@ -29,6 +29,7 @@ list(APPEND SOURCES account.cpp
                     types.cpp
                     withdraw_permission.cpp
                     personal_data.cpp
+                    personal_data_v2.cpp
                     content_card.cpp
                     content_card_v2.cpp
                     permission.cpp

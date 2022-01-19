@@ -42,15 +42,12 @@ using operation_list_9 = static_variant<typelist::slice<operation::list, 32, 35>
 using operation_list_10 = static_variant<typelist::slice<operation::list, 35, 37>>;
 using operation_list_11 = static_variant<typelist::builder<>
                                                 ::add<asset_claim_fees_operation> // 38
-                                                ::add_list<typelist::slice<operation::list, 40, 43>>
+                                                ::add_list<typelist::slice<operation::list, 40, 63>>
                                                 ::finalize>;
-using operation_list_12 = static_variant<typelist::slice<operation::list, 43>>;
+using operation_list_12 = static_variant<typelist::slice<operation::list, 63, 68>>;
 using virtual_operations_list = static_variant<
-                                               balance_claim_operation,       // 32
                                                asset_settle_cancel_operation, // 37
-                                               fba_distribute_operation,      // 39
-                                               commit_create_operation,       // 57
-                                               reveal_create_operation        // 58
+                                               fba_distribute_operation       // 39
                                               >;
 
 object_restriction_predicate<operation> get_restriction_predicate_list_1(size_t idx, vector<restriction> rs);

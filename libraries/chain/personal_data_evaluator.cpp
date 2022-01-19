@@ -31,7 +31,7 @@ namespace graphene { namespace chain {
 void_result personal_data_create_evaluator::do_evaluate( const personal_data_create_operation& op )
 { try {
    database& d = db();
-   if (HARDFORK_REVPOP_15_PASSED(fc::time_point_sec(fc::time_point::now())))
+   if (HARDFORK_REVPOP_15_PASSED(d.head_block_time()))
       FC_THROW( "Please use create_personal_data_v2 instead" );
    FC_ASSERT(!op.url.empty(), "URL can not be empty.");
    FC_ASSERT(!op.hash.empty(), "Hash can not be empty.");

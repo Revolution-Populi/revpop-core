@@ -314,6 +314,8 @@ GRAPHENE_DEFINE_IDS(protocol, protocol_ids, /*protocol objects are not prefixed*
                     (vote_master_summary)
                     (commit_reveal)
                     (commit_reveal_v2)
+                    (content_card_v2)
+                    (personal_data_v2)
                    )
 
 FC_REFLECT(graphene::protocol::public_key_type, (key_data))

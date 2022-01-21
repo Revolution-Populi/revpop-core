@@ -529,6 +529,33 @@ namespace graphene { namespace wallet { namespace detail {
       return sign_transaction(tx, broadcast);
    } FC_CAPTURE_AND_RETHROW( (subject_account)(operator_account)(url)(hash)(broadcast) ) }
 
+   signed_transaction wallet_api_impl::create_personal_data_v2( const string& subject_account,
+                     const string& operator_account,
+                     const string& url,
+                     const string& hash,
+                     const string& storage_data,
+                     bool broadcast )
+   { try {
+      FC_ASSERT( !self.is_locked() );
+
+      auto subject_id = get_account(subject_account).get_id();
+      auto operator_id = get_account(operator_account).get_id();
+
+      personal_data_v2_create_operation create_pd_op;
+
+      create_pd_op.subject_account = subject_id;
+      create_pd_op.operator_account = operator_id;
+      create_pd_op.url = url;
+      create_pd_op.hash = hash;
+      create_pd_op.storage_data = storage_data;
+
+      signed_transaction tx;
+      tx.operations.push_back(create_pd_op);         
+      tx.validate();
+
+      return sign_transaction(tx, broadcast);
+   } FC_CAPTURE_AND_RETHROW( (subject_account)(operator_account)(url)(hash)(storage_data)(broadcast) ) }
+
    signed_transaction wallet_api_impl::remove_personal_data( const string subject_account, 
                      const string operator_account,
                      const string hash,
@@ -550,11 +577,40 @@ namespace graphene { namespace wallet { namespace detail {
       return sign_transaction(tx, broadcast);
    } FC_CAPTURE_AND_RETHROW( (subject_account)(operator_account)(broadcast) ) }
 
+   signed_transaction wallet_api_impl::remove_personal_data_v2( const string subject_account, 
+                     const string operator_account,
+                     const string hash,
+                     bool broadcast )
+   { try {
+      auto subject_id = get_account(subject_account).get_id();
+      auto operator_id = get_account(operator_account).get_id();
+
+      personal_data_v2_remove_operation remove_pd_op;
+
+      remove_pd_op.subject_account = subject_id;
+      remove_pd_op.operator_account = operator_id;
+      remove_pd_op.hash = hash;
+
+      signed_transaction tx;
+      tx.operations.push_back(remove_pd_op);         
+      tx.validate();
+
+      return sign_transaction(tx, broadcast);
+   } FC_CAPTURE_AND_RETHROW( (subject_account)(operator_account)(broadcast) ) }
+
    std::vector<personal_data_object> wallet_api_impl::get_personal_data( const string subject_account, const string operator_account) const
    {
       auto subject_id = get_account(subject_account).get_id();
       auto operator_id = get_account(operator_account).get_id();
       auto pd_data = _remote_db->get_personal_data(subject_id, operator_id);      
+      return pd_data;
+   }
+
+   std::vector<personal_data_v2_object> wallet_api_impl::get_personal_data_v2( const string subject_account, const string operator_account) const
+   {
+      auto subject_id = get_account(subject_account).get_id();
+      auto operator_id = get_account(operator_account).get_id();
+      auto pd_data = _remote_db->get_personal_data_v2(subject_id, operator_id);      
       return pd_data;
    }
 
@@ -569,12 +625,26 @@ namespace graphene { namespace wallet { namespace detail {
       return personal_data_object();
    }
 
+   personal_data_v2_object wallet_api_impl::get_last_personal_data_v2( const string subject_account, const string operator_account) const
+   {
+      auto subject_id = get_account(subject_account).get_id();
+      auto operator_id = get_account(operator_account).get_id();
+      auto pd_data = _remote_db->get_last_personal_data_v2(subject_id, operator_id);  
+      if (pd_data.valid()){
+         return *pd_data;
+      }
+      return personal_data_v2_object();
+   }
+
    signed_transaction wallet_api_impl::create_content_card( const string subject_account,
       const string hash, const string url,
       const string type, const string description,
       const string content_key,
       bool broadcast )
    { try {
+      if (HARDFORK_REVPOP_15_PASSED(fc::time_point_sec(fc::time_point::now())))
+         FC_THROW( "Please use create_content_card_v2 instead" );
+
       auto subject_id = get_account(subject_account).get_id();
 
       content_card_create_operation create_content_op;
@@ -593,6 +663,30 @@ namespace graphene { namespace wallet { namespace detail {
       return sign_transaction(tx, broadcast);
    } FC_CAPTURE_AND_RETHROW( (subject_account)(hash)(url)(type)(description)(content_key)(broadcast) ) }
 
+   signed_transaction wallet_api_impl::create_content_card_v2( const string subject_account,
+      const string hash, const string url,
+      const string type, const string description,
+      const string content_key, const string& storage_data,
+      bool broadcast )
+   { try {
+      auto subject_id = get_account(subject_account).get_id();
+
+      content_card_v2_create_operation create_content_op;
+
+      create_content_op.subject_account = subject_id;
+      create_content_op.hash = hash;
+      create_content_op.url = url;
+      create_content_op.type = type;
+      create_content_op.description = description;
+      create_content_op.content_key = content_key;
+      create_content_op.storage_data = storage_data;
+
+      signed_transaction tx;
+      tx.operations.push_back(create_content_op);         
+      tx.validate();
+
+      return sign_transaction(tx, broadcast);
+   } FC_CAPTURE_AND_RETHROW( (subject_account)(hash)(url)(type)(description)(content_key)(storage_data)(broadcast) ) }
 
    signed_transaction wallet_api_impl::update_content_card( const string subject_account,
       const string hash, const string url,
@@ -600,6 +694,9 @@ namespace graphene { namespace wallet { namespace detail {
       const string content_key,
       bool broadcast )
    { try {
+      if (HARDFORK_REVPOP_15_PASSED(fc::time_point_sec(fc::time_point::now())))
+         FC_THROW( "Please use update_content_card_v2 instead" );
+
       auto subject_id = get_account(subject_account).get_id();
 
       content_card_update_operation update_content_op;
@@ -618,6 +715,31 @@ namespace graphene { namespace wallet { namespace detail {
       return sign_transaction(tx, broadcast);
    } FC_CAPTURE_AND_RETHROW( (subject_account)(hash)(url)(type)(description)(content_key)(broadcast) ) }
 
+   signed_transaction wallet_api_impl::update_content_card_v2( const string subject_account,
+      const string hash, const string url,
+      const string type, const string description,
+      const string content_key, const string& storage_data,
+      bool broadcast )
+   { try {
+      auto subject_id = get_account(subject_account).get_id();
+
+      content_card_v2_update_operation update_content_op;
+
+      update_content_op.subject_account = subject_id;
+      update_content_op.hash = hash;
+      update_content_op.url = url;
+      update_content_op.type = type;
+      update_content_op.description = description;
+      update_content_op.content_key = content_key;
+      update_content_op.storage_data = storage_data;
+
+      signed_transaction tx;
+      tx.operations.push_back(update_content_op);         
+      tx.validate();
+
+      return sign_transaction(tx, broadcast);
+   } FC_CAPTURE_AND_RETHROW( (subject_account)(hash)(url)(type)(description)(content_key)(storage_data)(broadcast) ) }
+
    signed_transaction wallet_api_impl::remove_content_card( const string subject_account,
                                              uint64_t content_id,
                                              bool broadcast )
@@ -628,6 +750,24 @@ namespace graphene { namespace wallet { namespace detail {
 
       remove_content_op.subject_account = subject_id;
       remove_content_op.content_id = content_card_id_type(content_id);
+
+      signed_transaction tx;
+      tx.operations.push_back(remove_content_op);         
+      tx.validate();
+
+      return sign_transaction(tx, broadcast);
+   } FC_CAPTURE_AND_RETHROW( (subject_account)(content_id)(broadcast) ) }
+
+   signed_transaction wallet_api_impl::remove_content_card_v2( const string subject_account,
+                                             uint64_t content_id,
+                                             bool broadcast )
+   { try {
+      auto subject_id = get_account(subject_account).get_id();
+
+      content_card_v2_remove_operation remove_content_op;
+
+      remove_content_op.subject_account = subject_id;
+      remove_content_op.content_id = content_card_v2_id_type(content_id);
 
       signed_transaction tx;
       tx.operations.push_back(remove_content_op);         
@@ -696,12 +836,30 @@ namespace graphene { namespace wallet { namespace detail {
       return content_card_object();
    }
 
+   content_card_v2_object wallet_api_impl::get_content_card_v2_by_id( uint64_t content_id ) const
+   {
+      auto content_card = _remote_db->get_content_card_v2_by_id(content_card_v2_id_type(content_id));
+      if (content_card.valid()){
+         return *content_card;
+      }
+      return content_card_v2_object();
+   }
+
    std::vector<content_card_object> wallet_api_impl::get_content_cards( const string subject_account,
          uint64_t content_id,
          unsigned limit ) const
    {
       auto subject_id = get_account(subject_account).get_id();      
       auto contents = _remote_db->get_content_cards(subject_id, content_card_id_type(content_id), limit);
+      return contents;
+   }
+
+   std::vector<content_card_v2_object> wallet_api_impl::get_content_cards_v2( const string subject_account,
+         uint64_t content_id,
+         unsigned limit ) const
+   {
+      auto subject_id = get_account(subject_account).get_id();      
+      auto contents = _remote_db->get_content_cards_v2(subject_id, content_card_v2_id_type(content_id), limit);
       return contents;
    }
 

@@ -21,7 +21,9 @@
 #include <graphene/chain/impacted.hpp>
 #include <graphene/chain/hardfork.hpp>
 #include <graphene/chain/personal_data_object.hpp>
+#include <graphene/chain/personal_data_v2_object.hpp>
 #include <graphene/chain/content_card_object.hpp>
+#include <graphene/chain/content_card_v2_object.hpp>
 #include <graphene/chain/permission_object.hpp>
 #include <graphene/chain/content_vote_object.hpp>
 #include <graphene/chain/vote_master_summary_object.hpp>
@@ -280,6 +282,16 @@ struct get_impacted_account_visitor
       _impacted.insert( op.fee_payer() );
       _impacted.insert( op.subject_account );
    }
+   void operator()( const personal_data_v2_create_operation& op )
+   {
+       _impacted.insert( op.fee_payer() );
+       _impacted.insert( op.subject_account );
+   }
+   void operator()( const personal_data_v2_remove_operation& op )
+   {
+      _impacted.insert( op.fee_payer() );
+      _impacted.insert( op.subject_account );
+   }
    void operator()( const content_card_create_operation& op )
    {
       _impacted.insert( op.fee_payer() );
@@ -291,6 +303,21 @@ struct get_impacted_account_visitor
       _impacted.insert( op.subject_account );
    }
    void operator()( const content_card_remove_operation& op )
+   {
+      _impacted.insert( op.fee_payer() );
+      _impacted.insert( op.subject_account );
+   }
+   void operator()( const content_card_v2_create_operation& op )
+   {
+      _impacted.insert( op.fee_payer() );
+      _impacted.insert( op.subject_account );
+   }
+   void operator()( const content_card_v2_update_operation& op )
+   {
+      _impacted.insert( op.fee_payer() );
+      _impacted.insert( op.subject_account );
+   }
+   void operator()( const content_card_v2_remove_operation& op )
    {
       _impacted.insert( op.fee_payer() );
       _impacted.insert( op.subject_account );
@@ -466,8 +493,19 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
            accounts.insert( pd_obj->subject_account );
            accounts.insert( pd_obj->operator_account );
            break;
+        } case personal_data_v2_object_type:{
+           const auto& pd_obj = dynamic_cast<const personal_data_v2_object*>(obj);
+           FC_ASSERT( pd_obj != nullptr );
+           accounts.insert( pd_obj->subject_account );
+           accounts.insert( pd_obj->operator_account );
+           break;
         } case content_card_object_type: {
            const auto& cc_obj = dynamic_cast<const content_card_object*>(obj);
+           FC_ASSERT( cc_obj != nullptr );
+           accounts.insert( cc_obj->subject_account );
+           break;
+        } case content_card_v2_object_type: {
+           const auto& cc_obj = dynamic_cast<const content_card_v2_object*>(obj);
            FC_ASSERT( cc_obj != nullptr );
            accounts.insert( cc_obj->subject_account );
            break;
@@ -580,7 +618,6 @@ void database::notify_changed_objects()
    if( _undo_db.enabled() ) 
    {
       const auto& head_undo = _undo_db.head();
-      auto chain_time = head_block_time();
 
       // New
       if( !new_objects.empty() )
@@ -592,8 +629,7 @@ void database::notify_changed_objects()
           new_ids.push_back(item);
           auto obj = find_object(item);
           if(obj != nullptr)
-            get_relevant_accounts(obj, new_accounts_impacted,
-                                  MUST_IGNORE_CUSTOM_OP_REQD_AUTHS(chain_time));
+            get_relevant_accounts(obj, new_accounts_impacted, false);
         }
 
         if( new_ids.size() )
@@ -608,8 +644,7 @@ void database::notify_changed_objects()
         for( const auto& item : head_undo.old_values )
         {
           changed_ids.push_back(item.first);
-          get_relevant_accounts(item.second.get(), changed_accounts_impacted,
-                                MUST_IGNORE_CUSTOM_OP_REQD_AUTHS(chain_time));
+          get_relevant_accounts(item.second.get(), changed_accounts_impacted, false);
         }
 
         if( changed_ids.size() )
@@ -627,8 +662,7 @@ void database::notify_changed_objects()
           removed_ids.emplace_back( item.first );
           auto obj = item.second.get();
           removed.emplace_back( obj );
-          get_relevant_accounts(obj, removed_accounts_impacted,
-                                MUST_IGNORE_CUSTOM_OP_REQD_AUTHS(chain_time));
+          get_relevant_accounts(obj, removed_accounts_impacted, false);
         }
 
         if( removed_ids.size() )

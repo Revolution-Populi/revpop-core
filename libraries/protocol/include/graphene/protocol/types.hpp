@@ -210,13 +210,6 @@ const static uint16_t UIA_ASSET_ISSUER_PERMISSION_MASK =
         | disable_confidential
         | lock_max_supply
         | disable_new_supply;
-// The bits that can be used in asset issuer permissions for UIA assets before hf48/75
-const static uint16_t DEFAULT_UIA_ASSET_ISSUER_PERMISSION =
-        charge_market_fee
-        | white_list
-        | override_authority
-        | transfer_restricted
-        | disable_confidential;
 // The bits that can be used in asset issuer permissions for non-UIA assets but not for UIA assets
 const static uint16_t NON_UIA_ONLY_ISSUER_PERMISSION_MASK =
         ASSET_ISSUER_PERMISSION_MASK ^ UIA_ASSET_ISSUER_PERMISSION_MASK;
@@ -321,6 +314,8 @@ GRAPHENE_DEFINE_IDS(protocol, protocol_ids, /*protocol objects are not prefixed*
                     (vote_master_summary)
                     (commit_reveal)
                     (commit_reveal_v2)
+                    (content_card_v2)
+                    (personal_data_v2)
                    )
 
 FC_REFLECT(graphene::protocol::public_key_type, (key_data))

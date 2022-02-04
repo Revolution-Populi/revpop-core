@@ -8,8 +8,8 @@ RevPop Core is the RevPop blockchain implementation and command-line interface.
 
 |Branch|Build Status|
 |---|---|
-|`master`|[![](https://github.com/Revolution-Populi/revpop-core/workflows/Ubuntu%20Release/badge.svg?branch=master)](https://github.com/Revolution-Populi/revpop-core/actions?query=workflow%3A"Ubuntu+Release"+branch%3Amaster)|
-|`development`|[![](https://github.com/Revolution-Populi/revpop-core/workflows/Ubuntu%20Release/badge.svg?branch=development)](https://github.com/Revolution-Populi/revpop-core/actions?query=workflow%3A"Ubuntu+Release"+branch%3Adevelopment)|
+|`master`|[![](https://github.com/Revolution-Populi/revpop-core/workflows/Ubuntu%20Release/badge.svg?branch=master)](https://github.com/Revolution-Populi/revpop-core/actions?query=workflow%3A"Ubuntu+Release"+branch%3Amaster) [![](https://github.com/Revolution-Populi/revpop-core/workflows/Ubuntu%20Debug/badge.svg?branch=master)](https://github.com/Revolution-Populi/revpop-core/actions?query=workflow%3A"Ubuntu+Debug"+branch%3Amaster)|
+|`development`|[![](https://github.com/Revolution-Populi/revpop-core/workflows/Ubuntu%20Release/badge.svg?branch=development)](https://github.com/Revolution-Populi/revpop-core/actions?query=workflow%3A"Ubuntu+Release"+branch%3Adevelopment) [![](https://github.com/Revolution-Populi/revpop-core/workflows/Ubuntu%20Debug/badge.svg?branch=development)](https://github.com/Revolution-Populi/revpop-core/actions?query=workflow%3A"Ubuntu+Debug"+branch%3Adevelopment)|
 
 Quick start using Docker
 -----------------------
@@ -19,7 +19,7 @@ A Dockerfile can be used to build and run a fully functional blockchain node. [R
 Getting Started
 ---------------
 Build instructions and additional documentation are available in the
-[Wiki]().
+[Wiki](https://github.com/Revolution-Populi/revpop-core/wiki).
 
 We recommend building on Ubuntu 18.04 LTS (64-bit)
 

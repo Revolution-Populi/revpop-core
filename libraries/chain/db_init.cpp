@@ -50,7 +50,9 @@
 #include <graphene/chain/htlc_object.hpp>
 #include <graphene/chain/custom_authority_object.hpp>
 #include <graphene/chain/personal_data_object.hpp>
+#include <graphene/chain/personal_data_v2_object.hpp>
 #include <graphene/chain/content_card_object.hpp>
+#include <graphene/chain/content_card_v2_object.hpp>
 #include <graphene/chain/permission_object.hpp>
 #include <graphene/chain/content_vote_object.hpp>
 #include <graphene/chain/vote_master_summary_object.hpp>
@@ -72,7 +74,9 @@
 #include <graphene/chain/witness_evaluator.hpp>
 #include <graphene/chain/custom_authority_evaluator.hpp>
 #include <graphene/chain/personal_data_evaluator.hpp>
+#include <graphene/chain/personal_data_v2_evaluator.hpp>
 #include <graphene/chain/content_card_evaluator.hpp>
+#include <graphene/chain/content_card_v2_evaluator.hpp>
 #include <graphene/chain/permission_evaluator.hpp>
 #include <graphene/chain/content_vote_evaluator.hpp>
 #include <graphene/chain/commit_reveal_evaluator.hpp>
@@ -151,8 +155,14 @@ const uint8_t ticket_object::type_id;
 const uint8_t personal_data_object::space_id;
 const uint8_t personal_data_object::type_id;
 
+const uint8_t personal_data_v2_object::space_id;
+const uint8_t personal_data_v2_object::type_id;
+
 const uint8_t content_card_object::space_id;
 const uint8_t content_card_object::type_id;
+
+const uint8_t content_card_v2_object::space_id;
+const uint8_t content_card_v2_object::type_id;
 
 const uint8_t permission_object::space_id;
 const uint8_t permission_object::type_id;
@@ -215,9 +225,14 @@ void database::initialize_evaluators()
    register_evaluator<ticket_update_evaluator>();
    register_evaluator<personal_data_create_evaluator>();
    register_evaluator<personal_data_remove_evaluator>();
+   register_evaluator<personal_data_v2_create_evaluator>();
+   register_evaluator<personal_data_v2_remove_evaluator>();
    register_evaluator<content_card_create_evaluator>();
    register_evaluator<content_card_update_evaluator>();
    register_evaluator<content_card_remove_evaluator>();
+   register_evaluator<content_card_v2_create_evaluator>();
+   register_evaluator<content_card_v2_update_evaluator>();
+   register_evaluator<content_card_v2_remove_evaluator>();
    register_evaluator<permission_create_evaluator>();
    register_evaluator<permission_remove_evaluator>();
    register_evaluator<content_vote_create_evaluator>();
@@ -276,7 +291,9 @@ void database::initialize_indexes()
    add_index< primary_index< simple_index< fba_accumulator_object       > > >();
 
    add_index< primary_index< personal_data_index,                       20> >();
+   add_index< primary_index< personal_data_v2_index,                    20> >();
    add_index< primary_index< content_card_index,                        20> >();
+   add_index< primary_index< content_card_v2_index,                     20> >();
    add_index< primary_index< permission_index,                          20> >();
    add_index< primary_index< content_vote_index,                        20> >();
    add_index< primary_index< vote_master_summary_index,                 20> >();

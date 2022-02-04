@@ -722,10 +722,21 @@ BOOST_AUTO_TEST_CASE( mia_feeds )
       const asset_object& obj = bit_usd_id(db);
       op.asset_to_update = bit_usd_id;
       op.issuer = obj.issuer;
-      op.new_issuer = nathan_id;
+      //op.new_issuer = nathan_id;
       op.new_options = obj.options;
       op.new_options.flags &= ~witness_fed_asset;
       trx.operations.push_back(op);
+      PUSH_TX( db, trx, ~0 );
+      generate_block();
+      trx.clear();
+   }
+   {
+      asset_update_issuer_operation upd_op;
+      const asset_object& obj = bit_usd_id(db);
+      upd_op.asset_to_update = bit_usd_id;
+      upd_op.issuer = obj.issuer;
+      upd_op.new_issuer = nathan_id;
+      trx.operations.push_back(upd_op);
       PUSH_TX( db, trx, ~0 );
       generate_block();
       trx.clear();
@@ -845,7 +856,7 @@ BOOST_AUTO_TEST_CASE( witness_create )
       if( !db.find(wid) )
          break;
    }
-   options.insert( std::make_pair( "witness-id", boost::program_options::variable_value( witness_ids, false ) ) );
+   fc::set_option( options, "witness-id", witness_ids );
    wtplugin->plugin_initialize(options);
    wtplugin->plugin_startup();
 
@@ -996,6 +1007,8 @@ BOOST_AUTO_TEST_CASE( witness_create )
          produced++;
    }
    BOOST_CHECK_GE( produced, 1 );
+
+   wtplugin->plugin_shutdown();
 } FC_LOG_AND_RETHROW() }
 
 BOOST_AUTO_TEST_CASE( assert_op_test )

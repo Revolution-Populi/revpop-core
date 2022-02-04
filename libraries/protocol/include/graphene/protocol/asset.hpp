@@ -211,18 +211,6 @@ namespace graphene { namespace protocol {
        * @return The MSSP in units of DEBT per COLLATERAL.
        */
       price max_short_squeeze_price()const;
-      /**
-       * Older implementation of max_short_squeeze_price() due to hardfork changes. It came with
-       * the following commentary:
-       *
-       * When selling collateral to pay off debt, the least amount of debt to receive should be
-       *  min_usd = max_short_squeeze_price() * collateral
-       *
-       *  This is provided to ensure that a black swan cannot be trigged due to poor liquidity alone, it
-       *  must be confirmed by having the max_short_squeeze_price() move below the black swan price.
-       * @returns the Maximum Short Squeeze price for this asset
-       */
-      price max_short_squeeze_price_before_hf_1270()const;
 
       /**
        * Compute price at which margin calls offer to sell collateral.

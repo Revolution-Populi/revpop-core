@@ -170,7 +170,6 @@ BOOST_FIXTURE_TEST_SUITE(force_settle_tests, force_settle_database_fixture)
          // Initialize the scenario
          ///////
          // Get around Graphene issue #615 feed expiration bug
-         generate_blocks(HARDFORK_615_TIME);
          generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
          trx.clear();
          set_expiration(db, trx);
@@ -182,41 +181,15 @@ BOOST_FIXTURE_TEST_SUITE(force_settle_tests, force_settle_database_fixture)
          uint64_t initial_balance_core = 10000000;
          transfer(committee_account, assetowner.id, asset(initial_balance_core));
 
-         // Confirm before hardfork activation
-         BOOST_CHECK(db.head_block_time() < HARDFORK_CORE_BSIP87_TIME);
-
 
          ///////
          // 1. Asset owner fails to create the smart coin called bitUSD with a force-settlement fee %
          ///////
          const uint16_t usd_fso_percent = 5 * GRAPHENE_1_PERCENT; // 5% Force-settlement offset fee %
-         const uint16_t usd_fsf_percent_0 = 0 * GRAPHENE_1_PERCENT; // 0% Force-settlement fee %
-
-         // Attempt to create the smart asset with a force-settlement fee %
-         // The attempt should fail because it is before HARDFORK_CORE_BSIP87_TIME
-         trx.clear();
-         REQUIRE_EXCEPTION_WITH_TEXT(create_smart_asset("USDBIT", assetowner.id, usd_fso_percent, usd_fsf_percent_0),
-                                     "cannot be set before Hardfork BSIP87");
-
 
          ///////
          // 2. Asset owner fails to create the smart coin called bitUSD with a force-settlement fee % in a proposal
          ///////
-         {
-            asset_create_operation create_op = create_smart_asset_op("USDBIT", assetowner.id, usd_fso_percent,
-                                                                     usd_fsf_percent_0);
-            proposal_create_operation cop;
-            cop.review_period_seconds = 86400;
-            uint32_t buffer_seconds = 60 * 60;
-            cop.expiration_time = db.head_block_time() + *cop.review_period_seconds + buffer_seconds;
-            cop.fee_paying_account = GRAPHENE_TEMP_ACCOUNT;
-            cop.proposed_ops.emplace_back(create_op);
-
-            trx.clear();
-            trx.operations.push_back(cop);
-            // sign(trx, assetowner_private_key);
-            REQUIRE_EXCEPTION_WITH_TEXT(PUSH_TX(db, trx), "cannot be set before Hardfork BSIP87");
-         }
 
 
          ///////
@@ -225,53 +198,17 @@ BOOST_FIXTURE_TEST_SUITE(force_settle_tests, force_settle_database_fixture)
          trx.clear();
          create_smart_asset("USDBIT", assetowner.id, usd_fso_percent);
 
-         generate_block();
-         set_expiration(db, trx);
-         trx.clear();
-
-         const auto &bitusd = get_asset("USDBIT");
-         const auto &core = asset_id_type()(db);
-
 
          ///////
          // 4. Asset owner fails to update the smart coin with a force-settlement fee %
          ///////
-         const uint16_t usd_fsf_percent_3 = 3 * GRAPHENE_1_PERCENT; // 3% Force-settlement fee % (BSIP87)
          asset_update_bitasset_operation uop;
-         uop.issuer = assetowner.id;
-         uop.asset_to_update = bitusd.get_id();
-         uop.new_options = bitusd.bitasset_data(db).options;
-         uop.new_options.extensions.value.force_settle_fee_percent = usd_fsf_percent_3;
-
-         trx.clear();
-         trx.operations.push_back(uop);
-         db.current_fee_schedule().set_fee(trx.operations.back());
-         sign(trx, assetowner_private_key);
-         REQUIRE_EXCEPTION_WITH_TEXT(PUSH_TX(db, trx), "cannot be set before Hardfork BSIP87");
-
-         // The force settlement fee % should not be set
-         BOOST_CHECK(!bitusd.bitasset_data(db).options.extensions.value.force_settle_fee_percent.valid());
 
 
          ///////
          // 5. Asset owner fails to update the smart coin with a force-settlement fee % in a proposal
          ///////
-         {
-            proposal_create_operation cop;
-            cop.review_period_seconds = 86400;
-            uint32_t buffer_seconds = 60 * 60;
-            cop.expiration_time = db.head_block_time() + *cop.review_period_seconds + buffer_seconds;
-            cop.fee_paying_account = GRAPHENE_TEMP_ACCOUNT;
-            cop.proposed_ops.emplace_back(uop);
 
-            trx.clear();
-            trx.operations.push_back(cop);
-            // sign(trx, assetowner_private_key);
-            REQUIRE_EXCEPTION_WITH_TEXT(PUSH_TX(db, trx), "cannot be set before Hardfork BSIP87");
-
-            // The force settlement fee % should not be set
-            BOOST_CHECK(!bitusd.bitasset_data(db).options.extensions.value.force_settle_fee_percent.valid());
-         }
 
 
          ///////
@@ -279,39 +216,18 @@ BOOST_FIXTURE_TEST_SUITE(force_settle_tests, force_settle_database_fixture)
          ///////
          // Although no collateral-denominated fees should be present, the error should indicate the
          // that claiming such fees are not yet active.
-         BOOST_CHECK(bitusd.dynamic_asset_data_id(db).accumulated_collateral_fees == 0); // There should be no fees
-         trx.clear();
          asset_claim_fees_operation claim_op;
-         claim_op.issuer = assetowner.id;
-         claim_op.extensions.value.claim_from_asset_id = bitusd.id;
-         claim_op.amount_to_claim = core.amount(5);
-         trx.operations.push_back(claim_op);
-         sign(trx, assetowner_private_key);
-         REQUIRE_EXCEPTION_WITH_TEXT(PUSH_TX(db, trx), "Collateral-denominated fees are not yet active");
 
 
          ///////
          // 7. Asset owner fails to claim collateral-denominated fees in a proposal
          ///////
          proposal_create_operation cop;
-         cop.review_period_seconds = 86400;
-         uint32_t buffer_seconds = 60 * 60;
-         cop.expiration_time = db.head_block_time() + *cop.review_period_seconds + buffer_seconds;
-         cop.fee_paying_account = GRAPHENE_TEMP_ACCOUNT;
-         cop.proposed_ops.emplace_back(claim_op);
-
-         trx.clear();
-         trx.operations.push_back(cop);
-         // sign(trx, assetowner_private_key);
-         REQUIRE_EXCEPTION_WITH_TEXT(PUSH_TX(db, trx), "Collateral-denominated fees are not yet active");
-
 
 
          ///////
          // 8. Activate HARDFORK_CORE_BSIP87_TIME
          ///////
-         BOOST_CHECK(db.head_block_time() < HARDFORK_CORE_BSIP87_TIME); // Confirm still before hardfork activation
-         generate_blocks(HARDFORK_CORE_BSIP87_TIME);
          generate_block();
          set_expiration(db, trx);
          trx.clear();

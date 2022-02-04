@@ -70,8 +70,12 @@ add_library( graphene_chain
 
              personal_data_object.cpp
              personal_data_evaluator.cpp
+             personal_data_v2_object.cpp
+             personal_data_v2_evaluator.cpp
              content_card_object.cpp
              content_card_evaluator.cpp
+             content_card_v2_object.cpp
+             content_card_v2_evaluator.cpp
              permission_object.cpp
              permission_evaluator.cpp
              content_vote_object.cpp

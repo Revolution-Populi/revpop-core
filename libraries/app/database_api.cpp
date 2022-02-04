@@ -1280,8 +1280,9 @@ set<public_key_type> database_api_impl::get_required_signatures( const signed_tr
                                                             const flat_set<public_key_type>& available_keys )const
 {
    auto chain_time = _db.head_block_time();
-   bool allow_non_immediate_owner = ( chain_time >= HARDFORK_CORE_584_TIME );
-   bool ignore_custom_op_reqd_auths = MUST_IGNORE_CUSTOM_OP_REQD_AUTHS( chain_time );
+   bool allow_non_immediate_owner = true;
+   bool ignore_custom_op_reqd_auths = false;
+
    auto result = trx.get_required_signatures( _db.get_chain_id(),
                                        available_keys,
                                        [&]( account_id_type id ){ return &id(_db).active; },
@@ -1304,8 +1305,8 @@ set<address> database_api::get_potential_address_signatures( const signed_transa
 set<public_key_type> database_api_impl::get_potential_signatures( const signed_transaction& trx )const
 {
    auto chain_time = _db.head_block_time();
-   bool allow_non_immediate_owner = ( chain_time >= HARDFORK_CORE_584_TIME );
-   bool ignore_custom_op_reqd_auths = MUST_IGNORE_CUSTOM_OP_REQD_AUTHS( chain_time );
+   bool allow_non_immediate_owner = true;
+   bool ignore_custom_op_reqd_auths = false;
 
    set<public_key_type> result;
    auto get_active = [this, &result]( account_id_type id ){
@@ -1343,8 +1344,8 @@ set<public_key_type> database_api_impl::get_potential_signatures( const signed_t
 set<address> database_api_impl::get_potential_address_signatures( const signed_transaction& trx )const
 {
    auto chain_time = _db.head_block_time();
-   bool allow_non_immediate_owner = ( chain_time >= HARDFORK_CORE_584_TIME );
-   bool ignore_custom_op_reqd_auths = MUST_IGNORE_CUSTOM_OP_REQD_AUTHS( chain_time );
+   bool allow_non_immediate_owner = true;
+   bool ignore_custom_op_reqd_auths = false;
 
    set<address> result;
    auto get_active = [this, &result]( account_id_type id ){
@@ -1376,7 +1377,7 @@ bool database_api::verify_authority( const signed_transaction& trx )const
 
 bool database_api_impl::verify_authority( const signed_transaction& trx )const
 {
-   bool allow_non_immediate_owner = ( _db.head_block_time() >= HARDFORK_CORE_584_TIME );
+   bool allow_non_immediate_owner = true;
    trx.verify_authority( _db.get_chain_id(),
                          [this]( account_id_type id ){ return &id(_db).active; },
                          [this]( account_id_type id ){ return &id(_db).owner; },
@@ -1409,7 +1410,7 @@ bool database_api_impl::verify_account_authority( const string& account_name_or_
             [this]( account_id_type id ){ return &id(_db).owner; },
             // Use a no-op lookup for custom authorities; we don't want it even if one does apply for our dummy op
             [](auto, auto, auto*) { return vector<authority>(); },
-            true, MUST_IGNORE_CUSTOM_OP_REQD_AUTHS(_db.head_block_time()) );
+            true, false );
    }
    catch (fc::exception& ex)
    {
@@ -1708,6 +1709,59 @@ fc::optional<personal_data_object> database_api_impl::get_last_personal_data( co
    return fc::optional<personal_data_object>(last_pd);
 }
 
+vector<personal_data_v2_object> database_api::get_personal_data_v2( const account_id_type subject_account,
+                                                              const account_id_type operator_account) const
+{
+   return my->get_personal_data_v2(subject_account, operator_account);
+}
+
+vector<personal_data_v2_object> database_api_impl::get_personal_data_v2( const account_id_type subject_account,
+                                                                   const account_id_type operator_account) const
+{
+   const auto& pd_idx = _db.get_index_type<personal_data_v2_index>();
+   const auto& by_op_idx = pd_idx.indices().get<by_subject_account>();
+   auto itr = by_op_idx.lower_bound(boost::make_tuple(subject_account, operator_account));
+
+   vector<personal_data_v2_object> result;
+   while( itr->subject_account == subject_account && itr->operator_account == operator_account )
+   {
+      result.push_back(*itr);
+      ++itr;
+   }
+
+   return result;
+}
+
+fc::optional<personal_data_v2_object> database_api::get_last_personal_data_v2( const account_id_type subject_account,
+                                                                         const account_id_type operator_account) const
+{
+   return my->get_last_personal_data_v2(subject_account, operator_account);
+}
+
+fc::optional<personal_data_v2_object> database_api_impl::get_last_personal_data_v2( const account_id_type subject_account,
+                                                                              const account_id_type operator_account) const
+{
+   const auto& pd_idx = _db.get_index_type<personal_data_v2_index>();
+   const auto& by_op_idx = pd_idx.indices().get<by_subject_account>();
+   auto itr = by_op_idx.lower_bound(boost::make_tuple(subject_account, operator_account));
+
+   if ( itr->subject_account != subject_account || itr->operator_account != operator_account ){
+      return fc::optional<personal_data_v2_object>();
+   }
+
+   auto last_pd = *itr;
+   ++itr;
+   while( itr->subject_account == subject_account && itr->operator_account == operator_account )
+   {
+      if (itr->id > last_pd.id){
+         last_pd = *itr;
+      }
+      ++itr;
+   }
+
+   return fc::optional<personal_data_v2_object>(last_pd);
+}
+
 fc::optional<content_card_object> database_api::get_content_card_by_id( const content_card_id_type content_id ) const
 {
    return my->get_content_card_by_id(content_id);
@@ -1739,6 +1793,46 @@ vector<content_card_object> database_api_impl::get_content_cards( const account_
    auto itr = by_op_idx.lower_bound(boost::make_tuple(subject_account, content_id));
 
    vector<content_card_object> result;
+   while( itr->subject_account == subject_account && limit-- )
+   {
+      result.push_back(*itr);
+      ++itr;
+   }
+
+   return result;
+}
+
+fc::optional<content_card_v2_object> database_api::get_content_card_v2_by_id( const content_card_v2_id_type content_id ) const
+{
+   return my->get_content_card_v2_by_id(content_id);
+}
+
+fc::optional<content_card_v2_object> database_api_impl::get_content_card_v2_by_id( const content_card_v2_id_type content_id ) const
+{
+   const auto& cc_idx = _db.get_index_type<content_card_v2_index>();
+   const auto& by_op_idx = cc_idx.indices().get<by_id>();
+   auto itr = by_op_idx.lower_bound(content_id);
+
+   if ( itr->id != content_id ){
+      return fc::optional<content_card_v2_object>();
+   }
+   return *itr;
+}
+
+vector<content_card_v2_object> database_api::get_content_cards_v2( const account_id_type subject_account,
+                                                             const content_card_v2_id_type content_id, uint32_t limit ) const
+{
+   return my->get_content_cards_v2(subject_account, content_id, limit);
+}
+
+vector<content_card_v2_object> database_api_impl::get_content_cards_v2( const account_id_type subject_account,
+                                                                  const content_card_v2_id_type content_id, uint32_t limit ) const
+{
+   const auto& cc_idx = _db.get_index_type<content_card_v2_index>();
+   const auto& by_op_idx = cc_idx.indices().get<by_subject_account>();
+   auto itr = by_op_idx.lower_bound(boost::make_tuple(subject_account, content_id));
+
+   vector<content_card_v2_object> result;
    while( itr->subject_account == subject_account && limit-- )
    {
       result.push_back(*itr);

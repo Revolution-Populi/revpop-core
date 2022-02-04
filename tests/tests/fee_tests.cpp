@@ -375,7 +375,8 @@ BOOST_AUTO_TEST_CASE( cashback_test )
       alife.vcb += xfer_fee; alife.bal += -xfer_fee -aann.b0; aann.bal += aann.b0;
       CustomAudit();
 
-      upgrade_to_annual_member(ann_id);
+      //upgrade_to_annual_member(ann_id);
+      upgrade_to_lifetime_member(ann_id);
       aann.ucb += upg_an_fee; aann.bal += -upg_an_fee;
 
       // audit distribution of fees from Ann
@@ -537,7 +538,7 @@ REG : net' ltm' ref'
 
    BOOST_TEST_MESSAGE("Waiting for annual membership to expire");
 
-   generate_blocks(ann_id(db).membership_expiration_date);
+   //generate_blocks(ann_id(db).membership_expiration_date);
    generate_block();
 
    BOOST_TEST_MESSAGE("Transferring from scud to pleb");
@@ -598,9 +599,6 @@ BOOST_AUTO_TEST_CASE( stealth_fba_test )
       ACTORS( (alice)(bob)(chloe)(dan)(izzy)(philbin)(tom) );
       upgrade_to_lifetime_member(philbin_id);
 
-      generate_blocks( HARDFORK_555_TIME );
-      generate_blocks( HARDFORK_563_TIME );
-
       // Philbin (registrar who registers Rex)
 
       // Izzy (initial issuer of stealth asset, will later transfer to Tom)
@@ -654,15 +652,27 @@ BOOST_AUTO_TEST_CASE( stealth_fba_test )
       }
 
       // Izzy transfers issuer duty to Tom
-      {
+/*      {
          asset_update_operation update_op;
          update_op.issuer = izzy_id;
          update_op.asset_to_update = stealth_id;
-         update_op.new_issuer = tom_id;
+         //update_op.new_issuer = tom_id;
          // new_options should be optional, but isn't...the following line should be unnecessary #580
          update_op.new_options = stealth_id(db).options;
          signed_transaction tx;
          tx.operations.push_back( update_op );
+         set_expiration( db, tx );
+         sign( tx, izzy_private_key );
+         PUSH_TX( db, tx );
+      }
+*/
+      {
+         asset_update_issuer_operation upd_op;
+         upd_op.asset_to_update = stealth_id;
+         upd_op.issuer = izzy_id;
+         upd_op.new_issuer = tom_id;
+         signed_transaction tx;
+         tx.operations.push_back( upd_op );
          set_expiration( db, tx );
          sign( tx, izzy_private_key );
          PUSH_TX( db, tx );
@@ -893,8 +903,6 @@ BOOST_AUTO_TEST_CASE( issue_429_test )
       }
 
       verify_asset_supplies( db );
-
-      generate_blocks( HARDFORK_CORE_429_TIME + 10 );
 
       {
          signed_transaction tx;

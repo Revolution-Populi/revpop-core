@@ -56,19 +56,8 @@ namespace detail {
 */
 void database::globally_settle_asset( const asset_object& mia, const price& settlement_price )
 {
-   auto maint_time = get_dynamic_global_properties().next_maintenance_time;
-   bool before_core_hardfork_1669 = ( maint_time <= HARDFORK_CORE_1669_TIME ); // whether to use call_price
-
-   if( before_core_hardfork_1669 )
-   {
-      globally_settle_asset_impl( mia, settlement_price,
-                                  get_index_type<call_order_index>().indices().get<by_price>() );
-   }
-   else
-   {
-      globally_settle_asset_impl( mia, settlement_price,
-                                  get_index_type<call_order_index>().indices().get<by_collateral>() );
-   }
+   globally_settle_asset_impl( mia, settlement_price,
+                               get_index_type<call_order_index>().indices().get<by_collateral>() );
 }
 
 template<typename IndexType>
@@ -85,9 +74,6 @@ void database::globally_settle_asset_impl( const asset_object& mia,
    const asset_dynamic_data_object& mia_dyn = mia.dynamic_asset_data_id(*this);
    auto original_mia_supply = mia_dyn.current_supply;
 
-   auto maint_time = get_dynamic_global_properties().next_maintenance_time;
-   bool before_core_hardfork_342 = ( maint_time <= HARDFORK_CORE_342_TIME ); // better rounding
-
    // cancel all call orders and accumulate it into collateral_gathered
    auto call_itr = call_index.lower_bound( price::min( bitasset.options.short_backing_asset, mia.id ) );
    auto call_end = call_index.upper_bound( price::max( bitasset.options.short_backing_asset, mia.id ) );
@@ -98,10 +84,7 @@ void database::globally_settle_asset_impl( const asset_object& mia,
       const call_order_object& order = *call_itr;
       ++call_itr;
 
-      if( before_core_hardfork_342 )
-         pays = order.get_debt() * settlement_price; // round down, in favor of call order
-      else
-         pays = order.get_debt().multiply_and_round_up( settlement_price ); // round up in favor of global-settle fund
+      pays = order.get_debt().multiply_and_round_up( settlement_price ); // round up in favor of global-settle fund
 
       if( pays > order.get_collateral() )
          pays = order.get_collateral();
@@ -198,15 +181,10 @@ void database::execute_bid( const collateral_bid_object& bid, share_type debt_co
          call.borrower = bid.bidder;
          call.collateral = bid.inv_swan_price.base.amount + collateral_from_fund;
          call.debt = debt_covered;
-         // don't calculate call_price after core-1270 hard fork
-         if( get_dynamic_global_properties().next_maintenance_time > HARDFORK_CORE_1270_TIME )
-            // bid.inv_swan_price is in collateral / debt
-            call.call_price = price( asset( 1, bid.inv_swan_price.base.asset_id ),
-                                     asset( 1, bid.inv_swan_price.quote.asset_id ) );
-         else
-            call.call_price = price::call_price( asset(debt_covered, bid.inv_swan_price.quote.asset_id),
-                                                 asset(call.collateral, bid.inv_swan_price.base.asset_id),
-                                                 current_feed.maintenance_collateral_ratio );
+         // don't calculate call_price
+         // bid.inv_swan_price is in collateral / debt
+         call.call_price = price( asset( 1, bid.inv_swan_price.base.asset_id ),
+                                  asset( 1, bid.inv_swan_price.quote.asset_id ) );
       });
 
    // Note: CORE asset in collateral_bid_object is not counted in account_stats.total_core_in_orders
@@ -312,7 +290,7 @@ void database::cancel_limit_order( const limit_order_object& order, bool create_
    // could be virtual op or real op here
    if( order.deferred_paid_fee.amount == 0 )
    {
-      // be here, order.create_time <= HARDFORK_CORE_604_TIME, or fee paid in CORE, or no fee to refund.
+      // be here, fee paid in CORE, or no fee to refund.
       // if order was created before hard fork 604 then cancelled no matter before or after hard fork 604,
       //    see it as fee paid in CORE, deferred_fee should be refunded to order owner but not fee pool
       adjust_balance( order.seller, deferred_fee );
@@ -348,66 +326,10 @@ bool maybe_cull_small_order( database& db, const limit_order_object& order )
     */
    if( order.amount_to_receive().amount == 0 )
    {
-      if( order.deferred_fee > 0 && db.head_block_time() <= HARDFORK_CORE_604_TIME )
-      {
-         db.cancel_limit_order( order, true, true );
-      }
-      else
-         db.cancel_limit_order( order );
+      db.cancel_limit_order( order );
       return true;
    }
    return false;
-}
-
-bool database::apply_order_before_hardfork_625(const limit_order_object& new_order_object, bool allow_black_swan)
-{
-   auto order_id = new_order_object.id;
-   const asset_object& sell_asset = get(new_order_object.amount_for_sale().asset_id);
-   const asset_object& receive_asset = get(new_order_object.amount_to_receive().asset_id);
-
-   // Possible optimization: We only need to check calls if both are true:
-   //  - The new order is at the front of the book
-   //  - The new order is below the call limit price
-   bool called_some = check_call_orders(sell_asset, allow_black_swan, true); // the first time when checking, call order is maker
-   called_some |= check_call_orders(receive_asset, allow_black_swan, true); // the other side, same as above
-   if( called_some && !find_object(order_id) ) // then we were filled by call order
-      return true;
-
-   const auto& limit_price_idx = get_index_type<limit_order_index>().indices().get<by_price>();
-
-   // TODO: it should be possible to simply check the NEXT/PREV iterator after new_order_object to
-   // determine whether or not this order has "changed the book" in a way that requires us to
-   // check orders. For now I just lookup the lower bound and check for equality... this is log(n) vs
-   // constant time check. Potential optimization.
-
-   auto max_price = ~new_order_object.sell_price;
-   auto limit_itr = limit_price_idx.lower_bound(max_price.max());
-   auto limit_end = limit_price_idx.upper_bound(max_price);
-
-   bool finished = false;
-   while( !finished && limit_itr != limit_end )
-   {
-      auto old_limit_itr = limit_itr;
-      ++limit_itr;
-      // match returns 2 when only the old order was fully filled. In this case, we keep matching; otherwise, we stop.
-      finished = (match(new_order_object, *old_limit_itr, old_limit_itr->sell_price) != 2);
-   }
-
-   //Possible optimization: only check calls if the new order completely filled some old order
-   //Do I need to check both assets?
-   check_call_orders(sell_asset, allow_black_swan); // after the new limit order filled some orders on the book,
-                                                    // if a call order matches another order, the call order is taker
-   check_call_orders(receive_asset, allow_black_swan); // the other side, same as above
-
-   const limit_order_object* updated_order_object = find< limit_order_object >( order_id );
-   if( updated_order_object == nullptr )
-      return true;
-   if( head_block_time() <= HARDFORK_555_TIME )
-      return false;
-   // before #555 we would have done maybe_cull_small_order() logic as a result of fill_order() being called by match() above
-   // however after #555 we need to get rid of small orders -- #555 hardfork defers logic that was done too eagerly before, and
-   // this is the point it's deferred to.
-   return maybe_cull_small_order( *this, *updated_order_object );
 }
 
 /***
@@ -424,8 +346,7 @@ bool database::apply_order_before_hardfork_625(const limit_order_object& new_ord
  *    remains on the book.
  * @param new_order_object the new limit order (read only ref, though the corresponding db
  *    object is modified as we match and deleted if filled completely)
- * @param allow_black_swan ignored, defaulted to true (is used in the _before_hardfork_625
- *   variant of this function, but not this variant)
+ * @param allow_black_swan ignored, defaulted to true
  */
 bool database::apply_order(const limit_order_object& new_order_object, bool allow_black_swan)
 {
@@ -479,9 +400,6 @@ bool database::apply_order(const limit_order_object& new_order_object, bool allo
    // 5. the call order's collateral ratio is below or equals to MCR
    // 6. the limit order provided a good price
 
-   auto maint_time = get_dynamic_global_properties().next_maintenance_time;
-   bool before_core_hardfork_1270 = ( maint_time <= HARDFORK_CORE_1270_TIME ); // call price caching issue
-
    bool to_check_call_orders = false;
    const asset_object& sell_asset = sell_asset_id( *this );
    const asset_bitasset_data_object* sell_abd = nullptr;
@@ -497,14 +415,9 @@ bool database::apply_order(const limit_order_object& new_order_object, bool allo
           && !sell_abd->has_settlement()
           && !sell_abd->current_feed.settlement_price.is_null() )
       {
-         if( before_core_hardfork_1270 ) {
-            call_match_price = ~sell_abd->current_feed.max_short_squeeze_price_before_hf_1270();
-            call_pays_price = call_match_price;
-         } else {
-            call_match_price = ~sell_abd->current_feed.
-               margin_call_order_price(sell_abd->options.extensions.value.margin_call_fee_ratio);
-            call_pays_price = ~sell_abd->current_feed.max_short_squeeze_price();
-         }
+         call_match_price = ~sell_abd->current_feed.
+            margin_call_order_price(sell_abd->options.extensions.value.margin_call_fee_ratio);
+         call_pays_price = ~sell_abd->current_feed.max_short_squeeze_price();
          if( ~new_order_object.sell_price <= call_match_price ) // If new limit order price is good enough to
             to_check_call_orders = true;                        // match a call, then check if there are calls.
       }
@@ -522,14 +435,13 @@ bool database::apply_order(const limit_order_object& new_order_object, bool allo
          finished = ( match( new_order_object, *old_limit_itr, old_limit_itr->sell_price ) != 2 );
       }
 
-      if( !finished && !before_core_hardfork_1270 ) // TODO refactor or cleanup duplicate code after core-1270 hard fork
+      if( !finished ) // TODO refactor or cleanup duplicate code
       {
          // check if there are margin calls
          const auto& call_collateral_idx = get_index_type<call_order_index>().indices().get<by_collateral>();
          auto call_min = price::min( recv_asset_id, sell_asset_id );
          while( !finished )
          {
-            // hard fork core-343 and core-625 took place at same time,
             // always check call order with least collateral ratio
             auto call_itr = call_collateral_idx.lower_bound( call_min );
             if( call_itr == call_collateral_idx.end()
@@ -537,37 +449,11 @@ bool database::apply_order(const limit_order_object& new_order_object, bool allo
                   // feed protected https://github.com/cryptonomex/graphene/issues/436
                   || call_itr->collateralization() > sell_abd->current_maintenance_collateralization )
                break;
-            // hard fork core-338 and core-625 took place at same time, not checking HARDFORK_CORE_338_TIME here.
             int match_result = match( new_order_object, *call_itr, call_match_price,
                                       sell_abd->current_feed.settlement_price,
                                       sell_abd->current_feed.maintenance_collateral_ratio,
                                       sell_abd->current_maintenance_collateralization,
                                       call_pays_price);
-            // match returns 1 or 3 when the new order was fully filled. In this case, we stop matching; otherwise keep matching.
-            // since match can return 0 due to BSIP38 (hard fork core-834), we no longer only check if the result is 2.
-            if( match_result == 1 || match_result == 3 )
-               finished = true;
-         }
-      }
-      else if( !finished ) // and before core-1270 hard fork
-      {
-         // check if there are margin calls
-         const auto& call_price_idx = get_index_type<call_order_index>().indices().get<by_price>();
-         auto call_min = price::min( recv_asset_id, sell_asset_id );
-         while( !finished )
-         {
-            // assume hard fork core-343 and core-625 will take place at same time, always check call order with least call_price
-            auto call_itr = call_price_idx.lower_bound( call_min );
-            if( call_itr == call_price_idx.end()
-                  || call_itr->debt_type() != sell_asset_id
-                  // feed protected https://github.com/cryptonomex/graphene/issues/436
-                  || call_itr->call_price > ~sell_abd->current_feed.settlement_price )
-               break;
-            // assume hard fork core-338 and core-625 will take place at same time, not checking HARDFORK_CORE_338_TIME here.
-            int match_result = match( new_order_object, *call_itr, call_match_price,
-                                      sell_abd->current_feed.settlement_price,
-                                      sell_abd->current_feed.maintenance_collateral_ratio,
-                                      optional<price>() );
             // match returns 1 or 3 when the new order was fully filled. In this case, we stop matching; otherwise keep matching.
             // since match can return 0 due to BSIP38 (hard fork core-834), we no longer only check if the result is 2.
             if( match_result == 1 || match_result == 3 )
@@ -616,9 +502,6 @@ int database::match( const limit_order_object& usd, const limit_order_object& co
 
    asset usd_pays, usd_receives, core_pays, core_receives;
 
-   auto maint_time = get_dynamic_global_properties().next_maintenance_time;
-   bool before_core_hardfork_342 = ( maint_time <= HARDFORK_CORE_342_TIME ); // better rounding
-
    bool cull_taker = false;
    if( usd_for_sale <= core_for_sale * match_price ) // rounding down here should be fine
    {
@@ -626,20 +509,15 @@ int database::match( const limit_order_object& usd, const limit_order_object& co
 
       // Be here, it's possible that taker is paying something for nothing due to partially filled in last loop.
       // In this case, we see it as filled and cancel it later
-      if( usd_receives.amount == 0 && maint_time > HARDFORK_CORE_184_TIME )
+      if( usd_receives.amount == 0 )
          return 1;
 
-      if( before_core_hardfork_342 )
-         core_receives = usd_for_sale;
-      else
-      {
-         // The remaining amount in order `usd` would be too small,
-         //   so we should cull the order in fill_limit_order() below.
-         // The order would receive 0 even at `match_price`, so it would receive 0 at its own price,
-         //   so calling maybe_cull_small() will always cull it.
-         core_receives = usd_receives.multiply_and_round_up( match_price );
-         cull_taker = true;
-      }
+      // The remaining amount in order `usd` would be too small,
+      //   so we should cull the order in fill_limit_order() below.
+      // The order would receive 0 even at `match_price`, so it would receive 0 at its own price,
+      //   so calling maybe_cull_small() will always cull it.
+      core_receives = usd_receives.multiply_and_round_up( match_price );
+      cull_taker = true;
    }
    else
    {
@@ -650,20 +528,13 @@ int database::match( const limit_order_object& usd, const limit_order_object& co
 
       // The maker won't be paying something for nothing, since if it would, it would have been cancelled already.
       core_receives = core_for_sale * match_price; // round down, in favor of bigger order
-      if( before_core_hardfork_342 )
-         usd_receives = core_for_sale;
-      else
-         // The remaining amount in order `core` would be too small,
-         //   so the order will be culled in fill_limit_order() below
-         usd_receives = core_receives.multiply_and_round_up( match_price );
+      // The remaining amount in order `core` would be too small,
+      //   so the order will be culled in fill_limit_order() below
+      usd_receives = core_receives.multiply_and_round_up( match_price );
    }
 
    core_pays = usd_receives;
    usd_pays  = core_receives;
-
-   if( before_core_hardfork_342 )
-      FC_ASSERT( usd_pays == usd.amount_for_sale() ||
-                 core_pays == core.amount_for_sale() );
 
    int result = 0;
    result |= fill_limit_order( usd, usd_pays, usd_receives, cull_taker, match_price, false ); // the first param is taker
@@ -737,9 +608,6 @@ asset database::match( const call_order_object& call,
    FC_ASSERT(call.get_debt().asset_id == settle.balance.asset_id );
    FC_ASSERT(call.debt > 0 && call.collateral > 0 && settle.balance.amount > 0);
 
-   auto maint_time = get_dynamic_global_properties().next_maintenance_time;
-   bool before_core_hardfork_342 = ( maint_time <= HARDFORK_CORE_342_TIME ); // better rounding
-
    auto settle_for_sale = std::min(settle.balance, max_settlement);
    auto call_debt = call.get_debt();
 
@@ -751,74 +619,52 @@ asset database::match( const call_order_object& call,
    bool cull_settle_order = false; // whether need to cancel dust settle order
    if( call_pays.amount == 0 )
    {
-      if( maint_time > HARDFORK_CORE_184_TIME )
+      if( call_receives == call_debt ) // the call order is smaller than or equal to the settle order
       {
-         if( call_receives == call_debt ) // the call order is smaller than or equal to the settle order
+         call_pays.amount = 1;
+      }
+      else
+      {
+         if( call_receives == settle.balance ) // the settle order is smaller
          {
-            call_pays.amount = 1;
+            cancel_settle_order( settle );
          }
-         else
-         {
-            if( call_receives == settle.balance ) // the settle order is smaller
-            {
-               cancel_settle_order( settle );
-            }
-            // else do nothing: neither order will be completely filled, perhaps due to max_settlement too small
+         // else do nothing: neither order will be completely filled, perhaps due to max_settlement too small
 
-            return asset( 0, settle.balance.asset_id );
-         }
+         return asset( 0, settle.balance.asset_id );
       }
 
    }
    else // the call order is not paying nothing, but still possible it's paying more than minimum required due to rounding
    {
-      if( !before_core_hardfork_342 )
+      if( call_receives == call_debt ) // the call order is smaller than or equal to the settle order
       {
-         if( call_receives == call_debt ) // the call order is smaller than or equal to the settle order
-         {
-            call_pays = call_receives.multiply_and_round_up( match_price ); // round up here, in favor of settle order
-            // be here, we should have: call_pays <= call_collateral
-         }
-         else
-         {
-            // be here, call_pays has been rounded down
+         call_pays = call_receives.multiply_and_round_up( match_price ); // round up here, in favor of settle order
+         // be here, we should have: call_pays <= call_collateral
+      }
+      else
+      {
+         // be here, call_pays has been rounded down
 
-            // be here, we should have: call_pays <= call_collateral
+         // be here, we should have: call_pays <= call_collateral
 
-            if( call_receives == settle.balance ) // the settle order will be completely filled, assuming we need to cull it
-               cull_settle_order = true;
-            // else do nothing, since we can't cull the settle order
+         if( call_receives == settle.balance ) // the settle order will be completely filled, assuming we need to cull it
+            cull_settle_order = true;
+         // else do nothing, since we can't cull the settle order
 
-            call_receives = call_pays.multiply_and_round_up( match_price ); // round up here to mitigate rounding issue (core-342).
-                                                                            // It is important to understand here that the newly
-                                                                            // rounded up call_receives won't be greater than the
-                                                                            // old call_receives.
+         call_receives = call_pays.multiply_and_round_up( match_price ); // round up here to mitigate rounding issue.
+                                                                           // It is important to understand here that the newly
+                                                                           // rounded up call_receives won't be greater than the
+                                                                           // old call_receives.
 
-            if( call_receives == settle.balance ) // the settle order will be completely filled, no need to cull
-               cull_settle_order = false;
-            // else do nothing, since we still need to cull the settle order or still can't cull the settle order
-         }
+         if( call_receives == settle.balance ) // the settle order will be completely filled, no need to cull
+            cull_settle_order = false;
+         // else do nothing, since we still need to cull the settle order or still can't cull the settle order
       }
    }
 
    asset settle_pays     = call_receives;
    asset settle_receives = call_pays;
-
-   /**
-    *  If the least collateralized call position lacks sufficient
-    *  collateral to cover at the match price then this indicates a black 
-    *  swan event according to the price feed, but only the market 
-    *  can trigger a black swan.  So now we must cancel the forced settlement
-    *  object.
-    */
-   if( before_core_hardfork_342 )
-   {
-      auto call_collateral = call.get_collateral();
-      GRAPHENE_ASSERT( call_pays < call_collateral, black_swan_exception, "" );
-
-      assert( settle_pays == settle_for_sale || call_receives == call.get_debt() );
-   }
-   // else do nothing, since black swan event won't happen, and the assertion is no longer true
 
    fill_call_order( call, call_pays, call_receives, fill_price, true ); // call order is maker
    fill_settle_order( settle, settle_pays, settle_receives, fill_price, false ); // force settlement order is taker
@@ -832,8 +678,6 @@ asset database::match( const call_order_object& call,
 bool database::fill_limit_order( const limit_order_object& order, const asset& pays, const asset& receives, bool cull_if_small,
                            const price& fill_price, const bool is_maker)
 { try {
-   cull_if_small |= (head_block_time() < HARDFORK_555_TIME);
-
    FC_ASSERT( order.amount_for_sale().asset_id == pays.asset_id );
    FC_ASSERT( pays.asset_id != receives.asset_id );
 
@@ -861,7 +705,7 @@ bool database::fill_limit_order( const limit_order_object& order, const asset& p
    share_type deferred_paid_fee = order.deferred_paid_fee.amount;
 
    // conditional because cheap integer comparison may allow us to avoid two expensive modify() and object lookups
-   if( order.deferred_paid_fee.amount > 0 ) // implies head_block_time() > HARDFORK_CORE_604_TIME
+   if( order.deferred_paid_fee.amount > 0 )
    {
       share_type fee_pool_refund = 0;
       if( is_maker && maker_discount_percent > 0 )
@@ -953,7 +797,6 @@ bool database::fill_call_order( const call_order_object& order, const asset& pay
    // TODO pass in mia and bitasset_data for better performance
    const asset_object& mia = receives.asset_id(*this);
    FC_ASSERT( mia.is_market_issued() );
-   const asset_bitasset_data_object& bitasset = mia.bitasset_data(*this);
 
    optional<asset> collateral_freed;
    // adjust the order
@@ -964,17 +807,6 @@ bool database::fill_call_order( const call_order_object& order, const asset& pay
          {
             collateral_freed = o.get_collateral();
             o.collateral = 0;
-         }
-         else // the debt was not completely paid
-         {
-            auto maint_time = get_dynamic_global_properties().next_maintenance_time;
-            // update call_price after core-343 hard fork,
-            // but don't update call_price after core-1270 hard fork
-            if( maint_time <= HARDFORK_CORE_1270_TIME && maint_time > HARDFORK_CORE_343_TIME )
-            {
-               o.call_price = price::call_price( o.get_debt(), o.get_collateral(),
-                     bitasset.current_feed.maintenance_collateral_ratio );
-            }
          }
       });
 
@@ -1043,12 +875,7 @@ bool database::fill_settle_order( const force_settlement_object& settle, const a
    // The owner of the settle order pays market fees to the issuer of the collateral asset.
    // After HF core-1780, these fees are shared to the referral program, which is flagged to
    // pay_market_fees by setting settle_owner_ptr non-null.
-   //
-   // TODO Check whether the HF check can be removed after the HF.
-   //      Note: even if logically it can be removed, perhaps the removal will lead to a small performance
-   //            loss. Needs testing.
-   if( head_block_time() >= HARDFORK_CORE_1780_TIME )
-      settle_owner_ptr = &settle.owner(*this);
+   settle_owner_ptr = &settle.owner(*this);
    // Compute and pay the market fees:
    asset market_fees = pay_market_fees( settle_owner_ptr, get(receives.asset_id), receives, is_maker );
 
@@ -1094,8 +921,7 @@ bool database::fill_settle_order( const force_settlement_object& settle, const a
  *  @param enable_black_swan - when adjusting collateral, triggering a black swan is invalid and will throw
  *                             if enable_black_swan is not set to true.
  *  @param for_new_limit_order - true if this function is called when matching call orders with a new
- *     limit order. (Only relevent before hardfork 625. apply_order_before_hardfork_625() is only
- *     function that calls this with for_new_limit_order true.)
+ *     limit order.
  *  @param bitasset_ptr - an optional pointer to the bitasset_data object of the asset
  *
  *  @return true if a margin call was executed.
@@ -1103,10 +929,8 @@ bool database::fill_settle_order( const force_settlement_object& settle, const a
 bool database::check_call_orders( const asset_object& mia, bool enable_black_swan, bool for_new_limit_order,
                                   const asset_bitasset_data_object* bitasset_ptr )
 { try {
-    const auto& dyn_prop = get_dynamic_global_properties();
-    auto maint_time = dyn_prop.next_maintenance_time;
     if( for_new_limit_order )
-       FC_ASSERT( maint_time <= HARDFORK_CORE_625_TIME ); // `for_new_limit_order` is only true before HF 338 / 625
+       FC_ASSERT( false, "`for_new_limit_order` is only true before HF 338 / 625");
 
     if( !mia.is_market_issued() ) return false;
 
@@ -1117,7 +941,7 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
     // if check_for_blackswan never triggered a black swan on a prediction market.
     // NOTE: check_for_blackswan returning true does not always mean a black
     // swan was triggered.
-    if ( maint_time >= HARDFORK_CORE_460_TIME && bitasset.is_prediction_market )
+    if ( bitasset.is_prediction_market )
        return false;
 
     if( check_for_blackswan( mia, enable_black_swan, &bitasset ) )
@@ -1129,18 +953,13 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
     const limit_order_index& limit_index = get_index_type<limit_order_index>();
     const auto& limit_price_index = limit_index.indices().get<by_price>();
 
-    bool before_core_hardfork_1270 = ( maint_time <= HARDFORK_CORE_1270_TIME ); // call price caching issue
-
     // Looking for limit orders selling the most USD for the least CORE.
     auto max_price = price::max( mia.id, bitasset.options.short_backing_asset );
     // Stop when limit orders are selling too little USD for too much CORE.
     // Note that since BSIP74, margin calls offer somewhat less CORE per USD
     // if the issuer claims a Margin Call Fee.
-    auto min_price = ( before_core_hardfork_1270 ?
-                         bitasset.current_feed.max_short_squeeze_price_before_hf_1270()
-                       : bitasset.current_feed.margin_call_order_price(
-                                      bitasset.options.extensions.value.margin_call_fee_ratio )
-                     );
+    auto min_price = bitasset.current_feed.margin_call_order_price(
+                           bitasset.options.extensions.value.margin_call_fee_ratio );
 
     // NOTE limit_price_index is sorted from greatest to least
     auto limit_itr = limit_price_index.lower_bound( max_price );
@@ -1150,56 +969,29 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
        return false;
 
     const call_order_index& call_index = get_index_type<call_order_index>();
-    const auto& call_price_index = call_index.indices().get<by_price>();
     const auto& call_collateral_index = call_index.indices().get<by_collateral>();
 
     auto call_min = price::min( bitasset.options.short_backing_asset, mia.id );
     auto call_max = price::max( bitasset.options.short_backing_asset, mia.id );
 
-    auto call_price_itr = call_price_index.begin();
-    auto call_price_end = call_price_itr;
     auto call_collateral_itr = call_collateral_index.begin();
     auto call_collateral_end = call_collateral_itr;
 
-    if( before_core_hardfork_1270 )
-    {
-       call_price_itr = call_price_index.lower_bound( call_min );
-       call_price_end = call_price_index.upper_bound( call_max );
-    }
-    else
-    {
-       call_collateral_itr = call_collateral_index.lower_bound( call_min );
-       call_collateral_end = call_collateral_index.upper_bound( call_max );
-    }
+    call_collateral_itr = call_collateral_index.lower_bound( call_min );
+    call_collateral_end = call_collateral_index.upper_bound( call_max );
 
-    bool filled_limit = false;
     bool margin_called = false;         // toggles true once/if we actually execute a margin call
 
-    auto head_time = head_block_time();
     auto head_num = head_block_num();
-
-    bool before_hardfork_615 = ( head_time < HARDFORK_615_TIME );
-    bool after_hardfork_436 = ( head_time > HARDFORK_436_TIME );
-
-    bool before_core_hardfork_342 = ( maint_time <= HARDFORK_CORE_342_TIME ); // better rounding
-    bool before_core_hardfork_343 = ( maint_time <= HARDFORK_CORE_343_TIME ); // update call_price after partially filled
-    bool before_core_hardfork_453 = ( maint_time <= HARDFORK_CORE_453_TIME ); // multiple matching issue
-    bool before_core_hardfork_606 = ( maint_time <= HARDFORK_CORE_606_TIME ); // feed always trigger call
-    bool before_core_hardfork_834 = ( maint_time <= HARDFORK_CORE_834_TIME ); // target collateral ratio option
 
     while( !check_for_blackswan( mia, enable_black_swan, &bitasset ) // TODO perhaps improve performance by passing in iterators
            && limit_itr != limit_end
-           && ( ( !before_core_hardfork_1270 && call_collateral_itr != call_collateral_end )
-              || ( before_core_hardfork_1270 && call_price_itr != call_price_end ) ) )
+           && ( call_collateral_itr != call_collateral_end ) )
     {
-       bool  filled_call      = false;
-
-       const call_order_object& call_order = ( before_core_hardfork_1270 ? *call_price_itr : *call_collateral_itr );
+       const call_order_object& call_order = *call_collateral_itr;
 
        // Feed protected (don't call if CR>MCR) https://github.com/cryptonomex/graphene/issues/436
-       if( ( !before_core_hardfork_1270 && bitasset.current_maintenance_collateralization < call_order.collateralization() )
-             || ( before_core_hardfork_1270
-                   && after_hardfork_436 && bitasset.current_feed.settlement_price > ~call_order.call_price ) )
+       if( ( bitasset.current_maintenance_collateralization < call_order.collateralization() ) )
           return margin_called;
 
        const limit_order_object& limit_order = *limit_itr;
@@ -1214,17 +1006,12 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
        // of course, to determine what the limit order receives.  Note margin_call_pays_ratio() returns
        // 1/1 if margin_call_fee_ratio is unset (i.e. before BSIP74), so hardfork check is implicit.
 
-       // Old rule: margin calls can only buy high https://github.com/bitshares/bitshares-core/issues/606
-       if( before_core_hardfork_606 && match_price > ~call_order.call_price )
-          return margin_called;
-
        margin_called = true;
 
        // Although we checked for black swan above, we do one more check to ensure the call order can
        // pay the amount of collateral which we intend to take from it (including margin call fee).  I
        // guess this is just a sanity check, as, I'm not sure how we'd get here without it being
-       // detected in the prior swan check, aside perhaps for rounding errors. Or maybe there was some
-       // way prior to hf_1270.
+       // detected in the prior swan check, aside perhaps for rounding errors.
        auto usd_to_buy = call_order.get_debt();
        if( usd_to_buy * call_pays_price > call_order.get_collateral() )
        {
@@ -1236,19 +1023,10 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
           return true;
        }
 
-       if( !before_core_hardfork_1270 )
-       {
-          usd_to_buy.amount = call_order.get_max_debt_to_cover( call_pays_price,
-                                                                bitasset.current_feed.settlement_price,
-                                                                bitasset.current_feed.maintenance_collateral_ratio,
-                                                                bitasset.current_maintenance_collateralization );
-       }
-       else if( !before_core_hardfork_834 )
-       {
-          usd_to_buy.amount = call_order.get_max_debt_to_cover( call_pays_price,
-                                                                bitasset.current_feed.settlement_price,
-                                                                bitasset.current_feed.maintenance_collateral_ratio );
-       }
+       usd_to_buy.amount = call_order.get_max_debt_to_cover( call_pays_price,
+                                                             bitasset.current_feed.settlement_price,
+                                                             bitasset.current_feed.maintenance_collateral_ratio,
+                                                             bitasset.current_maintenance_collateralization );
 
        asset usd_for_sale = limit_order.amount_for_sale();
        asset call_pays, call_receives, limit_pays, limit_receives;
@@ -1259,47 +1037,21 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
 
           // Be here, the limit order won't be paying something for nothing, since if it would, it would have
           //   been cancelled elsewhere already (a maker limit order won't be paying something for nothing):
-          // * after hard fork core-625, the limit order will be always a maker if entered this function;
-          // * before hard fork core-625,
-          //   * when the limit order is a taker, it could be paying something for nothing only when
-          //     the call order is smaller and is too small
-          //   * when the limit order is a maker, it won't be paying something for nothing
+          // * the limit order will be always a maker if entered this function;
 
-          if( before_core_hardfork_342 )
-             call_receives = usd_for_sale;
-          else
-             // The remaining amount in the limit order would be too small,
-             //   so we should cull the order in fill_limit_order() below.
-             // The order would receive 0 even at `match_price`, so it would receive 0 at its own price,
-             //   so calling maybe_cull_small() will always cull it.
-             call_receives = limit_receives.multiply_and_round_up( match_price );
-
-          filled_limit = true;
+          // The remaining amount in the limit order would be too small,
+          //   so we should cull the order in fill_limit_order() below.
+          // The order would receive 0 even at `match_price`, so it would receive 0 at its own price,
+          //   so calling maybe_cull_small() will always cull it.
+          call_receives = limit_receives.multiply_and_round_up( match_price );
 
        } else { // fill call
           call_receives  = usd_to_buy;
 
-          if( before_core_hardfork_342 )
-          {
-             limit_receives = usd_to_buy * match_price; // round down, in favor of call order
-             call_pays = limit_receives;
-          } else {
-             limit_receives = usd_to_buy.multiply_and_round_up( match_price ); // round up, in favor of limit order
-             call_pays      = usd_to_buy.multiply_and_round_up( call_pays_price ); // BSIP74; excess is fee.
-                                              // Note: TODO: Due to different rounding, couldn't this potentialy be
-                                              // one satoshi more than the blackswan check above? Can this bite us?
-          }
-
-          filled_call    = true; // this is safe, since BSIP38 (hard fork core-834) depends on BSIP31 (hard fork core-343)
-
-          if( usd_to_buy == usd_for_sale )
-             filled_limit = true;
-          else if( filled_limit && maint_time <= HARDFORK_CORE_453_TIME )
-          {
-             //NOTE: Multiple limit match problem (see issue 453, yes this happened)
-             if( before_hardfork_615 )
-                _issue_453_affected_assets.insert( bitasset.asset_id );
-          }
+          limit_receives = usd_to_buy.multiply_and_round_up( match_price ); // round up, in favor of limit order
+          call_pays      = usd_to_buy.multiply_and_round_up( call_pays_price ); // BSIP74; excess is fee.
+                                          // Note: TODO: Due to different rounding, couldn't this potentialy be
+                                          // one satoshi more than the blackswan check above? Can this bite us?
        }
        limit_pays = call_receives;
 
@@ -1307,22 +1059,16 @@ bool database::check_call_orders( const asset_object& mia, bool enable_black_swa
        FC_ASSERT(call_pays >= limit_receives);
        const asset margin_call_fee = call_pays - limit_receives;
 
-       if( filled_call && before_core_hardfork_343 )
-          ++call_price_itr;
-
        // when for_new_limit_order is true, the call order is maker, otherwise the call order is taker
        fill_call_order( call_order, call_pays, call_receives, match_price, for_new_limit_order, margin_call_fee);
 
-       if( !before_core_hardfork_1270 )
-          call_collateral_itr = call_collateral_index.lower_bound( call_min );
-       else if( !before_core_hardfork_343 )
-          call_price_itr = call_price_index.lower_bound( call_min );
+       call_collateral_itr = call_collateral_index.lower_bound( call_min );
 
        auto next_limit_itr = std::next( limit_itr );
        // when for_new_limit_order is true, the limit order is taker, otherwise the limit order is maker
        bool really_filled = fill_limit_order( limit_order, limit_pays, limit_receives, true,
                                               match_price, !for_new_limit_order );
-       if( really_filled || ( filled_limit && before_core_hardfork_453 ) )
+       if( really_filled )
           limit_itr = next_limit_itr;
 
     } // while call_itr != call_end
@@ -1424,27 +1170,18 @@ asset database::pay_market_fees(const account_object* seller, const asset_object
             if ( reward_value > 0 && is_authorized_asset(*this, seller->registrar(*this), recv_asset) )
             {
                reward = recv_asset.amount(reward_value);
-               // TODO after hf_1774, remove the `if` check, keep the code in `else`
-               if( head_block_time() < HARDFORK_1774_TIME ){
-                  FC_ASSERT( reward < issuer_fees, "Market reward should be less than issuer fees");
-               }
-               else{
-                  FC_ASSERT( reward <= issuer_fees, "Market reward should not be greater than issuer fees");
-               }
+               FC_ASSERT( reward <= issuer_fees, "Market reward should not be greater than issuer fees");
                // cut referrer percent from reward
                auto registrar_reward = reward;
 
                auto registrar = seller->registrar;
                auto referrer = seller->referrer;
 
-               // After HF core-1800, for funds going to temp-account, redirect to committee-account
-               if( head_block_time() >= HARDFORK_CORE_1800_TIME )
-               {
-                  if( registrar == GRAPHENE_TEMP_ACCOUNT )
-                     registrar = GRAPHENE_COMMITTEE_ACCOUNT;
-                  if( referrer == GRAPHENE_TEMP_ACCOUNT )
-                     referrer = GRAPHENE_COMMITTEE_ACCOUNT;
-               }
+               // for funds going to temp-account, redirect to committee-account
+               if( registrar == GRAPHENE_TEMP_ACCOUNT )
+                  registrar = GRAPHENE_COMMITTEE_ACCOUNT;
+               if( referrer == GRAPHENE_TEMP_ACCOUNT )
+                  referrer = GRAPHENE_COMMITTEE_ACCOUNT;
 
                if( referrer != registrar )
                {

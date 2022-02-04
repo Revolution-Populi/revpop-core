@@ -21,6 +21,7 @@
 #include <graphene/chain/permission_object.hpp>
 #include <graphene/chain/buyback.hpp>
 #include <graphene/chain/database.hpp>
+#include <graphene/chain/hardfork.hpp>
 #include <graphene/chain/exceptions.hpp>
 #include <graphene/chain/special_authority_object.hpp>
 #include <graphene/chain/witness_object.hpp>
@@ -32,6 +33,8 @@ namespace graphene { namespace chain {
 void_result content_card_create_evaluator::do_evaluate( const content_card_create_operation& op )
 { try {
    database& d = db();
+   if (HARDFORK_REVPOP_15_PASSED(d.head_block_time()))
+      FC_THROW( "Please use create_content_card_v2 instead" );
    FC_ASSERT(!op.url.empty(), "URL can not be empty.");
    FC_ASSERT(!op.hash.empty(), "Hash can not be empty.");
 
@@ -64,6 +67,8 @@ object_id_type content_card_create_evaluator::do_apply( const content_card_creat
 void_result content_card_update_evaluator::do_evaluate( const content_card_update_operation& op )
 { try {
    database& d = db();
+   if (HARDFORK_REVPOP_15_PASSED(d.head_block_time()))
+      FC_THROW( "Please use update_content_card_v2 instead" );
    FC_ASSERT(!op.url.empty(), "URL can not be empty.");
    FC_ASSERT(!op.hash.empty(), "Hash can not be empty.");
 

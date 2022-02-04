@@ -197,35 +197,17 @@ bool database::check_for_blackswan( const asset_object& mia, bool enable_black_s
     asset_id_type debt_asset_id = mia.id;
     auto call_min = price::min( bitasset.options.short_backing_asset, debt_asset_id );
 
-    auto maint_time = get_dynamic_global_properties().next_maintenance_time;
-    bool before_core_hardfork_1270 = ( maint_time <= HARDFORK_CORE_1270_TIME ); // call price caching issue
+    // check with collateralization
+    const auto& call_collateral_index = get_index_type<call_order_index>().indices().get<by_collateral>();
+    auto call_itr = call_collateral_index.lower_bound( call_min );
+    if( call_itr == call_collateral_index.end() ) // no call order
+       return false;
+    call_ptr = &(*call_itr);
 
-    if( before_core_hardfork_1270 ) // before core-1270 hard fork, check with call_price
-    {
-       const auto& call_price_index = get_index_type<call_order_index>().indices().get<by_price>();
-       auto call_itr = call_price_index.lower_bound( call_min );
-       if( call_itr == call_price_index.end() ) // no call order
-          return false;
-       call_ptr = &(*call_itr);
-    }
-    else // after core-1270 hard fork, check with collateralization
-    {
-       const auto& call_collateral_index = get_index_type<call_order_index>().indices().get<by_collateral>();
-       auto call_itr = call_collateral_index.lower_bound( call_min );
-       if( call_itr == call_collateral_index.end() ) // no call order
-          return false;
-       call_ptr = &(*call_itr);
-    }
     if( call_ptr->debt_type() != debt_asset_id ) // no call order
        return false;
 
-    price highest = settle_price;
-    if( maint_time > HARDFORK_CORE_1270_TIME )
-       // due to #338, we won't check for black swan on incoming limit order, so need to check with MSSP here
-       highest = bitasset.current_feed.max_short_squeeze_price();
-    else if( maint_time > HARDFORK_CORE_338_TIME )
-       // due to #338, we won't check for black swan on incoming limit order, so need to check with MSSP here
-       highest = bitasset.current_feed.max_short_squeeze_price_before_hf_1270();
+    price highest = bitasset.current_feed.max_short_squeeze_price();
 
     const limit_order_index& limit_index = get_index_type<limit_order_index>();
     const auto& limit_price_index = limit_index.indices().get<by_price>();
@@ -261,7 +243,7 @@ bool database::check_for_blackswan( const asset_object& mia, bool enable_black_s
             ("h",highest.to_real())("~h",(~highest).to_real()) );
        edump((enable_black_swan));
        FC_ASSERT( enable_black_swan, "Black swan was detected during a margin update which is not allowed to trigger a blackswan" );
-       if( maint_time > HARDFORK_CORE_338_TIME && ~least_collateral <= settle_price )
+       if( ~least_collateral <= settle_price )
           // global settle at feed price if possible
           globally_settle_asset(mia, settle_price );
        else
@@ -275,29 +257,12 @@ void database::clear_expired_orders()
 { try {
          //Cancel expired limit orders
          auto head_time = head_block_time();
-         auto maint_time = get_dynamic_global_properties().next_maintenance_time;
-
-         bool before_core_hardfork_184 = ( maint_time <= HARDFORK_CORE_184_TIME ); // something-for-nothing
-         bool before_core_hardfork_342 = ( maint_time <= HARDFORK_CORE_342_TIME ); // better rounding
-         bool before_core_hardfork_606 = ( maint_time <= HARDFORK_CORE_606_TIME ); // feed always trigger call
 
          auto& limit_index = get_index_type<limit_order_index>().indices().get<by_expiration>();
          while( !limit_index.empty() && limit_index.begin()->expiration <= head_time )
          {
             const limit_order_object& order = *limit_index.begin();
-            auto base_asset = order.sell_price.base.asset_id;
-            auto quote_asset = order.sell_price.quote.asset_id;
             cancel_limit_order( order );
-            if( before_core_hardfork_606 )
-            {
-               // check call orders
-               // Comments below are copied from limit_order_cancel_evaluator::do_apply(...)
-               // Possible optimization: order can be called by cancelling a limit order
-               //   if the canceled order was at the top of the book.
-               // Do I need to check calls in both assets?
-               check_call_orders( base_asset( *this ) );
-               check_call_orders( quote_asset( *this ) );
-            }
          }
 
    //Process expired force settlement orders
@@ -414,17 +379,7 @@ void database::clear_expired_orders()
                                     / ratio_type( GRAPHENE_100_PERCENT - mia.options.force_settlement_offset_percent,
                                                   GRAPHENE_100_PERCENT );
 
-         if( before_core_hardfork_342 )
-         {
-            auto& pays = order.balance;
-            auto receives = (order.balance * mia.current_feed.settlement_price);
-            receives.amount = static_cast<uint64_t>( fc::uint128_t(receives.amount.value) *
-                                (GRAPHENE_100_PERCENT - mia.options.force_settlement_offset_percent) /
-                                GRAPHENE_100_PERCENT );
-            assert(receives <= order.balance * mia.current_feed.settlement_price);
-            settlement_price = pays / receives;
-         }
-         else if( settlement_price.base.asset_id != current_asset ) // only calculate once per asset
+         if( settlement_price.base.asset_id != current_asset ) // only calculate once per asset
             settlement_price = settlement_fill_price;
 
          auto& call_index = get_index_type<call_order_index>().indices().get<by_collateral>();
@@ -446,23 +401,13 @@ void database::clear_expired_orders()
             }
             try {
                asset new_settled = match(*itr, order, settlement_price, max_settlement, settlement_fill_price);
-               if( !before_core_hardfork_184 && new_settled.amount == 0 ) // unable to fill this settle order
+               if( new_settled.amount == 0 ) // unable to fill this settle order
                {
                   if( find_object( order_id ) ) // the settle order hasn't been cancelled
                      current_asset_finished = true;
                   break;
                }
                settled += new_settled;
-               // before hard fork core-342, `new_settled > 0` is always true, we'll have:
-               // * call order is completely filled (thus itr will change in next loop), or
-               // * settle order is completely filled (thus find_object(order_id) will be false so will break out), or
-               // * reached max_settlement_volume limit (thus new_settled == max_settlement so will break out).
-               //
-               // after hard fork core-342, if new_settled > 0, we'll have:
-               // * call order is completely filled (thus itr will change in next loop), or
-               // * settle order is completely filled (thus find_object(order_id) will be false so will break out), or
-               // * reached max_settlement_volume limit, but it's possible that new_settled < max_settlement,
-               //   in this case, new_settled will be zero in next iteration of the loop, so no need to check here.
             } 
             catch ( const black_swan_exception& e ) { 
                wlog( "Cancelling a settle_order since it may trigger a black swan: ${o}, ${e}",
@@ -485,7 +430,6 @@ void database::update_expired_feeds()
 {
    const auto head_time = head_block_time();
    const auto next_maint_time = get_dynamic_global_properties().next_maintenance_time;
-   bool after_hardfork_615 = ( head_time >= HARDFORK_615_TIME );
 
    const auto& idx = get_index_type<asset_bitasset_data_index>().indices().get<by_feed_expiration>();
    auto itr = idx.begin();
@@ -496,25 +440,22 @@ void database::update_expired_feeds()
       bool update_cer = false; // for better performance, to only update bitasset once, also check CER in this function
       const asset_object* asset_ptr = nullptr;
       // update feeds, check margin calls
-      if( after_hardfork_615 || b.feed_is_expired_before_hardfork_615( head_time ) )
+      auto old_median_feed = b.current_feed;
+      modify( b, [head_time,next_maint_time,&update_cer]( asset_bitasset_data_object& abdo )
       {
-         auto old_median_feed = b.current_feed;
-         modify( b, [head_time,next_maint_time,&update_cer]( asset_bitasset_data_object& abdo )
+         abdo.update_median_feeds( head_time, next_maint_time );
+         if( abdo.need_to_update_cer() )
          {
-            abdo.update_median_feeds( head_time, next_maint_time );
-            if( abdo.need_to_update_cer() )
-            {
-               update_cer = true;
-               abdo.asset_cer_updated = false;
-               abdo.feed_cer_updated = false;
-            }
-         });
-         if( !b.current_feed.settlement_price.is_null()
-               && !b.current_feed.margin_call_params_equal( old_median_feed ) )
-         {
-            asset_ptr = &b.asset_id( *this );
-            check_call_orders( *asset_ptr, true, false, &b );
+            update_cer = true;
+            abdo.asset_cer_updated = false;
+            abdo.feed_cer_updated = false;
          }
+      });
+      if( !b.current_feed.settlement_price.is_null()
+            && !b.current_feed.margin_call_params_equal( old_median_feed ) )
+      {
+         asset_ptr = &b.asset_id( *this );
+         check_call_orders( *asset_ptr, true, false, &b );
       }
       // update CER
       if( update_cer )
@@ -530,15 +471,6 @@ void database::update_expired_feeds()
          }
       }
    } // for each asset whose feed is expired
-
-   // process assets affected by bitshares-core issue 453 before hard fork 615
-   if( !after_hardfork_615 )
-   {
-      for( asset_id_type a : _issue_453_affected_assets )
-      {
-         check_call_orders( a(*this) );
-      }
-   }
 }
 
 void database::update_core_exchange_rates()

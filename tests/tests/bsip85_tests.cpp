@@ -37,31 +37,12 @@ BOOST_FIXTURE_TEST_SUITE( bsip85_tests, database_fixture )
 
 BOOST_AUTO_TEST_CASE( hardfork_time_test )
 { try {
+   // Initialize committee by voting for each memeber and for desired count
+   vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
+   generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
+   set_expiration(db, trx);
 
-   {
-      // The maker fee discount percent is 0 by default
-      BOOST_CHECK_EQUAL( db.get_global_properties().parameters.get_maker_fee_discount_percent(), 0 );
-
-      // Try to set new committee parameter before hardfork
-      proposal_create_operation cop = proposal_create_operation::committee_proposal(
-            db.get_global_properties().parameters, db.head_block_time() );
-      cop.fee_paying_account = GRAPHENE_TEMP_ACCOUNT;
-      cop.expiration_time = db.head_block_time() + *cop.review_period_seconds + 10;
-      committee_member_update_global_parameters_operation cmuop;
-      cmuop.new_parameters.extensions.value.maker_fee_discount_percent = 1;
-      cop.proposed_ops.emplace_back( cmuop );
-      trx.operations.push_back( cop );
-
-      // It should fail
-      GRAPHENE_CHECK_THROW( PUSH_TX(db, trx, ~0), fc::exception );
-      trx.clear();
-
-      // The percent should still be 0
-      BOOST_CHECK_EQUAL( db.get_global_properties().parameters.get_maker_fee_discount_percent(), 0 );
-   }
-
-   // Pass the hardfork
-   generate_blocks( HARDFORK_BSIP_85_TIME );
+   generate_block();
    set_expiration( db, trx );
 
    {

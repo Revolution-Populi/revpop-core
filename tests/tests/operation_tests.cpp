@@ -144,27 +144,10 @@ BOOST_AUTO_TEST_CASE( bsip77_hardfork_time_and_param_valid_range_test )
    try {
 
       // Proceeds to a recent hard fork
-      generate_blocks( HARDFORK_CORE_583_TIME );
       generate_block();
       set_expiration( db, trx );
 
       ACTORS((sam));
-
-      // Before bsip77 hard fork, unable to create a bitasset with ICR
-      BOOST_CHECK_THROW( create_bitasset( "USDBIT", sam_id, 100, charge_market_fee, 2, {},
-                                          GRAPHENE_MAX_SHARE_SUPPLY, 0 ), fc::exception );
-      BOOST_CHECK_THROW( create_bitasset( "USDBIT", sam_id, 100, charge_market_fee, 2, {},
-                                          GRAPHENE_MAX_SHARE_SUPPLY, 1 ), fc::exception );
-      BOOST_CHECK_THROW( create_bitasset( "USDBIT", sam_id, 100, charge_market_fee, 2, {},
-                                          GRAPHENE_MAX_SHARE_SUPPLY, 1000 ), fc::exception );
-      BOOST_CHECK_THROW( create_bitasset( "USDBIT", sam_id, 100, charge_market_fee, 2, {},
-                                          GRAPHENE_MAX_SHARE_SUPPLY, 1001 ), fc::exception );
-      BOOST_CHECK_THROW( create_bitasset( "USDBIT", sam_id, 100, charge_market_fee, 2, {},
-                                          GRAPHENE_MAX_SHARE_SUPPLY, 1750 ), fc::exception );
-      BOOST_CHECK_THROW( create_bitasset( "USDBIT", sam_id, 100, charge_market_fee, 2, {},
-                                          GRAPHENE_MAX_SHARE_SUPPLY, 32000 ), fc::exception );
-      BOOST_CHECK_THROW( create_bitasset( "USDBIT", sam_id, 100, charge_market_fee, 2, {},
-                                          GRAPHENE_MAX_SHARE_SUPPLY, 32001 ), fc::exception );
 
       // Can create a bitasset without ICR
       const auto& bitusd = create_bitasset( "USDBIT", sam.id, 100, charge_market_fee, 2, {},
@@ -187,15 +170,6 @@ BOOST_AUTO_TEST_CASE( bsip77_hardfork_time_and_param_valid_range_test )
          PUSH_TX(db, trx, ~0);
       };
 
-      // Before bsip77 hard fork, unable to update a bitasset with ICR
-      BOOST_CHECK_THROW( set_icr_for_asset( usd_id, 0 ), fc::exception );
-      BOOST_CHECK_THROW( set_icr_for_asset( usd_id, 1 ), fc::exception );
-      BOOST_CHECK_THROW( set_icr_for_asset( usd_id, 1000 ), fc::exception );
-      BOOST_CHECK_THROW( set_icr_for_asset( usd_id, 1001 ), fc::exception );
-      BOOST_CHECK_THROW( set_icr_for_asset( usd_id, 1750 ), fc::exception );
-      BOOST_CHECK_THROW( set_icr_for_asset( usd_id, 32000 ), fc::exception );
-      BOOST_CHECK_THROW( set_icr_for_asset( usd_id, 32001 ), fc::exception );
-
       // helper function for creating a proposal which contains an asset_create_operation with ICR
       auto propose_create_bitasset = [&]( string name, optional<uint16_t> icr ) {
          asset_create_operation acop = make_bitasset( name, sam_id, 100, charge_market_fee, 2, {},
@@ -211,15 +185,6 @@ BOOST_AUTO_TEST_CASE( bsip77_hardfork_time_and_param_valid_range_test )
          processed_transaction ptx = PUSH_TX(db, trx, ~0);
          trx.operations.clear();
       };
-
-      // Before bsip77 hard fork, unable to create a proposal with an asset_create_operation with ICR
-      BOOST_CHECK_THROW( propose_create_bitasset( "USDBITA", 0 ), fc::exception );
-      BOOST_CHECK_THROW( propose_create_bitasset( "USDBITA", 1 ), fc::exception );
-      BOOST_CHECK_THROW( propose_create_bitasset( "USDBITA", 1000 ), fc::exception );
-      BOOST_CHECK_THROW( propose_create_bitasset( "USDBITA", 1001 ), fc::exception );
-      BOOST_CHECK_THROW( propose_create_bitasset( "USDBITA", 1750 ), fc::exception );
-      BOOST_CHECK_THROW( propose_create_bitasset( "USDBITA", 32000 ), fc::exception );
-      BOOST_CHECK_THROW( propose_create_bitasset( "USDBITA", 32001 ), fc::exception );
 
       // helper function for creating a proposal which contains an asset_update_bitasset_operation with ICR
       auto propose_set_icr_for_asset = [&](asset_id_type aid, optional<uint16_t> icr) {
@@ -243,17 +208,8 @@ BOOST_AUTO_TEST_CASE( bsip77_hardfork_time_and_param_valid_range_test )
          trx.operations.clear();
       };
 
-      // Before bsip77 hard fork, unable to create a proposal with an asset_update_bitasset_op with ICR
-      BOOST_CHECK_THROW( propose_set_icr_for_asset( usd_id, 0 ), fc::exception );
-      BOOST_CHECK_THROW( propose_set_icr_for_asset( usd_id, 1 ), fc::exception );
-      BOOST_CHECK_THROW( propose_set_icr_for_asset( usd_id, 1000 ), fc::exception );
-      BOOST_CHECK_THROW( propose_set_icr_for_asset( usd_id, 1001 ), fc::exception );
-      BOOST_CHECK_THROW( propose_set_icr_for_asset( usd_id, 1750 ), fc::exception );
-      BOOST_CHECK_THROW( propose_set_icr_for_asset( usd_id, 32000 ), fc::exception );
-      BOOST_CHECK_THROW( propose_set_icr_for_asset( usd_id, 32001 ), fc::exception );
-
       // Pass the hard fork time
-      generate_blocks( HARDFORK_BSIP_77_TIME );
+      generate_block();
       set_expiration( db, trx );
 
       // Unable to create a bitasset with an invalid ICR
@@ -330,7 +286,6 @@ BOOST_AUTO_TEST_CASE( bsip77_hardfork_time_and_param_valid_range_test )
 BOOST_AUTO_TEST_CASE( create_account_test )
 {
    try {
-      generate_blocks( HARDFORK_CORE_143_TIME );
       set_expiration( db, trx );
       trx.operations.push_back(make_account());
       account_create_operation op = trx.operations.back().get<account_create_operation>();
@@ -537,6 +492,11 @@ BOOST_AUTO_TEST_CASE( create_mia )
 BOOST_AUTO_TEST_CASE( update_mia )
 {
    try {
+      // Initialize committee by voting for each memeber and for desired count
+      vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
+      generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
+      set_expiration(db, trx);
+
       INVOKE(create_mia);
       generate_block();
       const asset_object& bit_usd = get_asset("USDBIT");
@@ -550,9 +510,17 @@ BOOST_AUTO_TEST_CASE( update_mia )
       trx.operations.back() = op;
       PUSH_TX( db, trx, ~0 );
       std::swap(op.new_options.flags, op.new_options.issuer_permissions);
-      op.new_issuer = account_id_type();
+      //op.new_issuer = account_id_type();
       trx.operations.back() = op;
       PUSH_TX( db, trx, ~0 );
+      {
+         asset_update_issuer_operation upd_op;
+         upd_op.asset_to_update = bit_usd.id;
+         upd_op.issuer = bit_usd.issuer;
+         upd_op.new_issuer = account_id_type();
+         trx.operations.back() = upd_op;
+         PUSH_TX( db, trx, ~0 );
+      }
 
       {
          asset_publish_feed_operation pop;
@@ -573,15 +541,31 @@ BOOST_AUTO_TEST_CASE( update_mia )
       trx.operations.clear();
       auto nathan = create_account("nathan");
       op.issuer = account_id_type();
-      op.new_issuer = nathan.id;
+      //op.new_issuer = nathan.id;
       trx.operations.emplace_back(op);
       PUSH_TX( db, trx, ~0 );
+      {
+         asset_update_issuer_operation upd_op;
+         upd_op.asset_to_update = bit_usd.id;
+         upd_op.issuer = account_id_type();
+         upd_op.new_issuer = nathan.id;
+         trx.operations.back() = upd_op;
+         PUSH_TX( db, trx, ~0 );
+      }
       BOOST_CHECK(bit_usd.issuer == nathan.id);
 
       op.issuer = nathan.id;
-      op.new_issuer = account_id_type();
+      //op.new_issuer = account_id_type();
       trx.operations.back() = op;
       PUSH_TX( db, trx, ~0 );
+      {
+         asset_update_issuer_operation upd_op;
+         upd_op.asset_to_update = bit_usd.id;
+         upd_op.issuer = nathan.id;
+         upd_op.new_issuer = account_id_type();
+         trx.operations.back() = upd_op;
+         PUSH_TX( db, trx, ~0 );
+      }
       BOOST_CHECK(bit_usd.issuer == account_id_type());
    } catch ( const fc::exception& e ) {
       elog( "${e}", ("e", e.to_detail_string() ) );
@@ -601,7 +585,7 @@ BOOST_AUTO_TEST_CASE( create_uia )
       creator.common_options.max_supply = 100000000;
       creator.precision = 2;
       creator.common_options.market_fee_percent = GRAPHENE_MAX_MARKET_FEE_PERCENT/100; /*1%*/
-      creator.common_options.issuer_permissions = DEFAULT_UIA_ASSET_ISSUER_PERMISSION;
+      creator.common_options.issuer_permissions = UIA_ASSET_ISSUER_PERMISSION_MASK;
       creator.common_options.flags = charge_market_fee;
       creator.common_options.core_exchange_rate = price(asset(2),asset(1,asset_id_type(1)));
       trx.operations.push_back(std::move(creator));
@@ -671,13 +655,20 @@ BOOST_AUTO_TEST_CASE( update_uia )
       PUSH_TX( db, trx, ~0 );
       REQUIRE_THROW_WITH_VALUE(op, new_options.core_exchange_rate, price());
       op.new_options.core_exchange_rate = test.options.core_exchange_rate;
-      op.new_issuer = nathan.id;
+      //op.new_issuer = nathan.id;
       trx.operations.back() = op;
       PUSH_TX( db, trx, ~0 );
+      {
+         asset_update_issuer_operation upd_op;
+         upd_op.asset_to_update = test.id;
+         upd_op.issuer = test.issuer;
+         upd_op.new_issuer = nathan.id;
+         trx.operations.back() = upd_op;
+         PUSH_TX( db, trx, ~0 );
+      }
 
       BOOST_TEST_MESSAGE( "Test setting flags" );
       op.issuer = nathan.id;
-      op.new_issuer.reset();
       op.new_options.flags = transfer_restricted | white_list;
       trx.operations.back() = op;
       PUSH_TX( db, trx, ~0 );
@@ -709,15 +700,20 @@ BOOST_AUTO_TEST_CASE( update_uia )
       op.new_options.issuer_permissions = test.options.issuer_permissions;
       op.new_options.flags = test.options.flags;
       BOOST_CHECK(!(test.options.issuer_permissions & white_list));
-      REQUIRE_THROW_WITH_VALUE(op, new_options.issuer_permissions, DEFAULT_UIA_ASSET_ISSUER_PERMISSION);
+      REQUIRE_THROW_WITH_VALUE(op, new_options.issuer_permissions, UIA_ASSET_ISSUER_PERMISSION_MASK);
 
       BOOST_TEST_MESSAGE( "We can change issuer to account_id_type(), but can't do it again" );
-      op.new_issuer = account_id_type();
-      trx.operations.back() = op;
-      PUSH_TX( db, trx, ~0 );
+      {
+         asset_update_issuer_operation upd_op;
+         upd_op.asset_to_update = test.id;
+         upd_op.issuer = nathan.id;
+         upd_op.new_issuer = account_id_type();
+         trx.operations.back() = upd_op;
+         PUSH_TX( db, trx, ~0 );
+      };
       op.issuer = account_id_type();
       GRAPHENE_REQUIRE_THROW(PUSH_TX( db, trx, ~0 ), fc::exception);
-      op.new_issuer.reset();
+      //op.new_issuer.reset();
    } catch(fc::exception& e) {
       edump((e.to_detail_string()));
       throw;
@@ -824,9 +820,6 @@ BOOST_AUTO_TEST_CASE( update_uia_issuer )
       // Create asset
       const auto& test = create_user_issued_asset("UPDATEISSUER", alice_id(db), 0);
       const asset_id_type test_id = test.id;
-
-      // Fast Forward to Hardfork time
-      generate_blocks( HARDFORK_CORE_199_TIME );
 
       update_issuer_proposal( test_id, alice_id(db), bob_id(db), alice_owner);
 
@@ -994,6 +987,11 @@ BOOST_AUTO_TEST_CASE( witness_feeds )
 {
    using namespace graphene::chain;
    try {
+      // Initialize committee by voting for each memeber and for desired count
+      vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
+      generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
+      set_expiration(db, trx);
+
       INVOKE( create_mia );
       {
          auto& current = get_asset( "USDBIT" );
@@ -1001,8 +999,18 @@ BOOST_AUTO_TEST_CASE( witness_feeds )
          uop.issuer =  current.issuer;
          uop.asset_to_update = current.id;
          uop.new_options = current.options;
-         uop.new_issuer = account_id_type();
+         //uop.new_issuer = account_id_type();
          trx.operations.push_back(uop);
+         PUSH_TX( db, trx, ~0 );
+         trx.clear();
+      }
+      {
+         auto& current = get_asset( "USDBIT" );
+         asset_update_issuer_operation upd_op;
+         upd_op.asset_to_update = current.id;
+         upd_op.issuer = current.issuer;
+         upd_op.new_issuer = account_id_type();
+         trx.operations.push_back(upd_op);
          PUSH_TX( db, trx, ~0 );
          trx.clear();
       }

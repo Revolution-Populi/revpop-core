@@ -8,10 +8,8 @@ RevPop Core is the RevPop blockchain implementation and command-line interface.
 
 |Branch|Build Status|
 |---|---|
-|`master`|[![](https://github.com/Revolution-Populi/revpop-core/workflows/Ubuntu%20Release/badge.svg?branch=master)](https://github.com/Revolution-Populi/revpop-core/actions?query=workflow%3A"Ubuntu+Release"+branch%3Amaster)|
-|`development`|[![](https://github.com/Revolution-Populi/revpop-core/workflows/Ubuntu%20Release/badge.svg?branch=development)](https://github.com/Revolution-Populi/revpop-core/actions?query=workflow%3A"Ubuntu+Release"+branch%3Adevelopment)|
-|`master`|[![](https://github.com/Revolution-Populi/revpop-core/workflows/Ubuntu%20Debug/badge.svg?branch=master)](https://github.com/Revolution-Populi/revpop-core/actions?query=workflow%3A"Ubuntu+Debug"+branch%3Amaster)|
-|`development`|[![](https://github.com/Revolution-Populi/revpop-core/workflows/Ubuntu%20Debug/badge.svg?branch=development)](https://github.com/Revolution-Populi/revpop-core/actions?query=workflow%3A"Ubuntu+Debug"+branch%3Adevelopment)|
+|`master`|[![](https://github.com/Revolution-Populi/revpop-core/workflows/Ubuntu%20Release/badge.svg?branch=master)](https://github.com/Revolution-Populi/revpop-core/actions?query=workflow%3A"Ubuntu+Release"+branch%3Amaster) [![](https://github.com/Revolution-Populi/revpop-core/workflows/Ubuntu%20Debug/badge.svg?branch=master)](https://github.com/Revolution-Populi/revpop-core/actions?query=workflow%3A"Ubuntu+Debug"+branch%3Amaster)|
+|`development`|[![](https://github.com/Revolution-Populi/revpop-core/workflows/Ubuntu%20Release/badge.svg?branch=development)](https://github.com/Revolution-Populi/revpop-core/actions?query=workflow%3A"Ubuntu+Release"+branch%3Adevelopment) [![](https://github.com/Revolution-Populi/revpop-core/workflows/Ubuntu%20Debug/badge.svg?branch=development)](https://github.com/Revolution-Populi/revpop-core/actions?query=workflow%3A"Ubuntu+Debug"+branch%3Adevelopment)|
 
 Quick start using Docker
 -----------------------

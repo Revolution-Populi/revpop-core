@@ -56,9 +56,6 @@ class content_cards : public graphene::app::plugin
          boost::program_options::options_description& cfg) override;
       virtual void plugin_initialize(const boost::program_options::variables_map& options) override;
       virtual void plugin_startup() override;
-
-      friend class detail::content_cards_impl;
-      std::unique_ptr<detail::content_cards_impl> my;
 };
 
 } } //graphene::template

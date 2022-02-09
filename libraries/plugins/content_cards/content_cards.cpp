@@ -20,46 +20,7 @@
 
 namespace graphene { namespace content_cards {
 
-namespace detail
-{
-
-class content_cards_impl
-{
-   public:
-      content_cards_impl(content_cards& _plugin)
-         : _self( _plugin )
-      {  }
-      virtual ~content_cards_impl();
-
-      void onBlock( const signed_block& b );
-
-      graphene::chain::database& database()
-      {
-         return _self.database();
-      }
-
-      content_cards& _self;
-
-      std::string _plugin_option = "";
-
-   private:
-
-};
-
-void content_cards_impl::onBlock( const signed_block& b )
-{
-   wdump((b.block_num()));
-}
-
-content_cards_impl::~content_cards_impl()
-{
-   return;
-}
-
-} // end namespace detail
-
-content_cards::content_cards() :
-   my( new detail::content_cards_impl(*this) )
+content_cards::content_cards()
 {
 }
 
@@ -81,21 +42,10 @@ void content_cards::plugin_set_program_options(
    boost::program_options::options_description& cfg
    )
 {
-   cli.add_options()
-         ("content_cards_option", boost::program_options::value<std::string>(), "content_cards option")
-         ;
-   cfg.add(cli);
 }
 
 void content_cards::plugin_initialize(const boost::program_options::variables_map& options)
 {
-   database().applied_block.connect( [&]( const signed_block& b) {
-      my->onBlock(b);
-   } );
-
-   if (options.count("content_cards")) {
-      my->_plugin_option = options["content_cards"].as<std::string>();
-   }
 }
 
 void content_cards::plugin_startup()

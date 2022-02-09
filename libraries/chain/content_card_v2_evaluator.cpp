@@ -48,17 +48,23 @@ void_result content_card_v2_create_evaluator::do_evaluate( const content_card_v2
 object_id_type content_card_v2_create_evaluator::do_apply( const content_card_v2_create_operation& o )
 { try {
    database& d = db();
-   const auto& new_content_object = d.create<content_card_v2_object>( [&o]( content_card_v2_object& obj )
+   const auto& node_properties = d.get_node_properties();
+   bool use_full_content_card = node_properties.active_plugins.find("content_cards") != node_properties.active_plugins.end();
+
+   const auto& new_content_object = d.create<content_card_v2_object>( [&o, &use_full_content_card]( content_card_v2_object& obj )
    {
          obj.subject_account = o.subject_account;
          obj.hash            = o.hash;
-         obj.url             = o.url;
-         obj.type            = o.type;
-         obj.description     = o.description;
-         obj.content_key     = o.content_key;
-         obj.timestamp       = time_point::now().sec_since_epoch();
-         obj.vote_counter    = 0;
-         obj.storage_data    = o.storage_data;
+
+         if (use_full_content_card) {
+            obj.url             = o.url;
+            obj.type            = o.type;
+            obj.description     = o.description;
+            obj.content_key     = o.content_key;
+            obj.timestamp       = time_point::now().sec_since_epoch();
+            obj.vote_counter    = 0;
+            obj.storage_data    = o.storage_data;
+         }
    });
    return new_content_object.id;
 } FC_CAPTURE_AND_RETHROW((o)) }

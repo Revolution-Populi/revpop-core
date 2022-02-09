@@ -42,6 +42,7 @@ namespace graphene { namespace chain {
          node_property_object(){}
          ~node_property_object(){}
 
+         std::set<std::string> active_plugins;
          uint32_t skip_flags = 0;
          std::map< block_id_type, std::vector< fc::variant_object > > debug_updates;
    };

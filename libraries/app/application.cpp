@@ -1085,6 +1085,7 @@ void graphene::app::application::enable_plugin(const string& name)
    FC_ASSERT(my->_available_plugins[name], "Unknown plugin '" + name + "'");
    my->_active_plugins[name] = my->_available_plugins[name];
    my->_active_plugins[name]->plugin_set_app(this);
+   my->_chain_db->node_properties().active_plugins.insert(name);
 }
 
 void graphene::app::application::add_available_plugin(std::shared_ptr<graphene::app::abstract_plugin> p)

@@ -1769,6 +1769,10 @@ fc::optional<content_card_object> database_api::get_content_card_by_id( const co
 
 fc::optional<content_card_object> database_api_impl::get_content_card_by_id( const content_card_id_type content_id ) const
 {
+   const auto& node_properties = _db.get_node_properties();
+   FC_ASSERT(node_properties.active_plugins.find("content_cards") != node_properties.active_plugins.end(),
+    "This api is switched off because content_cards plugin does not enabled" );
+
    const auto& cc_idx = _db.get_index_type<content_card_index>();
    const auto& by_op_idx = cc_idx.indices().get<by_id>();
    auto itr = by_op_idx.lower_bound(content_id);
@@ -1788,6 +1792,10 @@ vector<content_card_object> database_api::get_content_cards( const account_id_ty
 vector<content_card_object> database_api_impl::get_content_cards( const account_id_type subject_account,
                                                                   const content_card_id_type content_id, uint32_t limit ) const
 {
+   const auto& node_properties = _db.get_node_properties();
+   FC_ASSERT(node_properties.active_plugins.find("content_cards") != node_properties.active_plugins.end(),
+    "This api is switched off because content_cards plugin does not enabled" );
+
    const auto& cc_idx = _db.get_index_type<content_card_index>();
    const auto& by_op_idx = cc_idx.indices().get<by_subject_account>();
    auto itr = by_op_idx.lower_bound(boost::make_tuple(subject_account, content_id));
@@ -1809,6 +1817,10 @@ fc::optional<content_card_v2_object> database_api::get_content_card_v2_by_id( co
 
 fc::optional<content_card_v2_object> database_api_impl::get_content_card_v2_by_id( const content_card_v2_id_type content_id ) const
 {
+   const auto& node_properties = _db.get_node_properties();
+   FC_ASSERT(node_properties.active_plugins.find("content_cards") != node_properties.active_plugins.end(),
+    "This api is switched off because content_cards plugin does not enabled" );
+
    const auto& cc_idx = _db.get_index_type<content_card_v2_index>();
    const auto& by_op_idx = cc_idx.indices().get<by_id>();
    auto itr = by_op_idx.lower_bound(content_id);
@@ -1828,6 +1840,10 @@ vector<content_card_v2_object> database_api::get_content_cards_v2( const account
 vector<content_card_v2_object> database_api_impl::get_content_cards_v2( const account_id_type subject_account,
                                                                   const content_card_v2_id_type content_id, uint32_t limit ) const
 {
+   const auto& node_properties = _db.get_node_properties();
+   FC_ASSERT(node_properties.active_plugins.find("content_cards") != node_properties.active_plugins.end(),
+    "This api is switched off because content_cards plugin does not enabled" );
+
    const auto& cc_idx = _db.get_index_type<content_card_v2_index>();
    const auto& by_op_idx = cc_idx.indices().get<by_subject_account>();
    auto itr = by_op_idx.lower_bound(boost::make_tuple(subject_account, content_id));

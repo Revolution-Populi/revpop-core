@@ -20,35 +20,35 @@
 
 namespace graphene { namespace content_cards {
 
-content_cards::content_cards()
+content_cards_plugin::content_cards_plugin()
 {
 }
 
-content_cards::~content_cards()
+content_cards_plugin::~content_cards_plugin()
 {
 }
 
-std::string content_cards::plugin_name()const
+std::string content_cards_plugin::plugin_name()const
 {
    return "content_cards";
 }
-std::string content_cards::plugin_description()const
+std::string content_cards_plugin::plugin_description()const
 {
    return "Stores full content of content_cards and allows access to them.";
 }
 
-void content_cards::plugin_set_program_options(
+void content_cards_plugin::plugin_set_program_options(
    boost::program_options::options_description& cli,
    boost::program_options::options_description& cfg
    )
 {
 }
 
-void content_cards::plugin_initialize(const boost::program_options::variables_map& options)
+void content_cards_plugin::plugin_initialize(const boost::program_options::variables_map& options)
 {
 }
 
-void content_cards::plugin_startup()
+void content_cards_plugin::plugin_startup()
 {
    ilog("content_cards: plugin_startup() begin");
 }

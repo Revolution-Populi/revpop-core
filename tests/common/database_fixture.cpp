@@ -29,6 +29,7 @@
 #include <graphene/api_helper_indexes/api_helper_indexes.hpp>
 #include <graphene/es_objects/es_objects.hpp>
 #include <graphene/custom_operations/custom_operations_plugin.hpp>
+#include <graphene/content_cards/content_cards.hpp>
 
 #include <graphene/chain/balance_object.hpp>
 #include <graphene/chain/committee_member_object.hpp>
@@ -341,6 +342,12 @@ std::shared_ptr<boost::program_options::variables_map> database_fixture_base::in
 
       esplugin->plugin_initialize(options);
       esplugin->plugin_startup();
+   }
+   else if( fixture.current_suite_name == "content_cards_tests" ) {
+      auto ccplugin = fixture.app.register_plugin<graphene::content_cards::content_cards_plugin>(false);
+      ccplugin->plugin_set_app(&fixture.app);
+      ccplugin->plugin_initialize(options);
+      ccplugin->plugin_startup();
    }
    else if( fixture.current_suite_name != "performance_tests" )
    {

@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
- *
+ * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
+ * 
  * The MIT License
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy

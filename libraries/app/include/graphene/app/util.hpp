@@ -43,4 +43,5 @@ namespace app {
                                 const graphene::chain::asset_object& _quote );
    std::string price_diff_percent_string( const graphene::protocol::price& old_price,
                                           const graphene::protocol::price& new_price );
+   void log_system_info();
 } }

@@ -1,19 +1,18 @@
-/*
- * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
+/**
  * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
  * 
  * The MIT License
- *
+ * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ * 
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,29 +21,42 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#pragma once
-#include <graphene/db/object.hpp>
 
-namespace graphene { namespace chain {
+#include <graphene/content_cards/content_cards.hpp>
 
-   /**
-    * @brief Contains per-node database configuration.
-    *
-    *  Transactions are evaluated differently based on per-node state.
-    *  Settings here may change based on whether the node is syncing or up-to-date.
-    *  Or whether the node is a witness node. Or if we're processing a
-    *  transaction in a witness-signed block vs. a fresh transaction
-    *  from the p2p network.  Or configuration-specified tradeoffs of
-    *  performance/hardfork resilience vs. paranoia.
-    */
-   class node_property_object
-   {
-      public:
-         node_property_object(){}
-         ~node_property_object(){}
+namespace graphene { namespace content_cards {
 
-         std::set<std::string> active_plugins;
-         uint32_t skip_flags = 0;
-         std::map< block_id_type, std::vector< fc::variant_object > > debug_updates;
-   };
-} } // graphene::chain
+content_cards_plugin::content_cards_plugin()
+{
+}
+
+content_cards_plugin::~content_cards_plugin()
+{
+}
+
+std::string content_cards_plugin::plugin_name()const
+{
+   return "content_cards";
+}
+std::string content_cards_plugin::plugin_description()const
+{
+   return "Stores full content of content_cards and allows access to them.";
+}
+
+void content_cards_plugin::plugin_set_program_options(
+   boost::program_options::options_description& cli,
+   boost::program_options::options_description& cfg
+   )
+{
+}
+
+void content_cards_plugin::plugin_initialize(const boost::program_options::variables_map& options)
+{
+}
+
+void content_cards_plugin::plugin_startup()
+{
+   ilog("content_cards: plugin_startup() begin");
+}
+
+} }

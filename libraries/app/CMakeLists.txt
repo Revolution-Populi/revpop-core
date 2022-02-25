@@ -16,7 +16,8 @@ add_library( graphene_app
 target_link_libraries( graphene_app
                        graphene_account_history graphene_elasticsearch
                        graphene_api_helper_indexes graphene_custom_operations
-                       graphene_chain fc graphene_db graphene_net graphene_utilities graphene_debug_witness )
+                       graphene_chain fc graphene_db graphene_net graphene_utilities graphene_debug_witness 
+                       graphene_content_cards )
 target_include_directories( graphene_app
                             PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
                             "${CMAKE_CURRENT_SOURCE_DIR}/../egenesis/include" )

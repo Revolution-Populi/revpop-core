@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2015-2017 Cryptonomex, Inc., and contributors.
- *
+ * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
+ * 
  * The MIT License
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -32,6 +33,7 @@
 #include <graphene/es_objects/es_objects.hpp>
 #include <graphene/api_helper_indexes/api_helper_indexes.hpp>
 #include <graphene/custom_operations/custom_operations_plugin.hpp>
+#include <graphene/content_cards/content_cards.hpp>
 
 #include <fc/thread/thread.hpp>
 #include <fc/interprocess/signals.hpp>
@@ -94,6 +96,7 @@ int main(int argc, char** argv) {
       auto es_objects_plug = node->register_plugin<es_objects::es_objects_plugin>();
       auto api_helper_indexes_plug = node->register_plugin<api_helper_indexes::api_helper_indexes>();
       auto custom_operations_plug = node->register_plugin<custom_operations::custom_operations_plugin>();
+      auto content_cards_plug = node->register_plugin<content_cards::content_cards_plugin>();
 
       // add plugin options to config
       try

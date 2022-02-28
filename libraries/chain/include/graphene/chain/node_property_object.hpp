@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
- *
+ * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
+ * 
  * The MIT License
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -42,6 +43,7 @@ namespace graphene { namespace chain {
          node_property_object(){}
          ~node_property_object(){}
 
+         std::set<std::string> active_plugins;
          uint32_t skip_flags = 0;
          std::map< block_id_type, std::vector< fc::variant_object > > debug_updates;
    };

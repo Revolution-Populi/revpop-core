@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2017 Cryptonomex, Inc., and contributors.
- *
+ * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
+ * 
  * The MIT License
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -523,7 +524,8 @@ namespace graphene { namespace wallet { namespace detail {
       create_pd_op.hash = hash;
 
       signed_transaction tx;
-      tx.operations.push_back(create_pd_op);         
+      tx.operations.push_back(create_pd_op);
+      set_operation_fees(tx, _remote_db->get_global_properties().parameters.get_current_fees());
       tx.validate();
 
       return sign_transaction(tx, broadcast);
@@ -550,7 +552,8 @@ namespace graphene { namespace wallet { namespace detail {
       create_pd_op.storage_data = storage_data;
 
       signed_transaction tx;
-      tx.operations.push_back(create_pd_op);         
+      tx.operations.push_back(create_pd_op);
+      set_operation_fees(tx, _remote_db->get_global_properties().parameters.get_current_fees());
       tx.validate();
 
       return sign_transaction(tx, broadcast);
@@ -657,7 +660,7 @@ namespace graphene { namespace wallet { namespace detail {
       create_content_op.content_key = content_key;
 
       signed_transaction tx;
-      tx.operations.push_back(create_content_op);         
+      tx.operations.push_back(create_content_op);
       tx.validate();
 
       return sign_transaction(tx, broadcast);
@@ -682,7 +685,8 @@ namespace graphene { namespace wallet { namespace detail {
       create_content_op.storage_data = storage_data;
 
       signed_transaction tx;
-      tx.operations.push_back(create_content_op);         
+      tx.operations.push_back(create_content_op);
+      set_operation_fees(tx, _remote_db->get_global_properties().parameters.get_current_fees());
       tx.validate();
 
       return sign_transaction(tx, broadcast);
@@ -734,7 +738,8 @@ namespace graphene { namespace wallet { namespace detail {
       update_content_op.storage_data = storage_data;
 
       signed_transaction tx;
-      tx.operations.push_back(update_content_op);         
+      tx.operations.push_back(update_content_op);
+      set_operation_fees(tx, _remote_db->get_global_properties().parameters.get_current_fees());
       tx.validate();
 
       return sign_transaction(tx, broadcast);
@@ -803,7 +808,8 @@ namespace graphene { namespace wallet { namespace detail {
       create_perm_op.content_key = content_key;
 
       signed_transaction tx;
-      tx.operations.push_back(create_perm_op);         
+      tx.operations.push_back(create_perm_op);
+      set_operation_fees(tx, _remote_db->get_global_properties().parameters.get_current_fees());
       tx.validate();
 
       return sign_transaction(tx, broadcast);

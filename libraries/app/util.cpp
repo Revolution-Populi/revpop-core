@@ -23,10 +23,28 @@
  */
 
 #include <boost/multiprecision/cpp_int.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/version.hpp>
 
 #include <graphene/app/util.hpp>
 #include <graphene/protocol/asset.hpp>
 #include <graphene/chain/asset_object.hpp>
+#include <graphene/utilities/git_revision.hpp>
+#include <websocketpp/version.hpp>
+
+#ifdef _WIN32
+#include <windows.h>
+#elif MACOS
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#else
+#include <unistd.h>
+#include <sys/utsname.h>
+#include "sys/types.h"
+#include "sys/sysinfo.h"
+#endif
+
+#include <string>
 
 namespace graphene { namespace app {
 
@@ -151,5 +169,89 @@ std::string price_diff_percent_string( const graphene::protocol::price& old_pric
    else
       return "-" + diff_str;
 } FC_CAPTURE_AND_RETHROW( (old_price)(new_price) ) }
+
+int get_num_cores() {
+#ifdef WIN32
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo(&sysinfo);
+    return sysinfo.dwNumberOfProcessors;
+#elif MACOS
+    int nm[2];
+    size_t len = 4;
+    uint32_t count;
+
+    nm[0] = CTL_HW; nm[1] = HW_AVAILCPU;
+    sysctl(nm, 2, &count, &len, NULL, 0);
+
+    if(count < 1) {
+        nm[1] = HW_NCPU;
+        sysctl(nm, 2, &count, &len, NULL, 0);
+        if(count < 1) { count = 1; }
+    }
+    return count;
+#else
+    return sysconf(_SC_NPROCESSORS_ONLN);
+#endif
+}
+
+// Represent memory size in Mb
+struct memory_info {
+   int phys_total = 0;
+   int phys_avail = 0;
+   int virt_total = 0;
+};
+
+memory_info get_system_memory_info()
+{
+   constexpr long megabyte_size = 1024 * 1024;
+   memory_info mem_info;
+#ifdef WIN32
+   MEMORYSTATUSEX memInfo;
+   memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+   GlobalMemoryStatusEx(&memInfo);
+
+   mem_info.phys_total = memInfo.ullTotalPhys / megabyte_size;
+   mem_info.phys_avail = memInfo.ullAvailPhys / megabyte_size;
+   mem_info.virt_total = memInfo.ullTotalVirtual / megabyte_size;
+#elif defined(__linux__)
+   struct sysinfo memInfo;
+   sysinfo(&memInfo);
+
+   mem_info.phys_total = memInfo.totalram * memInfo.mem_unit / megabyte_size;
+   mem_info.phys_avail = memInfo.freeram * memInfo.mem_unit / megabyte_size;
+   mem_info.virt_total = (memInfo.totalram + memInfo.totalswap) * memInfo.mem_unit / megabyte_size;
+#endif
+   return mem_info;
+}
+
+std::string get_os_version() {
+   std::string result = "N/A";
+#if defined(__linux__)
+   struct utsname un;
+   if (uname(&un) == 0)
+      result = std::string(un.sysname) + " " + un.version + " " + un.release + " " + un.machine;
+#endif
+   return result;
+}
+
+void log_system_info()
+{
+   ilog("Version: ${ver}",     ("ver",   graphene::utilities::git_revision_description) );
+   ilog("SHA: ${sha}",         ("sha",   graphene::utilities::git_revision_sha) );
+   ilog("Timestamp: ${tstmp}", ("tstmp", fc::get_approximate_relative_time_string(fc::time_point_sec(graphene::utilities::git_revision_unix_timestamp))) );
+   ilog("SSL: ${ssl}",         ("ssl",   OPENSSL_VERSION_TEXT) );
+   ilog("Boost: ${boost}",     ("boost", boost::replace_all_copy(std::string(BOOST_LIB_VERSION), "_", ".")) );
+   ilog("Websocket++: ${ws}",  ("ws",    std::to_string(websocketpp::major_version) + "." + std::to_string(websocketpp::minor_version) + "." + std::to_string(websocketpp::patch_version) ));
+#if defined(__linux__)
+   ilog("Platform: ${plfm}",   ("plfm",  get_os_version()) );
+#else
+   ilog("Platform: ${plfm}",   ("plfm",  boost::replace_all_copy(std::string(BOOST_PLATFORM), "_", ".")) );
+#endif
+   ilog("CPU count: ${cpus}",  ("cpus",  get_num_cores()) );
+   auto mem_info = get_system_memory_info();
+   ilog("RAM total size: ${tot_ram}Mb",       ("tot_ram", mem_info.phys_total) );
+   ilog("RAM available size: ${avail_ram}Mb", ("avail_ram", mem_info.phys_avail) );
+   ilog("Total virtual memory size: ${tot_virt}Mb", ("tot_virt", mem_info.virt_total) );
+}
 
 } } // graphene::app

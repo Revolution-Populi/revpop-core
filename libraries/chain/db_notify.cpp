@@ -200,6 +200,10 @@ struct get_impacted_account_visitor
    {
       _impacted.insert( op.fee_payer() ); // owner
    }
+   void operator()( const worker_create_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // owner
+   }
    void operator()( const custom_operation& op )
    {
       _impacted.insert( op.fee_payer() ); // payer

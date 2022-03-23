@@ -281,6 +281,12 @@ public:
    signed_transaction update_witness(string witness_name, string url, string block_signing_key,
          bool broadcast );
 
+   signed_transaction create_worker( string owner_account, time_point_sec work_begin_date,
+         time_point_sec work_end_date, share_type daily_pay, string name, string url,
+         variant worker_settings, bool broadcast );
+
+   signed_transaction update_worker_votes( string account, worker_vote_delta delta, bool broadcast );
+
    signed_transaction account_store_map(string account, string catalog, bool remove,
          flat_map<string, optional<string>> key_values, bool broadcast);
 

@@ -1193,6 +1193,44 @@ class wallet_api
                                         bool broadcast = false);
 
       /**
+       * Create a worker object.
+       *
+       * @param owner_account The account which owns the worker and will be paid
+       * @param work_begin_date When the work begins
+       * @param work_end_date When the work ends
+       * @param daily_pay Amount of pay per day (NOT per maint interval)
+       * @param name Any text
+       * @param url Any text
+       * @param worker_settings {"type" : "burn"|"refund"|"vesting", "pay_vesting_period_days" : x}
+       * @param broadcast true if you wish to broadcast the transaction.
+       * @return the signed transaction
+       */
+      signed_transaction create_worker(
+         string owner_account,
+         time_point_sec work_begin_date,
+         time_point_sec work_end_date,
+         share_type daily_pay,
+         string name,
+         string url,
+         variant worker_settings,
+         bool broadcast = false
+         );
+
+      /**
+       * Update your votes for workers
+       *
+       * @param account The account which will pay the fee and update votes.
+       * @param delta {"vote_for" : [...], "vote_against" : [...], "vote_abstain" : [...]}
+       * @param broadcast true if you wish to broadcast the transaction.
+       * @return the signed transaction
+       */
+      signed_transaction update_worker_votes(
+         string account,
+         worker_vote_delta delta,
+         bool broadcast = false
+         );
+
+      /**
        * Get information about a vesting balance object or vesting balance objects owned by an account.
        *
        * @param account_name An account name, account ID, or vesting balance object ID.
@@ -1984,7 +2022,8 @@ FC_API( graphene::wallet::wallet_api,
         (list_witnesses)
         (list_committee_members)
         (create_witness)
-        (update_witness)
+        (create_worker)
+        (update_worker_votes)
         (get_vesting_balances)
         (withdraw_vesting)
         (vote_for_committee_member)

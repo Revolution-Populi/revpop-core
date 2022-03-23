@@ -59,7 +59,7 @@ struct hardfork_visitor {
    using RevPop_12_ops = TL::list<commit_create_v3_operation, reveal_create_v3_operation>;
    using RevPop_15_ops = TL::list<content_card_v2_create_operation, content_card_v2_update_operation,
                                   content_card_v2_remove_operation, personal_data_v2_create_operation,
-                                  personal_data_v2_remove_operation>;
+                                  personal_data_v2_remove_operation, worker_create_operation>;
 
    fc::time_point_sec now;
 

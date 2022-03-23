@@ -124,7 +124,8 @@ namespace graphene { namespace protocol {
             /* 64 */ content_card_v2_update_operation,
             /* 65 */ content_card_v2_remove_operation,
             /* 66 */ personal_data_v2_create_operation,
-            /* 67 */ personal_data_v2_remove_operation
+            /* 67 */ personal_data_v2_remove_operation,
+            /* 68 */ worker_create_operation
          > operation;
 
    /// @} // operations group

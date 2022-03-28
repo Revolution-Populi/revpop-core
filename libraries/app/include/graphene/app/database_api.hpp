@@ -500,6 +500,32 @@ class database_api
       uint64_t get_committee_count()const;
 
 
+      ///////////////////////
+      // Worker proposals  //
+      ///////////////////////
+
+      /**
+       * @brief Get workers
+       * @param is_expired null for all workers, true for expired workers only, false for non-expired workers only
+       * @return A list of worker objects
+       *
+      */
+      vector<worker_object> get_all_workers( const optional<bool> is_expired = optional<bool>() )const;
+
+      /**
+       * @brief Get the workers owned by a given account
+       * @param account_name_or_id The name or ID of the account whose worker should be retrieved
+       * @return A list of worker objects owned by the account
+       */
+      vector<worker_object> get_workers_by_account(const std::string account_name_or_id)const;
+
+      /**
+       * @brief Get the total number of workers registered with the blockchain
+      */
+      uint64_t get_worker_count()const;
+
+
+
       ///////////
       // Votes //
       ///////////
@@ -868,6 +894,11 @@ FC_API(graphene::app::database_api,
    (get_committee_member_by_account)
    (lookup_committee_member_accounts)
    (get_committee_count)
+
+   // workers
+   (get_all_workers)
+   (get_workers_by_account)
+   (get_worker_count)
 
    // Votes
    (lookup_vote_ids)

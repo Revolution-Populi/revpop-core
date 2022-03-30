@@ -660,6 +660,28 @@ signed_transaction wallet_api::create_witness(string owner_account,
    return my->create_witness(owner_account, url, broadcast);
 }
 
+signed_transaction wallet_api::create_worker(
+   string owner_account,
+   time_point_sec work_begin_date,
+   time_point_sec work_end_date,
+   share_type daily_pay,
+   string name,
+   string url,
+   variant worker_settings,
+   bool broadcast /* = false */)
+{
+   return my->create_worker( owner_account, work_begin_date, work_end_date,
+      daily_pay, name, url, worker_settings, broadcast );
+}
+
+signed_transaction wallet_api::update_worker_votes(
+   string owner_account,
+   worker_vote_delta delta,
+   bool broadcast /* = false */)
+{
+   return my->update_worker_votes( owner_account, delta, broadcast );
+}
+
 signed_transaction wallet_api::update_witness(
    string witness_name,
    string url,

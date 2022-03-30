@@ -34,7 +34,6 @@
 #include <graphene/chain/market_object.hpp>
 #include <graphene/chain/transaction_history_object.hpp>
 #include <graphene/chain/withdraw_permission_object.hpp>
-#include <graphene/chain/worker_object.hpp>
 
 #include <fc/crypto/base64.hpp>
 #include <fc/crypto/hex.hpp>

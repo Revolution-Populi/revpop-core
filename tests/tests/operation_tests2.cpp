@@ -1055,6 +1055,7 @@ BOOST_AUTO_TEST_CASE( worker_pay_test )
 { try {
    INVOKE(worker_create_test);
    GET_ACTOR(nathan);
+   vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
    generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
    transfer(committee_account, nathan_id, asset(100000));
 
@@ -1067,6 +1068,20 @@ BOOST_AUTO_TEST_CASE( worker_pay_test )
       PUSH_TX( db, trx, ~0 );
       trx.clear();
    }
+
+   // Committee vote it in
+   auto committee_members = db.get_global_properties().active_committee_members;
+   for (const auto& cm: committee_members) {
+      account_update_operation vote_op;
+      vote_op.account = cm(db).committee_member_account;
+      vote_op.new_options = db.get(cm(db).committee_member_account).options;
+      vote_op.new_options->votes.insert(worker_id_type()(db).vote_for);
+      signed_transaction vote_tx;
+      vote_tx.operations.push_back(vote_op);
+      set_expiration( db, vote_tx );
+      PUSH_TX( db, vote_tx, ~0);
+   }
+
    {
       asset_reserve_operation op;
       op.payer = account_id_type();
@@ -1137,7 +1152,7 @@ BOOST_AUTO_TEST_CASE( refund_worker_test )
 {try{
    ACTOR(nathan);
    upgrade_to_lifetime_member(nathan_id);
-   generate_block();
+   vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
    generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
    set_expiration( db, trx );
 
@@ -1180,6 +1195,18 @@ BOOST_AUTO_TEST_CASE( refund_worker_test )
       PUSH_TX( db, trx, ~0 );
       trx.clear();
    }
+   // Committee vote it in
+   auto committee_members = db.get_global_properties().active_committee_members;
+   for (const auto& cm: committee_members) {
+      account_update_operation vote_op;
+      vote_op.account = cm(db).committee_member_account;
+      vote_op.new_options = db.get(cm(db).committee_member_account).options;
+      vote_op.new_options->votes.insert(worker_id_type()(db).vote_for);
+      signed_transaction vote_tx;
+      vote_tx.operations.push_back(vote_op);
+      set_expiration( db, vote_tx );
+      PUSH_TX( db, vote_tx, ~0);
+   }
    {
       asset_reserve_operation op;
       op.payer = account_id_type();
@@ -1210,6 +1237,7 @@ BOOST_AUTO_TEST_CASE( burn_worker_test )
 {try{
    ACTOR(nathan);
    upgrade_to_lifetime_member(nathan_id);
+   vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
    generate_block();
    generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
    set_expiration( db, trx );
@@ -1252,6 +1280,18 @@ BOOST_AUTO_TEST_CASE( burn_worker_test )
       trx.operations.push_back(op);
       PUSH_TX( db, trx, ~0 );
       trx.clear();
+   }
+   // Committee vote it in
+   auto committee_members = db.get_global_properties().active_committee_members;
+   for (const auto& cm: committee_members) {
+      account_update_operation vote_op;
+      vote_op.account = cm(db).committee_member_account;
+      vote_op.new_options = db.get(cm(db).committee_member_account).options;
+      vote_op.new_options->votes.insert(worker_id_type()(db).vote_for);
+      signed_transaction vote_tx;
+      vote_tx.operations.push_back(vote_op);
+      set_expiration( db, vote_tx );
+      PUSH_TX( db, vote_tx, ~0);
    }
    {
       // refund some asset to fill up the pool
@@ -1490,6 +1530,11 @@ BOOST_AUTO_TEST_CASE(zero_second_vbo)
       ACTOR(alice);
       // don't pay witnesses so we have some worker budget to work with
 
+      vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
+      generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
+      const auto &committee_and_init = committee_account(db);
+      BOOST_CHECK_EQUAL(committee_and_init.active.num_auths(), INITIAL_COMMITTEE_MEMBER_COUNT);
+
       transfer(account_id_type(), alice_id, asset(int64_t(100000) * 1100 * 1000 * 1000));
       {
          asset_reserve_operation op;
@@ -1584,6 +1629,24 @@ BOOST_AUTO_TEST_CASE(zero_second_vbo)
 
          // vote it in, wait for one maint. for vote to take effect
          vesting_balance_id_type vbid = wid(db).worker.get<vesting_balance_worker_type>().balance;
+         // wait for another maint. for worker to be paid
+         generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
+         BOOST_CHECK( vbid(db).get_allowed_withdraw(db.head_block_time()) == asset(0) );
+         generate_block();
+         BOOST_CHECK( vbid(db).get_allowed_withdraw(db.head_block_time()) == asset(0) );
+
+         // Committee vote it in
+         auto committee_members = db.get_global_properties().active_committee_members;
+         for (const auto& cm: committee_members) {
+            account_update_operation vote_op;
+            vote_op.account = cm(db).committee_member_account;
+            vote_op.new_options = db.get(cm(db).committee_member_account).options;
+            vote_op.new_options->votes.insert(wid(db).vote_for);
+            signed_transaction vote_tx;
+            vote_tx.operations.push_back(vote_op);
+            set_expiration( db, vote_tx );
+            PUSH_TX( db, vote_tx, ~0);
+         }
          // wait for another maint. for worker to be paid
          generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
          BOOST_CHECK( vbid(db).get_allowed_withdraw(db.head_block_time()) == asset(0) );

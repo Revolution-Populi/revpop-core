@@ -1167,8 +1167,19 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
                uint32_t offset = id.instance();
                uint32_t type = std::min( id.type(), vote_id_type::vote_type::worker ); // cap the data
                // if they somehow managed to specify an illegal offset, ignore it.
-               if( offset < d._vote_tally_buffer.size() )
-                  d._vote_tally_buffer[offset] += voting_stake[type];
+               if( offset >= d._vote_tally_buffer.size() )
+                  continue;
+
+               if (type == vote_id_type::vote_type::worker) {
+                  // Add up only the committee members votes
+                  const auto& idx = d.get_index_type<committee_member_index>().indices().get<by_account>();
+                  const account_id_type account = stake_account.id;
+                  auto itr = idx.find(account);
+                  if( itr == idx.end() )
+                     continue;
+               }
+
+               d._vote_tally_buffer[offset] += voting_stake[type];
             }
 
             // votes for a number greater than maximum_witness_count are skipped here

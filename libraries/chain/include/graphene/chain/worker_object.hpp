@@ -127,24 +127,23 @@ class worker_object : public abstract_object<worker_object>
 
       /// Voting ID which represents approval of this worker
       vote_id_type vote_for;
-      /// Voting ID which represents disapproval of this worker
-      vote_id_type vote_against;
 
+      // votes cast by members
       uint64_t total_votes_for = 0;
-      uint64_t total_votes_against = 0;
+      // Votes cast by committee members
+      uint64_t total_cm_votes_for = 0;
 
       bool is_active(fc::time_point_sec now)const {
          return now >= work_begin_date && now <= work_end_date;
       }
 
       share_type approving_stake()const {
-         return int64_t( total_votes_for ) - int64_t( total_votes_against );
+         return int64_t( total_cm_votes_for );
       }
 };
 
 struct by_account;
 struct by_vote_for;
-struct by_vote_against;
 struct by_end_date;
 typedef multi_index_container<
    worker_object,
@@ -152,7 +151,6 @@ typedef multi_index_container<
       ordered_unique< tag<by_id>, member< object, object_id_type, &object::id > >,
       ordered_non_unique< tag<by_account>, member< worker_object, account_id_type, &worker_object::worker_account > >,
       ordered_unique< tag<by_vote_for>, member< worker_object, vote_id_type, &worker_object::vote_for > >,
-      ordered_unique< tag<by_vote_against>, member< worker_object, vote_id_type, &worker_object::vote_against > >,
       ordered_non_unique< tag<by_end_date>, member< worker_object, time_point_sec, &worker_object::work_end_date> >
    >
 > worker_object_multi_index_type;

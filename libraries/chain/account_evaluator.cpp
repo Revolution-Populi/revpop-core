@@ -79,18 +79,6 @@ void verify_account_votes( const database& db, const account_options& options )
       has_worker_votes |= (id.type() == vote_id_type::worker);
    }
 
-   if( has_worker_votes )
-   {
-      const auto& against_worker_idx = db.get_index_type<worker_index>().indices().get<by_vote_against>();
-      for( auto id : options.votes )
-      {
-         if( id.type() == vote_id_type::worker )
-         {
-            FC_ASSERT( against_worker_idx.find( id ) == against_worker_idx.end(),
-                       "Can no longer vote against a worker." );
-         }
-      }
-   }
    const auto& approve_worker_idx = db.get_index_type<worker_index>().indices().get<by_vote_for>();
    const auto& committee_idx = db.get_index_type<committee_member_index>().indices().get<by_vote_id>();
    const auto& witness_idx = db.get_index_type<witness_index>().indices().get<by_vote_id>();

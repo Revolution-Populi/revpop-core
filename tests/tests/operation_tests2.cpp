@@ -1043,7 +1043,6 @@ BOOST_AUTO_TEST_CASE( worker_create_test )
    BOOST_CHECK(worker.work_begin_date == db.head_block_time() + 10);
    BOOST_CHECK(worker.work_end_date == db.head_block_time() + 10 + fc::days(2));
    BOOST_CHECK(worker.vote_for.type() == vote_id_type::worker);
-   BOOST_CHECK(worker.vote_against.type() == vote_id_type::worker);
 
    const vesting_balance_object& balance = worker.worker.get<vesting_balance_worker_type>().balance(db);
    BOOST_CHECK(balance.owner == nathan_id);
@@ -1182,7 +1181,6 @@ BOOST_AUTO_TEST_CASE( refund_worker_test )
    BOOST_CHECK(worker.work_begin_date == db.head_block_time() + 10);
    BOOST_CHECK(worker.work_end_date == db.head_block_time() + 10 + fc::days(2));
    BOOST_CHECK(worker.vote_for.type() == vote_id_type::worker);
-   BOOST_CHECK(worker.vote_against.type() == vote_id_type::worker);
 
    transfer(committee_account, nathan_id, asset(100000));
 
@@ -1268,7 +1266,6 @@ BOOST_AUTO_TEST_CASE( burn_worker_test )
    BOOST_CHECK(worker.work_begin_date == db.head_block_time() + 10);
    BOOST_CHECK(worker.work_end_date == db.head_block_time() + 10 + fc::days(2));
    BOOST_CHECK(worker.vote_for.type() == vote_id_type::worker);
-   BOOST_CHECK(worker.vote_against.type() == vote_id_type::worker);
 
    transfer(committee_account, nathan_id, asset(100000));
 

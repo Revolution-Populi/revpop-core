@@ -83,10 +83,9 @@ struct worker_init_visitor
 object_id_type worker_create_evaluator::do_apply(const worker_create_evaluator::operation_type& o)
 { try {
    database& d = db();
-   vote_id_type for_id, against_id;
-   d.modify(d.get_global_properties(), [&for_id, &against_id](global_property_object& p) {
+   vote_id_type for_id;
+   d.modify(d.get_global_properties(), [&for_id](global_property_object& p) {
       for_id = vote_id_type(vote_id_type::worker, p.next_available_vote_id++);
-      against_id = vote_id_type(vote_id_type::worker, p.next_available_vote_id++);
    });
 
    return d.create<worker_object>([&](worker_object& w) {
@@ -97,7 +96,6 @@ object_id_type worker_create_evaluator::do_apply(const worker_create_evaluator::
       w.name = o.name;
       w.url = o.url;
       w.vote_for = for_id;
-      w.vote_against = against_id;
 
       w.worker.set_which(o.initializer.which());
       o.initializer.visit( worker_init_visitor( w, d ) );

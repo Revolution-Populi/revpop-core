@@ -222,8 +222,6 @@ struct approval_delta
 struct worker_vote_delta
 {
    flat_set<worker_id_type> vote_for;
-   flat_set<worker_id_type> vote_against;
-   flat_set<worker_id_type> vote_abstain;
 };
 
 struct signed_block_with_info : public signed_block
@@ -368,8 +366,6 @@ FC_REFLECT( graphene::wallet::approval_delta,
 
 FC_REFLECT( graphene::wallet::worker_vote_delta,
    (vote_for)
-   (vote_against)
-   (vote_abstain)
 )
 
 FC_REFLECT_DERIVED( graphene::wallet::signed_block_with_info, (graphene::chain::signed_block),

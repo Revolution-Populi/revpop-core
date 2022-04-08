@@ -1220,7 +1220,7 @@ class wallet_api
        * Update your votes for workers
        *
        * @param account The account which will pay the fee and update votes.
-       * @param delta {"vote_for" : [...], "vote_against" : [...], "vote_abstain" : [...]}
+       * @param delta {"vote_for" : [...]}
        * @param broadcast true if you wish to broadcast the transaction.
        * @return the signed transaction
        */

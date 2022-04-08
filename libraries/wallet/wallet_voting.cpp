@@ -48,25 +48,14 @@ namespace graphene { namespace wallet { namespace detail {
 
       // you could probably use a faster algorithm for this, but flat_set is fast enough :)
       flat_set< worker_id_type > merged;
-      merged.reserve( delta.vote_for.size() + delta.vote_against.size() + delta.vote_abstain.size() );
+      merged.reserve( delta.vote_for.size() );
       for( const worker_id_type& wid : delta.vote_for )
       {
          bool inserted = merged.insert( wid ).second;
          FC_ASSERT( inserted, "worker ${wid} specified multiple times", ("wid", wid) );
       }
-      for( const worker_id_type& wid : delta.vote_against )
-      {
-         bool inserted = merged.insert( wid ).second;
-         FC_ASSERT( inserted, "worker ${wid} specified multiple times", ("wid", wid) );
-      }
-      for( const worker_id_type& wid : delta.vote_abstain )
-      {
-         bool inserted = merged.insert( wid ).second;
-         FC_ASSERT( inserted, "worker ${wid} specified multiple times", ("wid", wid) );
-      }
-
       // should be enforced by FC_ASSERT's above
-      assert( merged.size() == delta.vote_for.size() + delta.vote_against.size() + delta.vote_abstain.size() );
+      assert( merged.size() == delta.vote_for.size() );
 
       vector< object_id_type > query_ids;
       for( const worker_id_type& wid : merged )
@@ -80,13 +69,8 @@ namespace graphene { namespace wallet { namespace detail {
          worker_object wo;
          from_variant( obj, wo, GRAPHENE_MAX_NESTED_OBJECTS );
          new_votes.erase( wo.vote_for );
-         new_votes.erase( wo.vote_against );
          if( delta.vote_for.find( wo.id ) != delta.vote_for.end() )
             new_votes.insert( wo.vote_for );
-         else if( delta.vote_against.find( wo.id ) != delta.vote_against.end() )
-            new_votes.insert( wo.vote_against );
-         else
-            assert( delta.vote_abstain.find( wo.id ) != delta.vote_abstain.end() );
       }
 
       account_update_operation update_op;

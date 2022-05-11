@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2017 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -609,6 +610,14 @@ class database_api
        */
       vector<proposal_object> get_proposed_transactions( const std::string account_name_or_id )const;
 
+      /**
+       * @brief return a set of update global parameters operations that the specified account
+       *        can add approval to or remove approval from
+       * @param account_name_or_id The name or ID of an account
+       * @return a set of update global parameters operations that the specified account can act on
+       */
+      vector<proposal_object> get_proposed_global_parameters( const std::string account_name_or_id )const;
+
       //////////////////////
       // Blinded balances //
       //////////////////////
@@ -885,6 +894,7 @@ FC_API(graphene::app::database_api,
 
    // Proposed transactions
    (get_proposed_transactions)
+   (get_proposed_global_parameters)
 
    // Blinded balances
    (get_blinded_balances)

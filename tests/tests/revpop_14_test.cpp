@@ -130,6 +130,16 @@ BOOST_AUTO_TEST_CASE( hardfork_time_test )
       BOOST_CHECK_EQUAL( db.get_global_properties().parameters.get_electoral_threshold(), 0 );
       BOOST_CHECK_EQUAL( db_api.get_proposed_global_parameters("init0").size(), 1 );
 
+      // Make sure that the received operation really offers to change the network parameters
+      vector<operation> operations = db_api
+                                       .get_proposed_global_parameters("init0")
+                                       .at(0)
+                                       .proposed_transaction.operations;
+      BOOST_CHECK( find_if(begin(operations), end(operations), [](const op_wrapper &op)
+                   {
+                      return op.op.is_type<committee_member_update_global_parameters_operation>();
+                   }) != std::end(operations) );
+
       generate_blocks( prop_id( db ).expiration_time + 5 );
       generate_blocks( db.get_dynamic_global_properties().next_maintenance_time );
       generate_block();

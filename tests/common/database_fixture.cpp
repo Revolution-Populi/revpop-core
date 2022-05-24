@@ -384,7 +384,8 @@ std::shared_ptr<boost::program_options::variables_map> database_fixture_base::in
             || fixture.current_test_name == "htlc_database_api"
             || fixture.current_test_name == "liquidity_pool_apis_test"
             || fixture.current_suite_name == "database_api_tests"
-            || fixture.current_suite_name == "api_limit_tests" )
+            || fixture.current_suite_name == "api_limit_tests"
+            || fixture.current_suite_name == "revpop_14_tests" )
    {
       auto ahplugin = fixture.app.register_plugin<graphene::api_helper_indexes::api_helper_indexes>(true);
       ahplugin->plugin_set_app(&fixture.app);

@@ -1551,6 +1551,31 @@ vector<proposal_object> database_api_impl::get_proposed_transactions( const std:
    return result;
 }
 
+vector<proposal_object> database_api::get_proposed_global_parameters( const std::string account_id_or_name )const
+{
+   return my->get_proposed_global_parameters( account_id_or_name );
+}
+
+vector<proposal_object> database_api_impl::get_proposed_global_parameters( const std::string account_id_or_name )const
+{
+   vector<proposal_object> proposed_transactions = get_proposed_transactions( account_id_or_name );
+   vector<proposal_object> result;
+
+   for (const proposal_object& proposal : proposed_transactions)
+   {
+      for (const op_wrapper &op : proposal.proposed_transaction.operations)
+      {
+         if ( op.op.is_type<committee_member_update_global_parameters_operation>() )
+         {
+            result.push_back( proposal );
+            break;
+         }
+      }
+   }
+
+   return result;
+}
+
 //////////////////////////////////////////////////////////////////////
 //                                                                  //
 // Blinded balances                                                 //

@@ -141,7 +141,7 @@ void database::update_worker_votes()
       modify( *itr, [this]( worker_object& obj )
       {
          obj.total_votes_for = _vote_tally_buffer[obj.vote_for];
-         obj.total_votes_against = 0;
+         obj.total_cm_votes_for = _cm_vote_for_worker[obj.vote_for];
       });
       ++itr;
    }
@@ -1064,6 +1064,7 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
            pob_activated( dprops.total_pob > 0 || dprops.total_inactive > 0 )
       {
          d._vote_tally_buffer.resize( props.next_available_vote_id, 0 );
+         d._cm_vote_for_worker.resize( props.next_available_vote_id, 0 );
          d._witness_count_histogram_buffer.resize( props.parameters.maximum_witness_count / 2 + 1, 0 );
          d._committee_count_histogram_buffer.resize( props.parameters.maximum_committee_count / 2 + 1, 0 );
          d._total_voting_stake[0] = 0;
@@ -1167,8 +1168,22 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
                uint32_t offset = id.instance();
                uint32_t type = std::min( id.type(), vote_id_type::vote_type::worker ); // cap the data
                // if they somehow managed to specify an illegal offset, ignore it.
-               if( offset < d._vote_tally_buffer.size() )
-                  d._vote_tally_buffer[offset] += voting_stake[type];
+               if( offset >= d._vote_tally_buffer.size() || offset >= d._cm_vote_for_worker.size() )
+                  continue;
+
+               if (type == vote_id_type::vote_type::worker)
+               {
+                  // Add up only the committee members votes
+                  const auto& idx = d.get_index_type<committee_member_index>().indices().get<by_account>();
+                  const account_id_type account = stake_account.id;
+                  auto itr = idx.find(account);
+                  if( itr != idx.end() )
+                  {
+                     d._cm_vote_for_worker[offset] += voting_stake[type];
+                  }
+               }
+
+               d._vote_tally_buffer[offset] += voting_stake[type];
             }
 
             // votes for a number greater than maximum_witness_count are skipped here

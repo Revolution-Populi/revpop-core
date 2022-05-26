@@ -115,6 +115,11 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
             const string& lower_bound_name, uint32_t limit )const;
       uint64_t get_committee_count()const;
 
+      // Workers
+      vector<worker_object> get_all_workers( const optional<bool> is_expired = optional<bool>() )const;
+      vector<worker_object> get_workers_by_account(const std::string account_id_or_name)const;
+      uint64_t get_worker_count()const;
+
       // Votes
       vector<variant> lookup_vote_ids( const vector<vote_id_type>& votes )const;
 

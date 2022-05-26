@@ -400,6 +400,9 @@ BOOST_AUTO_TEST_CASE( create_vesting_balance_object_test )
       create_vesting_balance_object(actor_id, vesting_balance_type::witness);
       create_vesting_balance_object(actor_id, vesting_balance_type::witness);
 
+      create_vesting_balance_object(actor_id, vesting_balance_type::worker);
+      create_vesting_balance_object(actor_id, vesting_balance_type::worker);
+
       create_vesting_balance_object(actor_id, vesting_balance_type::market_fee_sharing);
       GRAPHENE_CHECK_THROW(create_vesting_balance_object(actor_id, vesting_balance_type::market_fee_sharing), fc::exception);
 

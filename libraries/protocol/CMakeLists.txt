@@ -28,6 +28,7 @@ list(APPEND SOURCES account.cpp
                     transaction.cpp
                     types.cpp
                     withdraw_permission.cpp
+                    worker.cpp
                     personal_data.cpp
                     personal_data_v2.cpp
                     content_card.cpp

@@ -1168,6 +1168,76 @@ uint64_t database_api_impl::get_committee_count()const
 
 //////////////////////////////////////////////////////////////////////
 //                                                                  //
+// Workers                                                          //
+//                                                                  //
+//////////////////////////////////////////////////////////////////////
+
+vector<worker_object> database_api::get_all_workers( const optional<bool> is_expired )const
+{
+   return my->get_all_workers( is_expired );
+}
+
+vector<worker_object> database_api_impl::get_all_workers( const optional<bool> is_expired )const
+{
+   vector<worker_object> result;
+
+   if( !is_expired.valid() ) // query for all workers
+   {
+      const auto& workers_idx = _db.get_index_type<worker_index>().indices().get<by_id>();
+      result.reserve( workers_idx.size() );
+      for( const auto& w : workers_idx )
+      {
+         result.push_back( w );
+      }
+   }
+   else // query for workers that are expired only or not expired only
+   {
+      const time_point_sec now = _db.head_block_time();
+      const auto& workers_idx = _db.get_index_type<worker_index>().indices().get<by_end_date>();
+      auto itr = *is_expired ? workers_idx.begin() : workers_idx.lower_bound( now );
+      auto end = *is_expired ? workers_idx.upper_bound( now ) : workers_idx.end();
+      for( ; itr != end; ++itr )
+      {
+         result.push_back( *itr );
+      }
+   }
+
+   return result;
+}
+
+vector<worker_object> database_api::get_workers_by_account(const std::string account_id_or_name)const
+{
+   return my->get_workers_by_account( account_id_or_name );
+}
+
+vector<worker_object> database_api_impl::get_workers_by_account(const std::string account_id_or_name)const
+{
+   vector<worker_object> result;
+   const auto& workers_idx = _db.get_index_type<worker_index>().indices().get<by_account>();
+
+   const account_id_type account = get_account_from_string(account_id_or_name)->id;
+   auto range = workers_idx.equal_range(account);
+   for(auto itr = range.first; itr != range.second; ++itr)
+   {
+      result.push_back( *itr );
+   }
+   return result;
+}
+
+uint64_t database_api::get_worker_count()const
+{
+    return my->get_worker_count();
+}
+
+uint64_t database_api_impl::get_worker_count()const
+{
+    return _db.get_index_type<worker_index>().indices().size();
+}
+
+
+
+//////////////////////////////////////////////////////////////////////
+//                                                                  //
 // Votes                                                            //
 //                                                                  //
 //////////////////////////////////////////////////////////////////////
@@ -1188,7 +1258,6 @@ vector<variant> database_api_impl::lookup_vote_ids( const vector<vote_id_type>& 
    const auto& witness_idx = _db.get_index_type<witness_index>().indices().get<by_vote_id>();
    const auto& committee_idx = _db.get_index_type<committee_member_index>().indices().get<by_vote_id>();
    const auto& for_worker_idx = _db.get_index_type<worker_index>().indices().get<by_vote_for>();
-   const auto& against_worker_idx = _db.get_index_type<worker_index>().indices().get<by_vote_against>();
 
    vector<variant> result;
    result.reserve( votes.size() );
@@ -1221,17 +1290,6 @@ vector<variant> database_api_impl::lookup_vote_ids( const vector<vote_id_type>& 
                result.emplace_back( variant( *itr, 4 ) ); // Depth of worker_object is 3, add 1 here to be safe.
                                                           // If we want to extract the balance object inside,
                                                           //   need to increase this value
-            }
-            else {
-               auto itr = against_worker_idx.find( id );
-               if( itr != against_worker_idx.end() ) {
-                  result.emplace_back( variant( *itr, 4 ) ); // Depth of worker_object is 3, add 1 here to be safe.
-                                                             // If we want to extract the balance object inside,
-                                                             //   need to increase this value
-               }
-               else {
-                  result.emplace_back( variant() );
-               }
             }
             break;
          }

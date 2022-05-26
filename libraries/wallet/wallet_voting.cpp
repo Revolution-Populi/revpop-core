@@ -30,6 +30,54 @@
 
 namespace graphene { namespace wallet { namespace detail {
 
+   template<typename WorkerInit>
+   static WorkerInit _create_worker_initializer( const variant& worker_settings )
+   {
+      WorkerInit result;
+      from_variant( worker_settings, result, GRAPHENE_MAX_NESTED_OBJECTS );
+      return result;
+   }
+   
+   signed_transaction wallet_api_impl::update_worker_votes(
+      string account,
+      worker_vote_delta delta,
+      bool broadcast
+      )
+   {
+      account_object acct = get_account( account );
+      flat_set<vote_id_type> new_votes( acct.options.votes );
+
+      vector<object_id_type> unvote_query_ids(delta.unvote_for.begin(), delta.unvote_for.end());
+      fc::variants unvote_objects = _remote_db->get_objects( unvote_query_ids, {} );
+      for( const variant& obj : unvote_objects )
+      {
+         worker_object wo;
+         from_variant( obj, wo, GRAPHENE_MAX_NESTED_OBJECTS );
+         new_votes.erase( wo.vote_for );
+      }
+
+      vector<object_id_type> vote_query_ids(delta.vote_for.begin(), delta.vote_for.end());
+      fc::variants vote_objects = _remote_db->get_objects( vote_query_ids, {} );
+      for( const variant& obj : vote_objects )
+      {
+         worker_object wo;
+         from_variant( obj, wo, GRAPHENE_MAX_NESTED_OBJECTS );
+         new_votes.insert( wo.vote_for );
+      }
+
+      account_update_operation update_op;
+      update_op.account = acct.id;
+      update_op.new_options = acct.options;
+      update_op.new_options->votes = new_votes;
+
+      signed_transaction tx;
+      tx.operations.push_back( update_op );
+      set_operation_fees( tx, _remote_db->get_global_properties().parameters.get_current_fees() );
+      tx.validate();
+
+      return sign_transaction( tx, broadcast );
+   }
+
    signed_transaction wallet_api_impl::create_committee_member(string owner_account, string url, 
          bool broadcast )
    { try {
@@ -169,6 +217,42 @@ namespace graphene { namespace wallet { namespace detail {
 
       return sign_transaction( tx, broadcast );
    } FC_CAPTURE_AND_RETHROW( (witness_name)(url)(block_signing_key)(broadcast) ) }
+
+   signed_transaction wallet_api_impl::create_worker( string owner_account, time_point_sec work_begin_date,
+         time_point_sec work_end_date, share_type daily_pay, string name, string url,
+         variant worker_settings, bool broadcast)
+   {
+      worker_initializer init;
+      std::string wtype = worker_settings["type"].get_string();
+
+      // TODO:  Use introspection to do this dispatch
+      if( wtype == "burn" )
+         init = _create_worker_initializer< burn_worker_initializer >( worker_settings );
+      else if( wtype == "refund" )
+         init = _create_worker_initializer< refund_worker_initializer >( worker_settings );
+      else if( wtype == "vesting" )
+         init = _create_worker_initializer< vesting_balance_worker_initializer >( worker_settings );
+      else
+      {
+         FC_ASSERT( false, "unknown worker[\"type\"] value" );
+      }
+
+      worker_create_operation op;
+      op.owner = get_account( owner_account ).id;
+      op.work_begin_date = work_begin_date;
+      op.work_end_date = work_end_date;
+      op.daily_pay = daily_pay;
+      op.name = name;
+      op.url = url;
+      op.initializer = init;
+
+      signed_transaction tx;
+      tx.operations.push_back( op );
+      set_operation_fees( tx, _remote_db->get_global_properties().parameters.get_current_fees() );
+      tx.validate();
+
+      return sign_transaction( tx, broadcast );
+   }
 
    signed_transaction wallet_api_impl::vote_for_committee_member(string voting_account,
          string committee_member, bool approve, bool broadcast )

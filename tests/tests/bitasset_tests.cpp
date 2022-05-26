@@ -207,7 +207,6 @@ assets_922_931 create_assets_922_931(database_fixture* fixture)
  */
 BOOST_AUTO_TEST_CASE( bitasset_evaluator_test_after_922_931 )
 {
-   BOOST_TEST_MESSAGE("Advance to after hard fork 922 / 931");
    auto global_params = db.get_global_properties().parameters;
    generate_blocks( global_params.maintenance_interval );
    trx.set_expiration( db.head_block_time() + fc::seconds( global_params.maximum_time_until_expiration ));

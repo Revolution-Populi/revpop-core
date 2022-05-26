@@ -45,32 +45,24 @@ namespace graphene { namespace wallet { namespace detail {
       )
    {
       account_object acct = get_account( account );
-
-      // you could probably use a faster algorithm for this, but flat_set is fast enough :)
-      flat_set< worker_id_type > merged;
-      merged.reserve( delta.vote_for.size() );
-      for( const worker_id_type& wid : delta.vote_for )
-      {
-         bool inserted = merged.insert( wid ).second;
-         FC_ASSERT( inserted, "worker ${wid} specified multiple times", ("wid", wid) );
-      }
-      // should be enforced by FC_ASSERT's above
-      assert( merged.size() == delta.vote_for.size() );
-
-      vector< object_id_type > query_ids;
-      for( const worker_id_type& wid : merged )
-         query_ids.push_back( wid );
-
       flat_set<vote_id_type> new_votes( acct.options.votes );
 
-      fc::variants objects = _remote_db->get_objects( query_ids, {} );
-      for( const variant& obj : objects )
+      vector<object_id_type> unvote_query_ids(delta.unvote_for.begin(), delta.unvote_for.end());
+      fc::variants unvote_objects = _remote_db->get_objects( unvote_query_ids, {} );
+      for( const variant& obj : unvote_objects )
       {
          worker_object wo;
          from_variant( obj, wo, GRAPHENE_MAX_NESTED_OBJECTS );
          new_votes.erase( wo.vote_for );
-         if( delta.vote_for.find( wo.id ) != delta.vote_for.end() )
-            new_votes.insert( wo.vote_for );
+      }
+
+      vector<object_id_type> vote_query_ids(delta.vote_for.begin(), delta.vote_for.end());
+      fc::variants vote_objects = _remote_db->get_objects( vote_query_ids, {} );
+      for( const variant& obj : vote_objects )
+      {
+         worker_object wo;
+         from_variant( obj, wo, GRAPHENE_MAX_NESTED_OBJECTS );
+         new_votes.insert( wo.vote_for );
       }
 
       account_update_operation update_op;

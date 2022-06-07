@@ -140,7 +140,7 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
 
       // Proposed transactions
       vector<proposal_object> get_proposed_transactions( const std::string account_id_or_name )const;
-      vector<proposal_object> get_proposed_global_parameters( const std::string account_id_or_name )const;
+      vector<proposal_object> get_proposed_global_parameters()const;
 
       // Blinded balances
       vector<blinded_balance_object> get_blinded_balances( const flat_set<commitment_type>& commitments )const;

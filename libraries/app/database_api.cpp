@@ -1609,26 +1609,30 @@ vector<proposal_object> database_api_impl::get_proposed_transactions( const std:
    return result;
 }
 
-vector<proposal_object> database_api::get_proposed_global_parameters( const std::string account_id_or_name )const
+vector<proposal_object> database_api::get_proposed_global_parameters()const
 {
-   return my->get_proposed_global_parameters( account_id_or_name );
+   return my->get_proposed_global_parameters();
 }
 
-vector<proposal_object> database_api_impl::get_proposed_global_parameters( const std::string account_id_or_name )const
+vector<proposal_object> database_api_impl::get_proposed_global_parameters()const
 {
-   vector<proposal_object> proposed_transactions = get_proposed_transactions( account_id_or_name );
    vector<proposal_object> result;
 
-   for (const proposal_object& proposal : proposed_transactions)
+   const auto& proposal_idx = _db.get_index_type<proposal_index>().indices().get<by_expiration>();
+   auto proposal_id = proposal_idx.begin();
+   while ( proposal_id != proposal_idx.end()
+         && proposal_id->expiration_time > _db.head_block_time() )
    {
-      for (const op_wrapper &op : proposal.proposed_transaction.operations)
+      //auto proposal = proposal_id(_db);
+      for (const op_wrapper &op : proposal_id->proposed_transaction.operations)
       {
          if ( op.op.is_type<committee_member_update_global_parameters_operation>() )
          {
-            result.push_back( proposal );
+            result.push_back( *proposal_id );
             break;
          }
       }
+      ++proposal_id;
    }
 
    return result;

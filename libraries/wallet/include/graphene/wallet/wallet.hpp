@@ -215,6 +215,13 @@ class wallet_api
        */
       account_id_type                   get_account_id(string account_name_or_id) const;
 
+      /** Lookup the name of an account.
+       * @param account_name_or_id the name or ID of the account to look up
+       * @returns the name of the account
+       */
+      string                            get_account_name(const string& account_name_or_id) const
+      { return get_account( account_name_or_id ).name; }
+
       /**
        * Lookup the id of an asset.
        * @param asset_symbol_or_id the symbol or ID of an asset to look up
@@ -2106,6 +2113,7 @@ FC_API( graphene::wallet::wallet_api,
         (set_desired_witness_and_committee_member_count)
         (get_account)
         (get_account_id)
+        (get_account_name)
         (get_block)
         (get_account_count)
         (get_account_history)
@@ -2190,4 +2198,13 @@ FC_API( graphene::wallet::wallet_api,
         (filter_commit_reveal_participant_v2)
         (send_commit2)
         (send_reveal2)
+        (create_content_card_v2)
+        (update_content_card_v2)
+        (remove_content_card_v2)
+        (get_content_card_v2_by_id)
+        (get_content_cards_v2)
+        (create_personal_data_v2)
+        (remove_personal_data_v2)
+        (get_personal_data_v2)
+        (get_last_personal_data_v2)
       )

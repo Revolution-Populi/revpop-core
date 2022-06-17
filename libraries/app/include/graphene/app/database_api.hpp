@@ -637,12 +637,10 @@ class database_api
       vector<proposal_object> get_proposed_transactions( const std::string account_name_or_id )const;
 
       /**
-       * @brief return a set of update global parameters operations that the specified account
-       *        can add approval to or remove approval from
-       * @param account_name_or_id The name or ID of an account
-       * @return a set of update global parameters operations that the specified account can act on
+       * @brief return a set of update global parameters operations
+       * @return a set of update global parameters operations
        */
-      vector<proposal_object> get_proposed_global_parameters( const std::string account_name_or_id )const;
+      vector<proposal_object> get_proposed_global_parameters()const;
 
       //////////////////////
       // Blinded balances //

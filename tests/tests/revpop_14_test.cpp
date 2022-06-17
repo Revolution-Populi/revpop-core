@@ -112,6 +112,9 @@ BOOST_AUTO_TEST_CASE( hardfork_time_test )
       trx.operations.clear();
       proposal_id_type prop_id = ptx.operation_results[0].get<object_id_type>();
 
+      // One active proposal is pending approval
+      BOOST_CHECK_EQUAL( db_api.get_proposed_global_parameters().size(), 1 );
+
       // The electoral threshold is still 0
       BOOST_CHECK_EQUAL( db.get_global_properties().parameters.get_electoral_threshold(), 0 );
 
@@ -128,11 +131,11 @@ BOOST_AUTO_TEST_CASE( hardfork_time_test )
 
       // The electoral threshold is still 0
       BOOST_CHECK_EQUAL( db.get_global_properties().parameters.get_electoral_threshold(), 0 );
-      BOOST_CHECK_EQUAL( db_api.get_proposed_global_parameters("init0").size(), 1 );
+      BOOST_CHECK_EQUAL( db_api.get_proposed_global_parameters().size(), 1 );
 
       // Make sure that the received operation really offers to change the network parameters
       vector<operation> operations = db_api
-                                       .get_proposed_global_parameters("init0")
+                                       .get_proposed_global_parameters()
                                        .at(0)
                                        .proposed_transaction.operations;
       BOOST_CHECK( find_if(begin(operations), end(operations), [](const op_wrapper &op)
@@ -143,6 +146,9 @@ BOOST_AUTO_TEST_CASE( hardfork_time_test )
       generate_blocks( prop_id( db ).expiration_time + 5 );
       generate_blocks( db.get_dynamic_global_properties().next_maintenance_time );
       generate_block();
+
+      // No active proposals
+      BOOST_CHECK_EQUAL( db_api.get_proposed_global_parameters().size(), 0 );
 
       // The maker fee discount percent should have changed
       BOOST_CHECK_EQUAL( db.get_global_properties().parameters.get_electoral_threshold(), 3 );

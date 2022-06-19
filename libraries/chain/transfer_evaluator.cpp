@@ -99,8 +99,8 @@ void_result override_transfer_evaluator::do_evaluate( const override_transfer_op
    const account_object& from_account    = op.from(d);
    const account_object& to_account      = op.to(d);
 
-   FC_ASSERT( is_authorized_asset( d, to_account, asset_type ) );
-   FC_ASSERT( is_authorized_asset( d, from_account, asset_type ) );
+   FC_ASSERT( is_authorized_asset( d, to_account, asset_type ),
+              "The to_account is not allowed to transact the asset" );
 
    FC_ASSERT( d.get_balance( from_account, asset_type ).amount >= op.amount.amount,
               "", ("total_transfer",op.amount)("balance",d.get_balance(from_account, asset_type).amount) );

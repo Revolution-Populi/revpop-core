@@ -52,8 +52,8 @@ namespace detail
 class content_cards_plugin : public graphene::app::plugin
 {
    public:
-      content_cards_plugin();
-      virtual ~content_cards_plugin();
+      explicit content_cards_plugin(graphene::app::application& app);
+      ~content_cards_plugin() override;
 
       std::string plugin_name()const override;
       std::string plugin_description()const override;

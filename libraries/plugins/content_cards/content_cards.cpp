@@ -26,13 +26,13 @@
 
 namespace graphene { namespace content_cards {
 
-content_cards_plugin::content_cards_plugin()
+content_cards_plugin::content_cards_plugin(graphene::app::application& app) :
+   plugin(app)
 {
+   // Nothing else to do
 }
 
-content_cards_plugin::~content_cards_plugin()
-{
-}
+content_cards_plugin::~content_cards_plugin() = default;
 
 std::string content_cards_plugin::plugin_name()const
 {

@@ -213,6 +213,8 @@ struct database_fixture_base {
    fc::temp_directory data_dir;
    bool skip_key_index_test = false;
    uint32_t anon_acct_count;
+   bool hf1270 = false;
+    bool bsip77 = false;
 
    string es_index_prefix; ///< Index prefix for elasticsearch plugin
    string es_obj_index_prefix; ///< Index prefix for es_objects plugin
@@ -372,7 +374,7 @@ struct database_fixture_base {
    const worker_object& create_worker(account_id_type owner, const share_type daily_pay = 1000, const fc::microseconds& duration = fc::days(2));
    template<typename T>
    proposal_create_operation make_proposal_create_op( const T& op, account_id_type proposer = GRAPHENE_TEMP_ACCOUNT,
-                                                      uint32_t timeout = 300, uint32_t review_period = 0 ) const
+                                                      uint32_t timeout = 300, optional<uint32_t> review_period = {} ) const
    {
       proposal_create_operation cop;
       cop.fee_paying_account = proposer;
@@ -411,6 +413,8 @@ struct database_fixture_base {
    void transfer( account_id_type from, account_id_type to, const asset& amount, const asset& fee = asset() );
    void transfer( const account_object& from, const account_object& to, const asset& amount, const asset& fee = asset() );
    void fund_fee_pool( const account_object& from, const asset_object& asset_to_fund, const share_type amount );
+
+   // Tickets
    ticket_create_operation make_ticket_create_op( account_id_type account, ticket_type type,
                                                   const asset& amount )const;
    const ticket_object& create_ticket( account_id_type account, ticket_type type, const asset& amount );
@@ -441,9 +445,16 @@ struct database_fixture_base {
    int64_t get_market_fee_reward( const account_object& account, const asset_object& asset )const;
 
    vector< operation_history_object > get_operation_history( account_id_type account_id )const;
-   bool validation_current_test_name_for_setting_api_limit( const string& current_test_name )const;
 
 
+   /****
+    * @brief return htlc fee parameters
+    */
+   flat_map< uint64_t, graphene::chain::fee_parameters > get_htlc_fee_parameters();
+   /****
+    * @brief push through a proposal that sets htlc parameters and fees
+    */
+   void set_htlc_committee_parameters();
    /****
     * Hash the preimage and put it in a vector
     * @param preimage the preimage
@@ -473,18 +484,11 @@ struct database_fixture_init : database_fixture_base {
       fixture.data_dir = fc::temp_directory( graphene::utilities::temp_directory_path() );
       fc::create_directories( fixture.data_dir.path() );
       F::init_genesis( fixture );
-      fixture.db.open(fixture.data_dir.path(), [&fixture]{return fixture.genesis_state;}, "test");
       fc::json::save_to_file( fixture.genesis_state, fixture.data_dir.path() / "genesis.json" );
       auto options = F::init_options( fixture );
       fc::set_option( *options, "genesis-json", boost::filesystem::path(fixture.data_dir.path() / "genesis.json") );
-      if( fixture.current_suite_name != "performance_tests" &&
-          fixture.validation_current_test_name_for_setting_api_limit(fixture.current_test_name) )
-      {
-          fixture.app.initialize( fixture.data_dir.path(), *options );
-          // fixture.app.initialize(graphene::utilities::temp_directory_path(), options);
-          // fixture.app.startup();
-          fixture.app.set_api_limit();
-      }
+      fixture.app.initialize( fixture.data_dir.path(), options );
+      fixture.app.startup();
 
       fixture.generate_block();
 

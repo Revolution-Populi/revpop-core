@@ -1,7 +1,6 @@
 /*
  * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
- * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
- * 
+ *
  * The MIT License
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -326,8 +325,8 @@ std::shared_ptr<boost::program_options::variables_map> database_fixture_base::in
    if(fixture.current_test_name == "elasticsearch_account_history" ||
          fixture.current_test_name == "elasticsearch_suite" ||
          fixture.current_test_name == "elasticsearch_history_api") {
-      auto esplugin = fixture.app.register_plugin<graphene::elasticsearch::elasticsearch_plugin>(true);
-      esplugin->plugin_set_app(&fixture.app);
+      fixture.app.register_plugin<graphene::elasticsearch::elasticsearch_plugin>(true);
+
       fc::set_option( options, "elasticsearch-node-url", GRAPHENE_TESTING_ES_URL );
       fc::set_option( options, "elasticsearch-bulk-replay", uint32_t(2) );
       fc::set_option( options, "elasticsearch-bulk-sync", uint32_t(2) );
@@ -337,30 +336,20 @@ std::shared_ptr<boost::program_options::variables_map> database_fixture_base::in
       fc::set_option( options, "elasticsearch-operation-string", true );
       fc::set_option( options, "elasticsearch-mode", uint16_t(2) );
 
-      fixture.es_index_prefix = string("bitshares-") + fc::to_string(uint64_t(rand())) + "-";
+      fixture.es_index_prefix = string("revpop-") + fc::to_string(uint64_t(rand())) + "-";
       BOOST_TEST_MESSAGE( string("ES index prefix is ") + fixture.es_index_prefix );
       fc::set_option( options, "elasticsearch-index-prefix", fixture.es_index_prefix );
-
-      esplugin->plugin_initialize(options);
-      esplugin->plugin_startup();
    }
    else if( fixture.current_suite_name == "content_cards_tests" ) {
-      auto ccplugin = fixture.app.register_plugin<graphene::content_cards::content_cards_plugin>(false);
-      ccplugin->plugin_set_app(&fixture.app);
-      ccplugin->plugin_initialize(options);
-      ccplugin->plugin_startup();
+      // fixture.app.register_plugin<graphene::content_cards::content_cards_plugin>(true);
    }
    else if( fixture.current_suite_name != "performance_tests" )
    {
-      auto ahplugin = fixture.app.register_plugin<graphene::account_history::account_history_plugin>(true);
-      ahplugin->plugin_set_app(&fixture.app);
-      ahplugin->plugin_initialize(options);
-      ahplugin->plugin_startup();
+      fixture.app.register_plugin<graphene::account_history::account_history_plugin>(true);
    }
 
    if(fixture.current_test_name == "elasticsearch_objects" || fixture.current_test_name == "elasticsearch_suite") {
-      auto esobjects_plugin = fixture.app.register_plugin<graphene::es_objects::es_objects_plugin>(true);
-      esobjects_plugin->plugin_set_app(&fixture.app);
+      fixture.app.register_plugin<graphene::es_objects::es_objects_plugin>(true);
 
       fc::set_option( options, "es-objects-elasticsearch-url", GRAPHENE_TESTING_ES_URL );
       fc::set_option( options, "es-objects-bulk-replay", uint32_t(2) );
@@ -375,9 +364,6 @@ std::shared_ptr<boost::program_options::variables_map> database_fixture_base::in
       fixture.es_obj_index_prefix = string("objects-") + fc::to_string(uint64_t(rand())) + "-";
       BOOST_TEST_MESSAGE( string("ES_OBJ index prefix is ") + fixture.es_obj_index_prefix );
       fc::set_option( options, "es-objects-index-prefix", fixture.es_obj_index_prefix );
-
-      esobjects_plugin->plugin_initialize(options);
-      esobjects_plugin->plugin_startup();
    }
 
    if( fixture.current_test_name == "asset_in_collateral"
@@ -387,19 +373,13 @@ std::shared_ptr<boost::program_options::variables_map> database_fixture_base::in
             || fixture.current_suite_name == "api_limit_tests"
             || fixture.current_suite_name == "revpop_14_tests" )
    {
-      auto ahplugin = fixture.app.register_plugin<graphene::api_helper_indexes::api_helper_indexes>(true);
-      ahplugin->plugin_set_app(&fixture.app);
-      ahplugin->plugin_initialize(options);
-      ahplugin->plugin_startup();
+      fixture.app.register_plugin<graphene::api_helper_indexes::api_helper_indexes>(true);
    }
 
    if(fixture.current_test_name == "custom_operations_account_storage_map_test" ||
       fixture.current_test_name == "custom_operations_account_storage_list_test") {
-      auto coplugin = fixture.app.register_plugin<graphene::custom_operations::custom_operations_plugin>(true);
-      coplugin->plugin_set_app(&fixture.app);
+      fixture.app.register_plugin<graphene::custom_operations::custom_operations_plugin>(true);
       fc::set_option( options, "custom-operations-start-block", uint32_t(1) );
-      coplugin->plugin_initialize(options);
-      coplugin->plugin_startup();
    }
 
    fc::set_option( options, "bucket-size", string("[15]") );
@@ -461,30 +441,6 @@ string database_fixture_base::generate_anon_acct_name()
    // names of the form "anon-acct-x123" ; the "x" is necessary
    //    to workaround issue #46
    return "anon-acct-x" + std::to_string( anon_acct_count++ );
-}
-
-bool database_fixture_base::validation_current_test_name_for_setting_api_limit( const string& current_test_name ) const
-{
-   vector <string> valid_testcase {"api_limit_get_account_history_operations","api_limit_get_account_history"
-      ,"api_limit_get_grouped_limit_orders","api_limit_get_relative_account_history"
-      ,"api_limit_get_account_history_by_operations","api_limit_get_asset_holders"
-      ,"api_limit_get_key_references"
-      ,"api_limit_lookup_accounts"
-      ,"api_limit_lookup_witness_accounts","api_limit_lookup_committee_member_accounts"
-      ,"api_limit_lookup_vote_ids"
-      ,"api_limit_get_withdraw_permissions_by_giver","api_limit_get_withdraw_permissions_by_recipient"
-      ,"api_limit_get_full_accounts2"
-      ,"elasticsearch_account_history", "elasticsearch_suite"
-      ,"elasticsearch_history_api", "elasticsearch_objects"};
-   for(string i_valid_testcase: valid_testcase)
-   {
-      if(i_valid_testcase.compare(current_test_name)==0)
-      {
-         return true;
-      }
-   }
-
-   return false;
 }
 
 void database_fixture_base::verify_asset_supplies( const database& db )
@@ -855,6 +811,7 @@ const asset_object& database_fixture_base::create_user_issued_asset( const strin
    creator.issuer = issuer.id;
    creator.fee = asset();
    creator.symbol = name;
+   creator.common_options.max_supply = 0;
    creator.precision = precision;
    creator.common_options.core_exchange_rate = core_exchange_rate;
    creator.common_options.max_supply = GRAPHENE_MAX_SHARE_SUPPLY;

@@ -189,7 +189,6 @@ BOOST_AUTO_TEST_CASE( override_transfer_whitelist_test )
       trx.operations.push_back(wop);
       PUSH_TX( db, trx, ~0 );
    }
-   BOOST_TEST_MESSAGE( "ZZZZZZZZZZZZ1" );
 
    // Fail because there is a whitelist authority and dan is not whitelisted
    trx.operations.clear();

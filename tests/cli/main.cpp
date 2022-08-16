@@ -116,10 +116,7 @@ std::shared_ptr<graphene::app::application> start_application(fc::temp_directory
    fc::set_option( cfg, "genesis-json", create_genesis_file(app_dir) );
    fc::set_option( cfg, "seed-nodes", string("[]") );
    fc::set_option( cfg, "custom-operations-start-block", uint32_t(1) );
-   app1->initialize(app_dir.path(), cfg);
-
-   app1->initialize_plugins(cfg);
-   app1->startup_plugins();
+   app1->initialize(app_dir.path(), sharable_cfg);
 
    app1->startup();
 
@@ -631,6 +628,24 @@ BOOST_FIXTURE_TEST_CASE( cli_vote_for_2_witnesses, cli_fixture )
       BOOST_CHECK(init2_middle_votes > init2_start_votes);
       int init1_last_votes = init1_obj.total_votes;
       BOOST_CHECK(init1_last_votes > init1_start_votes);
+
+      {
+         auto history = con.wallet_api_ptr->get_account_history_by_operations(
+                              "jmjatlanta", {2}, 0, 1); // 2 - account_update_operation
+         BOOST_REQUIRE_GT( history.details.size(), 0 );
+         BOOST_CHECK( history.details[0].description.find( "Update Account 'jmjatlanta'" ) != string::npos );
+
+         // Testing result formatter
+         auto formatters = con.wallet_api_ptr->get_result_formatters();
+         if( formatters.find("get_account_history_by_operations") != formatters.end() )
+         {
+            BOOST_TEST_MESSAGE("Testing formatter of get_account_history_by_operations");
+            string output = formatters["get_account_history_by_operations"](
+                  fc::variant(history, FC_PACK_MAX_DEPTH), fc::variants());
+            BOOST_CHECK( output.find("Update Account 'jmjatlanta'") != string::npos );
+         }
+      }
+
    } catch( fc::exception& e ) {
       edump((e.to_detail_string()));
       throw;

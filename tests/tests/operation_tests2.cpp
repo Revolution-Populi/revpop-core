@@ -713,122 +713,6 @@ BOOST_AUTO_TEST_CASE( withdraw_permission_delete )
    PUSH_TX( db, trx );
 } FC_LOG_AND_RETHROW() }
 
-BOOST_AUTO_TEST_CASE( mia_feeds )
-{ try {
-   ACTORS((nathan)(dan)(ben)(vikram));
-   asset_id_type bit_usd_id = create_bitasset("USDBIT").id;
-
-   {
-      asset_update_operation op;
-      const asset_object& obj = bit_usd_id(db);
-      op.asset_to_update = bit_usd_id;
-      op.issuer = obj.issuer;
-      //op.new_issuer = nathan_id;
-      op.new_options = obj.options;
-      op.new_options.flags &= ~witness_fed_asset;
-      trx.operations.push_back(op);
-      PUSH_TX( db, trx, ~0 );
-      generate_block();
-      trx.clear();
-   }
-   {
-      asset_update_issuer_operation upd_op;
-      const asset_object& obj = bit_usd_id(db);
-      upd_op.asset_to_update = bit_usd_id;
-      upd_op.issuer = obj.issuer;
-      upd_op.new_issuer = nathan_id;
-      trx.operations.push_back(upd_op);
-      PUSH_TX( db, trx, ~0 );
-      generate_block();
-      trx.clear();
-   }
-   {
-      asset_update_feed_producers_operation op;
-      op.asset_to_update = bit_usd_id;
-      op.issuer = nathan_id;
-      op.new_feed_producers = {dan_id, ben_id, vikram_id};
-      trx.operations.push_back(op);
-      sign( trx, nathan_private_key );
-      PUSH_TX( db, trx );
-      generate_block(database::skip_nothing);
-   }
-   {
-      const asset_bitasset_data_object& obj = bit_usd_id(db).bitasset_data(db);
-      BOOST_CHECK_EQUAL(obj.feeds.size(), 3u);
-      BOOST_CHECK( obj.current_feed.margin_call_params_equal( price_feed() ) );
-   }
-   {
-      const asset_object& bit_usd = bit_usd_id(db);
-      asset_publish_feed_operation op;
-      op.publisher = vikram_id;
-      op.asset_id = bit_usd_id;
-      op.feed.settlement_price = op.feed.core_exchange_rate = ~price(asset(GRAPHENE_BLOCKCHAIN_PRECISION),bit_usd.amount(30));
-
-      // We'll expire margins after a month
-      // Accept defaults for required collateral
-      trx.operations.emplace_back(op);
-      PUSH_TX( db, trx, ~0 );
-
-      const asset_bitasset_data_object& bitasset = bit_usd.bitasset_data(db);
-      BOOST_CHECK(bitasset.current_feed.settlement_price.to_real() == 30.0 / GRAPHENE_BLOCKCHAIN_PRECISION);
-      BOOST_CHECK(bitasset.current_feed.maintenance_collateral_ratio == GRAPHENE_DEFAULT_MAINTENANCE_COLLATERAL_RATIO);
-
-      op.publisher = ben_id;
-      op.feed.settlement_price = op.feed.core_exchange_rate = ~price(asset(GRAPHENE_BLOCKCHAIN_PRECISION),bit_usd.amount(25));
-      trx.operations.back() = op;
-      PUSH_TX( db, trx, ~0 );
-
-      BOOST_CHECK_EQUAL(bitasset.current_feed.settlement_price.to_real(), 30.0 / GRAPHENE_BLOCKCHAIN_PRECISION);
-      BOOST_CHECK(bitasset.current_feed.maintenance_collateral_ratio == GRAPHENE_DEFAULT_MAINTENANCE_COLLATERAL_RATIO);
-
-      op.publisher = dan_id;
-      op.feed.settlement_price = op.feed.core_exchange_rate = ~price(asset(GRAPHENE_BLOCKCHAIN_PRECISION),bit_usd.amount(40));
-      op.feed.maximum_short_squeeze_ratio = 1001;
-      op.feed.maintenance_collateral_ratio = 1001;
-      trx.operations.back() = op;
-      PUSH_TX( db, trx, ~0 );
-
-      BOOST_CHECK_EQUAL(bitasset.current_feed.settlement_price.to_real(), 30.0 / GRAPHENE_BLOCKCHAIN_PRECISION);
-      BOOST_CHECK(bitasset.current_feed.maintenance_collateral_ratio == GRAPHENE_DEFAULT_MAINTENANCE_COLLATERAL_RATIO);
-
-      op.publisher = nathan_id;
-      trx.operations.back() = op;
-      GRAPHENE_CHECK_THROW(PUSH_TX( db, trx, ~0 ), fc::exception);
-   }
-} FC_LOG_AND_RETHROW() }
-
-BOOST_AUTO_TEST_CASE( feed_limit_test )
-{ try {
-   INVOKE( mia_feeds );
-   const asset_object& bit_usd = get_asset("USDBIT");
-   const asset_bitasset_data_object& bitasset = bit_usd.bitasset_data(db);
-   GET_ACTOR(nathan);
-
-   BOOST_CHECK(!bitasset.current_feed.settlement_price.is_null());
-
-   BOOST_TEST_MESSAGE("Setting minimum feeds to 4");
-   asset_update_bitasset_operation op;
-   op.new_options.minimum_feeds = 4;
-   op.asset_to_update = bit_usd.get_id();
-   op.issuer = bit_usd.issuer;
-   trx.operations = {op};
-   sign( trx, nathan_private_key );
-   PUSH_TX(db, trx);
-
-   BOOST_TEST_MESSAGE("Checking current_feed is null");
-   BOOST_CHECK(bitasset.current_feed.settlement_price.is_null());
-
-   BOOST_TEST_MESSAGE("Setting minimum feeds to 3");
-   op.new_options.minimum_feeds = 3;
-   trx.clear();
-   trx.operations = {op};
-   sign( trx, nathan_private_key );
-   PUSH_TX(db, trx);
-
-   BOOST_TEST_MESSAGE("Checking current_feed is not null");
-   BOOST_CHECK(!bitasset.current_feed.settlement_price.is_null());
-} FC_LOG_AND_RETHROW() }
-
 BOOST_AUTO_TEST_CASE( witness_create )
 { try {
 
@@ -842,7 +726,6 @@ BOOST_AUTO_TEST_CASE( witness_create )
    generate_block(skip);
 
    auto wtplugin = app.register_plugin<graphene::witness_plugin::witness_plugin>();
-   wtplugin->plugin_set_app(&app);
    boost::program_options::variables_map options;
 
    // init witness key cahce

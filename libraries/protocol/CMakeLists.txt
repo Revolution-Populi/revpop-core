@@ -8,6 +8,9 @@ list(APPEND SOURCES account.cpp
                     chain_parameters.cpp
                     fee_schedule.cpp
                     fee_schedule_calc.cpp
+                    fee_schedule_serialization_pack.cpp
+                    fee_schedule_serialization_variant.cpp
+                    fee_schedule_set_fee.cpp
                     memo.cpp
                     proposal.cpp
                     transfer.cpp

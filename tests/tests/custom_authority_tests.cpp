@@ -1935,8 +1935,8 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
          // Initialize: Create user-issued assets
          //////
          upgrade_to_lifetime_member(alice);
-         create_user_issued_asset("ALICECOIN", alice, UIA_ASSET_ISSUER_PERMISSION_MASK & ~lock_max_supply & ~disable_new_supply);
-         create_user_issued_asset( "SPECIALCOIN", alice, UIA_ASSET_ISSUER_PERMISSION_MASK & ~lock_max_supply & ~disable_new_supply);
+         create_user_issued_asset("ALICECOIN", alice, DEFAULT_UIA_ASSET_ISSUER_PERMISSION);
+         create_user_issued_asset( "SPECIALCOIN", alice,  DEFAULT_UIA_ASSET_ISSUER_PERMISSION);
          generate_blocks(1);
          const asset_object &alicecoin = *db.get_index_type<asset_index>().indices().get<by_symbol>().find("ALICECOIN");
          const asset_object &specialcoin
@@ -3148,6 +3148,682 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
 
 
    /**
+    * Generate a random pre-image for HTLC-related tests
+    */
+   void generate_random_preimage(uint16_t key_size, std::vector<char>& vec)
+   {
+      std::independent_bits_engine<std::default_random_engine, sizeof(unsigned), unsigned int> rbe;
+      std::generate(begin(vec), end(vec), std::ref(rbe));
+      return;
+   }
+
+
+   /**
+    * Test of greater than or equal to (ge) restriction on a field
+    * Test of CAA for htlc_create_operation
+    *
+    * Scenario: Test of authorization of one account (alice) authorizing another account (bob)
+    * to create an HTLC operation as long as the pre-image size is greater than or equal to a specified size
+    *
+    * This test is similar to the HTLC test called "other_peoples_money"
+    */
+   BOOST_AUTO_TEST_CASE(authorized_htlc_creation) {
+      try {
+         //////
+         // Initialize the blockchain
+         //////
+         generate_blocks(HARDFORK_BSIP_40_TIME);
+         generate_blocks(5);
+         set_expiration(db, trx);
+
+         // Initialize HTLC blockchain parameters
+         trx.clear();
+         set_htlc_committee_parameters();
+         generate_blocks(5);
+
+         // Initialize CAA blockchain parameters
+         trx.clear();
+         db.modify(global_property_id_type()(db), [](global_property_object &gpo) {
+            gpo.parameters.extensions.value.custom_authority_options = custom_authority_options_type();
+         });
+         set_expiration(db, trx);
+
+
+         //////
+         // Initialize: Accounts
+         //////
+         ACTORS((alice)(bob)(gateway));
+         int64_t init_balance(100 * GRAPHENE_BLOCKCHAIN_PRECISION );
+         transfer( committee_account, alice_id, graphene::chain::asset(init_balance) );
+
+
+         //////
+         // Initialize: Pre-image sizes and pre-images to reduce the test variability
+         //////
+         uint16_t pre_image_size_256 = 256;
+         std::vector<char> pre_image_256(pre_image_size_256);
+         generate_random_preimage(pre_image_size_256, pre_image_256);
+
+         // The minimum pre-image size that will be authorized by Alice
+         uint16_t authorized_minimum_pre_image_size_512 = 512;
+
+         int64_t pre_image_size_512 = int64_t(authorized_minimum_pre_image_size_512 + 0);
+         std::vector<char> pre_image_512(pre_image_size_512);
+         generate_random_preimage(pre_image_size_512, pre_image_512);
+
+         int64_t pre_image_size_600 = int64_t(authorized_minimum_pre_image_size_512 + 88);
+         std::vector<char> pre_image_600(pre_image_size_600);
+         generate_random_preimage(pre_image_size_600, pre_image_600);
+
+
+         //////
+         // Alice attempts to put a contract on the blockchain using Alice's funds
+         // This should succeed because Alice is authorized to create HTLC for her own account
+         //////
+         {
+            graphene::chain::htlc_create_operation create_operation;
+            create_operation.amount = graphene::chain::asset( 1 * GRAPHENE_BLOCKCHAIN_PRECISION );
+            create_operation.from = alice_id;
+            create_operation.to = gateway_id;
+            create_operation.claim_period_seconds = 3;
+            create_operation.preimage_hash = hash_it<fc::ripemd160>( pre_image_256 );
+            create_operation.preimage_size = pre_image_size_256;
+            create_operation.fee = db.current_fee_schedule().calculate_fee( create_operation );
+            trx.clear();
+            trx.operations.push_back(create_operation);
+            sign(trx, alice_private_key);
+            PUSH_TX( db, trx );
+         }
+
+
+         //////
+         // Advance the blockchain to generate distinctive hash IDs for the similar transactions
+         //////
+         generate_blocks(1);
+
+
+         //////
+         // Bob attempts to put a contract on the blockchain using Alice's funds
+         // This should fail because Bob is not authorized to create HTLC on behalf of Alice
+         //////
+         {
+            graphene::chain::htlc_create_operation create_operation;
+            create_operation.amount = graphene::chain::asset( 1 * GRAPHENE_BLOCKCHAIN_PRECISION );
+            create_operation.from = alice_id;
+            create_operation.to = gateway_id;
+            create_operation.claim_period_seconds = 3;
+            create_operation.preimage_hash = hash_it<fc::ripemd160>( pre_image_256 );
+            create_operation.preimage_size = pre_image_size_256;
+            create_operation.fee = db.current_fee_schedule().calculate_fee( create_operation );
+            trx.clear();
+            trx.operations.push_back(create_operation);
+            sign(trx, bob_private_key);
+            BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+            // The failure should not indicate any rejected custom auths because no CAA applies for Bob's attempt
+            // "rejected_custom_auths":[]
+            EXPECT_EXCEPTION_STRING("\"rejected_custom_auths\":[]", [&] {PUSH_TX(db, trx);});
+
+         }
+
+
+         //////
+         // Alice authorizes Bob to create HTLC only to an account (gateway)
+         // and if the pre-image size is greater than or equal to 512 bytes
+         //////
+         custom_authority_create_operation authorize_htlc_create;
+         authorize_htlc_create.account = alice.get_id();
+         authorize_htlc_create.auth.add_authority(bob.get_id(), 1);
+         authorize_htlc_create.auth.weight_threshold = 1;
+         authorize_htlc_create.enabled = true;
+         authorize_htlc_create.valid_to = db.head_block_time() + 1000;
+         authorize_htlc_create.operation_type = operation::tag<htlc_create_operation>::value;
+
+         auto to_index = member_index<htlc_create_operation>("to");
+         authorize_htlc_create.restrictions.emplace_back(to_index, FUNC(eq), gateway.get_id());
+
+         auto preimage_size_index = member_index<htlc_create_operation>("preimage_size");
+         authorize_htlc_create.restrictions.emplace_back(restriction(preimage_size_index, FUNC(ge), pre_image_size_512));
+         //[
+         //  {
+         //    "member_index": 2,
+         //    "restriction_type": 0,
+         //    "argument": [
+         //      7,
+         //      "1.2.18"
+         //    ],
+         //    "extensions": []
+         //  },
+         //  {
+         //    "member_index": 5,
+         //    "restriction_type": 5,
+         //    "argument": [
+         //      2,
+         //      512
+         //    ],
+         //    "extensions": []
+         //  }
+         //]
+         trx.clear();
+         trx.operations = {authorize_htlc_create};
+         sign(trx, alice_private_key);
+         PUSH_TX(db, trx);
+
+
+         //////
+         // Advance the blockchain to generate distinctive hash IDs for the similar transactions
+         //////
+         generate_blocks(1);
+
+
+         //////
+         // Bob attempts to put a contract on the blockchain using Alice's funds
+         // with a preimage size of 256.
+         // This should fail because Bob is not authorized to create HTLC on behalf of Alice
+         // if the preimage size is below the minimum value restriction.
+         //////
+         {
+            graphene::chain::htlc_create_operation create_operation;
+            create_operation.amount = graphene::chain::asset( 1 * GRAPHENE_BLOCKCHAIN_PRECISION );
+            create_operation.from = alice_id;
+            create_operation.to = gateway_id;
+            create_operation.claim_period_seconds = 3;
+            create_operation.preimage_hash = hash_it<fc::ripemd160>( pre_image_256 );
+            create_operation.preimage_size = pre_image_size_256;
+            create_operation.fee = db.current_fee_schedule().calculate_fee( create_operation );
+            trx.clear();
+            trx.operations.push_back(create_operation);
+            sign(trx, bob_private_key);
+            BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+            // The failure should indicate the rejection path
+            // "rejection_path":[[0,1],[2,"predicate_was_false"]
+            // [0,1]: 0 is the rejection_indicator for an index to a sub-restriction; 1 is the index value for Restriction 2
+            // [2,"predicate_was_false"]: 0 is the rejection_indicator for rejection_reason; "predicate_was_false" is the reason
+            EXPECT_EXCEPTION_STRING("\"rejection_path\":[[0,1],[2,\"predicate_was_false\"]]", [&] {PUSH_TX(db, trx);});
+
+         }
+
+         //////
+         // Bob attempts to put a contract on the blockchain using Alice's funds
+         // with a preimage size of 512.
+         // This should succeed because Bob is authorized to create HTLC on behalf of Alice
+         // and the preimage size equals the minimum value restriction.
+         //////
+         {
+            graphene::chain::htlc_create_operation create_operation;
+            create_operation.amount = graphene::chain::asset( 1 * GRAPHENE_BLOCKCHAIN_PRECISION );
+            create_operation.from = alice_id;
+            create_operation.to = gateway_id;
+            create_operation.claim_period_seconds = 3;
+            create_operation.preimage_hash = hash_it<fc::ripemd160>( pre_image_512 );
+            create_operation.preimage_size = pre_image_size_512;
+            create_operation.fee = db.current_fee_schedule().calculate_fee( create_operation );
+            trx.clear();
+            trx.operations.push_back(create_operation);
+            sign(trx, bob_private_key);
+            PUSH_TX( db, trx );
+
+         }
+
+
+         //////
+         // Bob attempts to put a contract on the blockchain using Alice's funds
+         // with a preimage size of 600.
+         // This should succeed because Bob is authorized to create HTLC on behalf of Alice
+         // and the preimage size is greater than the minimum value restriction.
+         //////
+         {
+            graphene::chain::htlc_create_operation create_operation;
+            create_operation.amount = graphene::chain::asset( 1 * GRAPHENE_BLOCKCHAIN_PRECISION );
+            create_operation.from = alice_id;
+            create_operation.to = gateway_id;
+            create_operation.claim_period_seconds = 3;
+            create_operation.preimage_hash = hash_it<fc::ripemd160>( pre_image_600 );
+            create_operation.preimage_size = pre_image_size_600;
+            create_operation.fee = db.current_fee_schedule().calculate_fee( create_operation );
+            trx.clear();
+            trx.operations.push_back(create_operation);
+            sign(trx, bob_private_key);
+            PUSH_TX( db, trx );
+
+         }
+
+      } FC_LOG_AND_RETHROW()
+   }
+
+
+   /**
+    * Test of vector field size comparison
+    * Test of CAA for htlc_redeem_operation
+    *
+    * Scenario: Test of authorization of one account (gateway) authorizing another account (bob)
+    * to redeem an HTLC operation
+    */
+   BOOST_AUTO_TEST_CASE(authorized_htlc_redeem) {
+      try {
+         //////
+         // Initialize the blockchain
+         //////
+         generate_blocks(HARDFORK_BSIP_40_TIME);
+         generate_blocks(5);
+         set_expiration(db, trx);
+
+         // Initialize HTLC blockchain parameters
+         trx.clear();
+         set_htlc_committee_parameters();
+         generate_blocks(5);
+
+         // Initialize CAA blockchain parameters
+         trx.clear();
+         db.modify(global_property_id_type()(db), [](global_property_object &gpo) {
+            gpo.parameters.extensions.value.custom_authority_options = custom_authority_options_type();
+         });
+
+         // Update the expiration of the re-usable trx relative to the head block time
+         set_expiration(db, trx);
+
+
+         //////
+         // Initialize: Accounts
+         //////
+         ACTORS((alice)(bob)(gateway));
+         int64_t init_balance(1000 * GRAPHENE_BLOCKCHAIN_PRECISION );
+         transfer( committee_account, alice_id, graphene::chain::asset(init_balance) );
+         int64_t init_gateway_balance(50 * GRAPHENE_BLOCKCHAIN_PRECISION);
+         transfer( committee_account, gateway_id, graphene::chain::asset(init_gateway_balance) );
+
+
+         //////
+         // Initialize: Pre-image sizes and pre-images to reduce the test variability
+         //////
+         uint16_t pre_image_size_256 = 256;
+         std::vector<char> pre_image_256(pre_image_size_256);
+         generate_random_preimage(pre_image_size_256, pre_image_256);
+
+
+         //////
+         // Gateway puts a contract on the blockchain
+         // This should succeed because the gateway is authorized to create HTLC for its own account
+         //////
+         share_type htlc_amount = 25 * GRAPHENE_BLOCKCHAIN_PRECISION;
+         {
+            graphene::chain::htlc_create_operation create_operation;
+            create_operation.amount = graphene::chain::asset( htlc_amount );
+            create_operation.from = alice_id;
+            create_operation.to = gateway_id;
+            create_operation.claim_period_seconds = 86400;
+            create_operation.preimage_hash = hash_it<fc::ripemd160>( pre_image_256 );
+            create_operation.preimage_size = pre_image_size_256;
+            create_operation.fee = db.current_fee_schedule().calculate_fee( create_operation );
+            trx.clear();
+            trx.operations.push_back(create_operation);
+            sign(trx, alice_private_key);
+            PUSH_TX( db, trx );
+         }
+
+
+         //////
+         // Advance the blockchain to get the finalized HTLC ID
+         //////
+         generate_blocks(1);
+         graphene::chain::htlc_id_type alice_htlc_id =
+                 db.get_index_type<htlc_index>().indices().get<by_from_id>().find(alice.get_id())->id;
+
+
+         //////
+         // Bob attempts to redeem the HTLC on behalf of the gateway
+         // This should fail because Bob is not authorized to redeem on behalf of the gateway
+         //////
+         graphene::chain::htlc_redeem_operation redeem_operation;
+         {
+            redeem_operation.redeemer = gateway_id;
+            redeem_operation.htlc_id = alice_htlc_id;
+            redeem_operation.preimage = pre_image_256;
+            redeem_operation.fee = db.current_fee_schedule().calculate_fee( redeem_operation );
+            trx.clear();
+            trx.operations.push_back(redeem_operation);
+            sign(trx, bob_private_key);
+            BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+            // The failure should not indicate any rejected custom auths because no CAA applies for Bob's attempt
+            // "rejected_custom_auths":[]
+            EXPECT_EXCEPTION_STRING("\"rejected_custom_auths\":[]", [&] {PUSH_TX(db, trx);});
+
+         }
+
+
+         //////
+         // Gateway authorizes Bob to redeem an HTLC
+         // only if the preimage length equals 200 bytes
+         // This length is incompatible with the HTLC pre-image that is already on the blockchain
+         //////
+         custom_authority_create_operation authorize_htlc_redeem;
+         authorize_htlc_redeem.account = gateway.get_id();
+         authorize_htlc_redeem.auth.add_authority(bob.get_id(), 1);
+         authorize_htlc_redeem.auth.weight_threshold = 1;
+         authorize_htlc_redeem.enabled = true;
+         authorize_htlc_redeem.valid_to = db.head_block_time() + 1000;
+         authorize_htlc_redeem.operation_type = operation::tag<htlc_redeem_operation>::value;
+
+         auto preimage_index = member_index<htlc_redeem_operation>("preimage");
+         authorize_htlc_redeem.restrictions.emplace_back(preimage_index, FUNC(eq), int64_t(200));
+         //[
+         //  {
+         //    "member_index": 3,
+         //    "restriction_type": 0,
+         //    "argument": [
+         //      2,
+         //      200
+         //    ],
+         //    "extensions": []
+         //  }
+         //]
+
+         trx.clear();
+         trx.operations = {authorize_htlc_redeem};
+         sign(trx, gateway_private_key);
+         PUSH_TX(db, trx);
+
+
+         //////
+         // Advance the blockchain to get the finalized CAA ID
+         //////
+         generate_blocks(1);
+         auto caa = db.get_index_type<custom_authority_index>().indices().get<by_account_custom>().find(gateway.get_id());
+         custom_authority_id_type caa_id = caa->id;
+
+
+         //////
+         // Bob attempts to redeem the HTLC
+         // This should fail because the authorization's restriction prohibits the redemption of this HTLC
+         //////
+         {
+            trx.clear();
+            trx.operations.push_back(redeem_operation);
+            sign(trx, bob_private_key);
+
+            BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+            // The failure should indicate the rejection path
+            // [0,0]: 0 is the rejection_indicator for an index to a sub-restriction; 0 is the index value for Restriction 1
+            // [2,"predicate_was_false"]: 0 is the rejection_indicator for rejection_reason; "predicate_was_false" is the reason
+            EXPECT_EXCEPTION_STRING("\"rejection_path\":[[0,0],[2,\"predicate_was_false\"]]", [&] {PUSH_TX(db, trx);});
+
+         }
+
+
+         //////
+         // Advance the blockchain to generate distinctive hash IDs for the similar transactions
+         //////
+         generate_blocks(1);
+
+
+         //////
+         // Gateway updates the authorization for to redeem an HTLC
+         // only if the preimage length equals 256 bytes
+         // This length is compatible with the HTLC pre-image that is already on the blockchain
+         //////
+         custom_authority_update_operation update_authorization;
+         update_authorization.account = gateway.get_id();
+         update_authorization.authority_to_update = caa_id;
+         uint16_t existing_restriction_index = 0; // The 0-based index of the first and only existing restriction
+         update_authorization.restrictions_to_remove = {existing_restriction_index};
+         update_authorization.restrictions_to_add =
+                 {restriction(preimage_index, FUNC(eq), int64_t(pre_image_size_256))};
+         trx.clear();
+         trx.operations = {update_authorization};
+         sign(trx, gateway_private_key);
+         PUSH_TX(db, trx);
+
+
+         //////
+         // Bob attempts to redeem the HTLC
+         // This should succeed because the redemption satisfies the authorization
+         //////
+         {
+            trx.clear();
+            trx.operations.push_back(redeem_operation);
+            sign(trx, bob_private_key);
+            PUSH_TX(db, trx);
+
+         }
+
+      } FC_LOG_AND_RETHROW()
+   }
+
+
+   /**
+    * Test of greater than (gt) and less than or equal to (le) restriction on a field
+    * Test of CAA for htlc_extend_operation
+    *
+    * Scenario: Test of authorization of one account (alice) authorizing another account (bob)
+    * to extend an HTLC operation as long as the extension is within a specified duration
+    */
+   BOOST_AUTO_TEST_CASE(authorized_htlc_extension) {
+      try {
+         //////
+         // Initialize the blockchain
+         //////
+         generate_blocks(HARDFORK_BSIP_40_TIME);
+         generate_blocks(5);
+         set_expiration(db, trx);
+
+         // Initialize HTLC blockchain parameters
+         trx.clear();
+         set_htlc_committee_parameters();
+         generate_blocks(5);
+
+         // Initialize CAA blockchain parameters
+         trx.clear();
+         db.modify(global_property_id_type()(db), [](global_property_object &gpo) {
+            gpo.parameters.extensions.value.custom_authority_options = custom_authority_options_type();
+         });
+         set_expiration(db, trx);
+
+
+         //////
+         // Initialize: Accounts
+         //////
+         ACTORS((alice)(bob)(gateway));
+         int64_t init_balance(1000 * GRAPHENE_BLOCKCHAIN_PRECISION );
+         transfer( committee_account, alice_id, graphene::chain::asset(init_balance) );
+         int64_t init_gateway_balance(50 * GRAPHENE_BLOCKCHAIN_PRECISION);
+         transfer( committee_account, gateway_id, graphene::chain::asset(init_gateway_balance) );
+
+
+         //////
+         // Initialize: Pre-image sizes and pre-images to reduce the test variability
+         //////
+         uint16_t pre_image_size_256 = 256;
+         std::vector<char> pre_image_256(pre_image_size_256);
+         generate_random_preimage(pre_image_size_256, pre_image_256);
+
+
+         //////
+         // Gateway puts a contract on the blockchain
+         // This should succeed because the gateway is authorized to create HTLC for its own account
+         //////
+         share_type htlc_amount = 25 * GRAPHENE_BLOCKCHAIN_PRECISION;
+         {
+            graphene::chain::htlc_create_operation create_operation;
+            create_operation.amount = graphene::chain::asset( htlc_amount );
+            create_operation.from = alice_id;
+            create_operation.to = gateway_id;
+            create_operation.claim_period_seconds = 86400;
+            create_operation.preimage_hash = hash_it<fc::ripemd160>( pre_image_256 );
+            create_operation.preimage_size = pre_image_size_256;
+            create_operation.fee = db.current_fee_schedule().calculate_fee( create_operation );
+            trx.clear();
+            trx.operations.push_back(create_operation);
+            sign(trx, alice_private_key);
+            PUSH_TX( db, trx );
+         }
+
+
+         //////
+         // Advance the blockchain to get the finalized HTLC ID
+         //////
+         generate_blocks(1);
+         graphene::chain::htlc_id_type alice_htlc_id =
+                 db.get_index_type<htlc_index>().indices().get<by_from_id>().find(alice.get_id())->id;
+
+
+         //////
+         // Bob attempts to extend the HTLC
+         // This should fail because Bob is not authorized to extend an HTLC on behalf of Alice
+         //////
+         graphene::chain::htlc_extend_operation extend_operation;
+         {
+            extend_operation.update_issuer = alice_id;
+            extend_operation.htlc_id = alice_htlc_id;
+            extend_operation.seconds_to_add = int64_t(24 * 3600);
+            extend_operation.fee = db.current_fee_schedule().calculate_fee( extend_operation );
+            trx.clear();
+            trx.operations.push_back(extend_operation);
+            sign(trx, bob_private_key);
+            BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+            // The failure should not indicate any rejected custom auths because no CAA applies for Bob's attempt
+            // "rejected_custom_auths":[]
+            EXPECT_EXCEPTION_STRING("\"rejected_custom_auths\":[]", [&] {PUSH_TX(db, trx);});
+
+         }
+
+
+         //////
+         // Alice authorizes Bob to extend an HTLC
+         // by greater than 1 hour and less than or equal to 24 hours
+         //////
+         custom_authority_create_operation authorize_htlc_extension;
+         authorize_htlc_extension.account = alice.get_id();
+         authorize_htlc_extension.auth.add_authority(bob.get_id(), 1);
+         authorize_htlc_extension.auth.weight_threshold = 1;
+         authorize_htlc_extension.enabled = true;
+         authorize_htlc_extension.valid_to = db.head_block_time() + 1000;
+         authorize_htlc_extension.operation_type = operation::tag<htlc_extend_operation>::value;
+
+         // Authorization to extend is restricted to greater than 1 hour and less than or equal to 24 hours
+         vector<restriction> restrictions;
+         auto extension_duration_index = member_index<htlc_extend_operation>("seconds_to_add");
+         // Duration extension greater than one hour
+         restriction restriction_gt_duration = restriction(extension_duration_index, FUNC(gt), int64_t(1 * 3600));
+         restrictions.emplace_back(restriction_gt_duration);
+         // Duration extension less than or equal to 24 hours
+         restriction restriction_le_duration = restriction(extension_duration_index, FUNC(le), int64_t(24 * 3600));
+         restrictions.emplace_back(restriction_le_duration);
+         authorize_htlc_extension.restrictions = restrictions;
+         //[
+         //  {
+         //    "member_index": 3,
+         //    "restriction_type": 4,
+         //    "argument": [
+         //      2,
+         //      3600
+         //    ],
+         //    "extensions": []
+         //  },
+         //  {
+         //    "member_index": 3,
+         //    "restriction_type": 3,
+         //    "argument": [
+         //      2,
+         //      86400
+         //    ],
+         //    "extensions": []
+         //  }
+         //]
+         trx.clear();
+         trx.operations = {authorize_htlc_extension};
+         sign(trx, alice_private_key);
+         PUSH_TX(db, trx);
+
+
+         //////
+         // Advance the blockchain to generate distinctive hash IDs for the similar transactions
+         //////
+         generate_blocks(1);
+
+
+         //////
+         // Bob attempts to extend the HTLC
+         // This should succeed because Bob is conditionally authorized to extend
+         //////
+         {
+            trx.clear();
+            trx.operations.push_back(extend_operation);
+            sign(trx, bob_private_key);
+            PUSH_TX(db, trx);
+
+         }
+
+
+         //////
+         // Bob attempts to extend the HTLC by exactly 10 hours
+         // This should succeed because Bob is authorized to extend the HTLC
+         // if greater than 1 hour and less than or equal to 24 hours
+         //////
+         {
+            extend_operation = htlc_extend_operation();
+            extend_operation.update_issuer = alice_id;
+            extend_operation.htlc_id = alice_htlc_id;
+            extend_operation.seconds_to_add = int64_t(10 * 3600);
+            extend_operation.fee = db.current_fee_schedule().calculate_fee( extend_operation );
+            trx.clear();
+            trx.operations.push_back(extend_operation);
+            sign(trx, bob_private_key);
+            PUSH_TX(db, trx);
+
+         }
+
+
+         //////
+         // Bob attempts to extend the HTLC by exactly 1 hour
+         // This should fail because Bob is authorized to extend the HTLC
+         // if greater than 1 hour and less than or equal to 24 hours
+         //////
+         {
+            extend_operation = htlc_extend_operation();
+            extend_operation.update_issuer = alice_id;
+            extend_operation.htlc_id = alice_htlc_id;
+            extend_operation.seconds_to_add = int64_t(1 * 3600);
+            extend_operation.fee = db.current_fee_schedule().calculate_fee( extend_operation );
+            trx.clear();
+            trx.operations.push_back(extend_operation);
+            sign(trx, bob_private_key);
+            BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+            // The failure should indicate the rejection path
+            // "rejection_path":[[0,0],[2,"predicate_was_false"]
+            // [0,0]: 0 is the rejection_indicator for an index to a sub-restriction; 0 is the index value for Restriction 1
+            // [2,"predicate_was_false"]: 0 is the rejection_indicator for rejection_reason; "predicate_was_false" is the reason
+            EXPECT_EXCEPTION_STRING("\"rejection_path\":[[0,0],[2,\"predicate_was_false\"]]", [&] {PUSH_TX(db, trx);});
+
+         }
+
+
+         //////
+         // Bob attempts to extend the HTLC by 24 hours plus 1 second
+         // This should fail because Bob is authorized to extend the HTLC
+         // if greater than 1 hour and less than or equal to 24 hours
+         //////
+         {
+            extend_operation = htlc_extend_operation();
+            extend_operation.update_issuer = alice_id;
+            extend_operation.htlc_id = alice_htlc_id;
+            extend_operation.seconds_to_add = int64_t( (24 * 3600) + 1);
+            extend_operation.fee = db.current_fee_schedule().calculate_fee( extend_operation );
+            trx.clear();
+            trx.operations.push_back(extend_operation);
+            sign(trx, bob_private_key);
+            BOOST_CHECK_THROW(PUSH_TX(db, trx), tx_missing_active_auth);
+            // The failure should indicate the rejection path
+            // "rejection_path":[[0,1],[2,"predicate_was_false"]
+            // [0,1]: 0 is the rejection_indicator for an index to a sub-restriction; 1 is the index value for Restriction 2
+            // [2,"predicate_was_false"]: 0 is the rejection_indicator for rejection_reason; "predicate_was_false" is the reason
+            EXPECT_EXCEPTION_STRING("\"rejection_path\":[[0,1],[2,\"predicate_was_false\"]]", [&] {PUSH_TX(db, trx);});
+
+         }
+
+      } FC_LOG_AND_RETHROW()
+   }
+
+
+   /**
     * Test of variant assert (variant_assert) restriction on a field
     * Test of CAA for vesting_balance_create_operation
     *
@@ -3630,7 +4306,7 @@ BOOST_AUTO_TEST_CASE(custom_auths) { try {
          // Initialize: Create user-issued assets
          //////
          upgrade_to_lifetime_member(assetissuer);
-         create_user_issued_asset("SPECIALCOIN", assetissuer,  UIA_ASSET_ISSUER_PERMISSION_MASK & ~lock_max_supply & ~disable_new_supply);
+         create_user_issued_asset("SPECIALCOIN", assetissuer,  DEFAULT_UIA_ASSET_ISSUER_PERMISSION);
          generate_blocks(1);
          const asset_object &specialcoin
                  = *db.get_index_type<asset_index>().indices().get<by_symbol>().find("SPECIALCOIN");

@@ -207,28 +207,6 @@ namespace graphene { namespace wallet { namespace detail {
       return sign_transaction( tx, broadcast );
    }
 
-   signed_transaction wallet_api_impl::borrow_asset(string seller_name, string amount_to_borrow, 
-         string asset_symbol, string amount_of_collateral, bool broadcast )
-   {
-      account_object seller = get_account(seller_name);
-      asset_object mia = get_asset(asset_symbol);
-      FC_ASSERT(mia.is_market_issued());
-      asset_object collateral = get_asset(get_object(*mia.bitasset_data_id).options.short_backing_asset);
-/*
-      call_order_update_operation op;
-      op.funding_account = seller.id;
-      op.delta_debt   = mia.amount_from_string(amount_to_borrow);
-      op.delta_collateral = collateral.amount_from_string(amount_of_collateral);
-
-      signed_transaction trx;
-      trx.operations = {op};
-*/    signed_transaction trx;
-      set_operation_fees( trx, _remote_db->get_global_properties().parameters.get_current_fees());
-      trx.validate();
-
-      return sign_transaction(trx, broadcast);
-   }
-
    signed_transaction wallet_api_impl::withdraw_vesting( string witness_name, string amount, string asset_symbol,
          bool broadcast )
    { try {

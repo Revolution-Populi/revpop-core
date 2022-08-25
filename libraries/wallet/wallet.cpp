@@ -1402,13 +1402,6 @@ signed_transaction wallet_api::sell_asset(string seller_account,
                          symbol_to_receive, expiration, fill_or_kill, broadcast);
 }
 
-signed_transaction wallet_api::borrow_asset(string seller_name, string amount_to_sell,
-                                                string asset_symbol, string amount_of_collateral, bool broadcast)
-{
-   FC_ASSERT(!is_locked());
-   return my->borrow_asset(seller_name, amount_to_sell, asset_symbol, amount_of_collateral, broadcast);
-}
-
 memo_data wallet_api::sign_memo(string from, string to, string memo)
 {
    FC_ASSERT(!is_locked());

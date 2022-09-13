@@ -39,6 +39,7 @@
 #include <graphene/protocol/withdraw_permission.hpp>
 #include <graphene/protocol/witness.hpp>
 #include <graphene/protocol/worker.hpp>
+#include <graphene/protocol/htlc.hpp>
 #include <graphene/protocol/personal_data.hpp>
 #include <graphene/protocol/personal_data_v2.hpp>
 #include <graphene/protocol/content_card.hpp>
@@ -125,7 +126,12 @@ namespace graphene { namespace protocol {
             /* 65 */ content_card_v2_remove_operation,
             /* 66 */ personal_data_v2_create_operation,
             /* 67 */ personal_data_v2_remove_operation,
-            /* 68 */ worker_create_operation
+            /* 68 */ worker_create_operation,
+            /* 69 */ htlc_create_operation,
+            /* 70 */ htlc_redeem_operation,
+            /* 71 */ htlc_redeemed_operation,         // VIRTUAL
+            /* 72 */ htlc_extend_operation,
+            /* 73 */ htlc_refund_operation            // VIRTUAL
          > operation;
 
    /// @} // operations group

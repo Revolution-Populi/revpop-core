@@ -44,10 +44,15 @@ using operation_list_11 = static_variant<typelist::builder<>
                                                 ::add<asset_claim_fees_operation> // 38
                                                 ::add_list<typelist::slice<operation::list, 40, 63>>
                                                 ::finalize>;
-using operation_list_12 = static_variant<typelist::slice<operation::list, 63, 69>>;
+using operation_list_12 = static_variant<typelist::builder<>
+                                                ::add_list<typelist::slice<operation::list, 63, 71>>
+                                                ::add<htlc_extend_operation> // 72
+                                                ::finalize>;
 using virtual_operations_list = static_variant<
                                                asset_settle_cancel_operation, // 37
-                                               fba_distribute_operation       // 39
+                                               fba_distribute_operation,      // 39
+                                               htlc_redeemed_operation,       // 71
+                                               htlc_refund_operation          // 73
                                               >;
 
 object_restriction_predicate<operation> get_restriction_predicate_list_1(size_t idx, vector<restriction> rs);

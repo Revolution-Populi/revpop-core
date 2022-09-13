@@ -53,9 +53,24 @@ public:
    }
 };
 
-std::string operation_printer::fee(const graphene::protocol::asset& a)const {
-   out << "   (Fee: " << wallet.get_asset(a.asset_id).amount_to_pretty_string(a) << ")";
-   return "";
+std::string operation_printer::format_asset(const graphene::protocol::asset& a)const
+{
+   return wallet.get_asset(a.asset_id).amount_to_pretty_string(a);
+}
+
+void operation_printer::print_fee(const graphene::protocol::asset& a)const
+{
+   out << "   (Fee: " << format_asset(a) << ")";
+}
+
+void operation_printer::print_result()const
+{
+   operation_result_printer rprinter(wallet);
+   std::string str_result = result.visit(rprinter);
+   if( str_result != "" )
+   {
+      out << "   result: " << str_result;
+   }
 }
 
 string operation_printer::print_memo( const fc::optional<graphene::protocol::memo_data>& memo )const
@@ -68,10 +83,10 @@ string operation_printer::print_memo( const fc::optional<graphene::protocol::mem
          out << " -- Unlock wallet to see memo.";
       } else {
          try {
-            FC_ASSERT( wallet._keys.count(memo->to) || wallet._keys.count(memo->from),
+            FC_ASSERT( wallet._keys.count(memo->to) > 0 || wallet._keys.count(memo->from) > 0,
                        "Memo is encrypted to a key ${to} or ${from} not in this wallet.",
                        ("to", memo->to)("from",memo->from) );
-            if( wallet._keys.count(memo->to) ) {
+            if( wallet._keys.count(memo->to) > 0 ) {
                auto my_key = wif_to_key(wallet._keys.at(memo->to));
                FC_ASSERT(my_key, "Unable to recover private key to decrypt memo. Wallet may be corrupted.");
                outstr = memo->get_message(*my_key, memo->from);
@@ -86,8 +101,8 @@ string operation_printer::print_memo( const fc::optional<graphene::protocol::mem
             out << " -- could not decrypt memo";
          }
       }
-   } 
-   return outstr;  
+   }
+   return outstr;
 }
 
 void operation_printer::print_preimage(const std::vector<char>& preimage)const
@@ -106,57 +121,69 @@ void operation_printer::print_preimage(const std::vector<char>& preimage)const
    out << "\"";
 }
 
-string operation_printer::print_redeem(const graphene::protocol::htlc_id_type& id,
-      const std::string& redeemer, const std::vector<char>& preimage, 
+void operation_printer::print_redeem(const graphene::protocol::htlc_id_type& id,
+      const std::string& redeemer, const std::vector<char>& preimage,
       const graphene::protocol::asset& op_fee)const
 {
    out << redeemer << " redeemed HTLC with id "
          << std::string( static_cast<object_id_type>(id));
    print_preimage( preimage );
-   return fee(op_fee);
+   print_fee(op_fee);
 }
 
 std::string operation_printer::operator()(const transfer_from_blind_operation& op)const
 {
-   auto a = wallet.get_asset( op.fee.asset_id );
    auto receiver = wallet.get_account( op.to );
 
    out <<  receiver.name
-       << " received " << a.amount_to_pretty_string( op.amount ) << " from blinded balance";
+       << " received " << format_asset( op.amount ) << " from blinded balance";
    return "";
 }
 std::string operation_printer::operator()(const transfer_to_blind_operation& op)const
 {
-   auto fa = wallet.get_asset( op.fee.asset_id );
-   auto a = wallet.get_asset( op.amount.asset_id );
    auto sender = wallet.get_account( op.from );
 
    out <<  sender.name
-       << " sent " << a.amount_to_pretty_string( op.amount ) << " to " << op.outputs.size()
-       << " blinded balance" << (op.outputs.size()>1?"s":"")
-       << " fee: " << fa.amount_to_pretty_string( op.fee );
+       << " sent " << format_asset( op.amount ) << " to " << op.outputs.size()
+       << " blinded balance" << (op.outputs.size()>1?"s":"");
+   print_fee( op.fee );
    return "";
 }
 
 string operation_printer::operator()(const transfer_operation& op) const
 {
-   out << "Transfer " << wallet.get_asset(op.amount.asset_id).amount_to_pretty_string(op.amount)
+   out << "Transfer " << format_asset(op.amount)
        << " from " << wallet.get_account(op.from).name << " to " << wallet.get_account(op.to).name;
    std::string memo = print_memo( op.memo );
-   fee(op.fee);
+   print_fee(op.fee);
+   return memo;
+}
+
+string operation_printer::operator()(const override_transfer_operation& op) const
+{
+   out << wallet.get_account(op.issuer).name
+       << " force-transfer " << format_asset(op.amount)
+       << " from " << wallet.get_account(op.from).name << " to " << wallet.get_account(op.to).name;
+   std::string memo = print_memo( op.memo );
+   print_fee(op.fee);
    return memo;
 }
 
 std::string operation_printer::operator()(const account_create_operation& op) const
 {
-   out << "Create Account '" << op.name << "'";
-   return fee(op.fee);
+   out << "Create Account '" << op.name << "' with registrar "
+       << wallet.get_account(op.registrar).name << " and referrer "
+       << wallet.get_account(op.referrer).name;
+   print_fee(op.fee);
+   print_result();
+   return "";
 }
 
 std::string operation_printer::operator()(const account_update_operation& op) const
 {
    out << "Update Account '" << wallet.get_account(op.account).name << "'";
-   return fee(op.fee);
+   print_fee(op.fee);
+   return "";
 }
 
 std::string operation_printer::operator()(const asset_create_operation& op) const
@@ -167,7 +194,50 @@ std::string operation_printer::operator()(const asset_create_operation& op) cons
    else
       out << "User-Issue Asset ";
    out << "'" << op.symbol << "' with issuer " << wallet.get_account(op.issuer).name;
-   return fee(op.fee);
+   print_fee(op.fee);
+   print_result();
+   return "";
+}
+
+std::string operation_printer::operator()(const proposal_update_operation& op) const
+{
+   out << "Update proposal " << std::string( static_cast<object_id_type>(op.proposal) );
+   print_fee(op.fee);
+   return "";
+}
+
+std::string operation_printer::operator()(const htlc_redeem_operation& op) const
+{
+   print_redeem(op.htlc_id, wallet.get_account(op.redeemer).name, op.preimage, op.fee);
+   return "";
+}
+
+std::string operation_printer::operator()(const htlc_redeemed_operation& op) const
+{
+   print_redeem(op.htlc_id, wallet.get_account(op.redeemer).name, op.preimage, op.fee);
+   return "";
+}
+
+std::string operation_printer::operator()(const htlc_create_operation& op) const
+{
+   static htlc_hash_to_string_visitor vtor;
+
+   auto fee_asset = wallet.get_asset( op.fee.asset_id );
+   auto to = wallet.get_account( op.to );
+   auto from = wallet.get_account( op.from );
+   operation_result_printer rprinter(wallet);
+   std::string database_id = result.visit(rprinter);
+
+   out << "Create HTLC from " << from.name << " to " << to.name
+         << " with id " << database_id
+         << " preimage hash: [" << op.preimage_hash.visit( vtor ) << "] ";
+   print_memo( op.extensions.value.memo );
+   // determine if the block that the HTLC is in is before or after LIB
+   int32_t pending_blocks = hist.block_num - wallet.get_dynamic_global_properties().last_irreversible_block_num;
+   if (pending_blocks > 0)
+      out << " (pending " << std::to_string(pending_blocks) << " blocks)";
+   print_fee(op.fee);
+   return "";
 }
 
 std::string operation_result_printer::operator()(const void_result& x) const
@@ -187,7 +257,7 @@ std::string operation_result_printer::operator()(const asset& a)
 
 std::string operation_result_printer::operator()(const generic_operation_result& r)
 {
-   return fc::json::to_pretty_string(r);
+   return fc::json::to_string(r);
 }
 
 }}} // graphene::wallet::detail

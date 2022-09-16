@@ -127,6 +127,7 @@ class database_api
        * - get_objects
        * - lookup_accounts
        * - get_full_accounts
+       * - get_htlc
        *
        * Note: auto-subscription is enabled by default
        *
@@ -827,6 +828,50 @@ class database_api
       vector<account_id_type> filter_commit_reveal_participant(const vector<account_id_type>& accounts) const;
       vector<account_id_type> filter_commit_reveal_participant_v2(const vector<account_id_type>& accounts) const;
 
+      //////////
+      // HTLC //
+      //////////
+
+      /**
+       *  @brief Get HTLC object
+       *  @param id HTLC contract id
+       *  @param subscribe @a true to subscribe to the queried HTLC objects; @a false to not subscribe;
+       *                   @a null to subscribe or not subscribe according to current auto-subscription setting
+       *                   (see @ref set_auto_subscription)
+       *  @return HTLC object for the id
+       */
+      optional<htlc_object> get_htlc( htlc_id_type id, optional<bool> subscribe = optional<bool>() ) const;
+
+      /**
+       *  @brief Get non expired HTLC objects using the sender account
+       *  @param account_name_or_id Account name or ID to get objects from
+       *  @param start htlc objects before this ID will be skipped in results. Pagination purposes.
+       *  @param limit Maximum number of objects to retrieve
+       *  @return HTLC objects for the account
+       */
+      vector<htlc_object> get_htlc_by_from( const std::string account_name_or_id,
+                                            htlc_id_type start,
+                                            uint32_t limit ) const;
+
+      /**
+       *  @brief Get non expired HTLC objects using the receiver account
+       *  @param account_name_or_id Account name or ID to get objects from
+       *  @param start htlc objects before this ID will be skipped in results. Pagination purposes.
+       *  @param limit Maximum number of objects to retrieve
+       *  @return HTLC objects for the account
+      */
+      vector<htlc_object> get_htlc_by_to( const std::string account_name_or_id,
+                                          htlc_id_type start,
+                                          uint32_t limit ) const;
+
+      /**
+       * @brief Get all HTLCs
+       * @param start Lower bound of htlc id to start getting results
+       * @param limit Maximum number of htlc objects to fetch
+       * @return The htlc object list
+      */
+      vector<htlc_object> list_htlcs(const htlc_id_type start, uint32_t limit) const;
+
 private:
       std::shared_ptr< database_api_impl > my;
 };
@@ -954,4 +999,10 @@ FC_API(graphene::app::database_api,
    (get_content_cards_v2)
    (get_personal_data_v2)
    (get_last_personal_data_v2)
+
+   // HTLC
+   (get_htlc)
+   (get_htlc_by_from)
+   (get_htlc_by_to)
+   (list_htlcs)
 )

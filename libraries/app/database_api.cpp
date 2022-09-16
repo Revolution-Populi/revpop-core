@@ -1740,6 +1740,111 @@ vector<withdraw_permission_object> database_api_impl::get_withdraw_permissions_b
 
 //////////////////////////////////////////////////////////////////////
 //                                                                  //
+//  HTLC                                                            //
+//                                                                  //
+//////////////////////////////////////////////////////////////////////
+
+optional<htlc_object> database_api::get_htlc( htlc_id_type id, optional<bool> subscribe )const
+{
+   return my->get_htlc( id, subscribe );
+}
+
+fc::optional<htlc_object> database_api_impl::get_htlc( htlc_id_type id, optional<bool> subscribe )const
+{
+   auto obj = get_objects( { id }, subscribe ).front();
+   if ( !obj.is_null() )
+   {
+      return fc::optional<htlc_object>(obj.template as<htlc_object>(GRAPHENE_MAX_NESTED_OBJECTS));
+   }
+   return fc::optional<htlc_object>();
+}
+
+vector<htlc_object> database_api::get_htlc_by_from( const std::string account_id_or_name,
+                                                    htlc_id_type start, uint32_t limit )const
+{
+   return my->get_htlc_by_from(account_id_or_name, start, limit);
+}
+
+vector<htlc_object> database_api_impl::get_htlc_by_from( const std::string account_id_or_name,
+                                                         htlc_id_type start, uint32_t limit ) const
+{
+   FC_ASSERT( _app_options, "Internal error" );
+   const auto configured_limit = _app_options->api_limit_get_htlc_by;
+   FC_ASSERT( limit <= configured_limit,
+              "limit can not be greater than ${configured_limit}",
+              ("configured_limit", configured_limit) );
+
+   vector<htlc_object> result;
+
+   const auto& htlc_idx = _db.get_index_type< htlc_index >().indices().get< by_from_id >();
+   auto htlc_index_end = htlc_idx.end();
+   const account_id_type account = get_account_from_string(account_id_or_name)->id;
+   auto htlc_itr = htlc_idx.lower_bound(boost::make_tuple(account, start));
+
+   while(htlc_itr != htlc_index_end && htlc_itr->transfer.from == account && result.size() < limit)
+   {
+      result.push_back(*htlc_itr);
+      ++htlc_itr;
+   }
+   return result;
+}
+
+vector<htlc_object> database_api::get_htlc_by_to( const std::string account_id_or_name,
+                                                  htlc_id_type start, uint32_t limit )const
+{
+   return my->get_htlc_by_to(account_id_or_name, start, limit);
+}
+
+vector<htlc_object> database_api_impl::get_htlc_by_to( const std::string account_id_or_name,
+                                                       htlc_id_type start, uint32_t limit ) const
+{
+   FC_ASSERT( _app_options, "Internal error" );
+   const auto configured_limit = _app_options->api_limit_get_htlc_by;
+   FC_ASSERT( limit <= configured_limit,
+              "limit can not be greater than ${configured_limit}",
+              ("configured_limit", configured_limit) );
+
+   vector<htlc_object> result;
+
+   const auto& htlc_idx = _db.get_index_type< htlc_index >().indices().get< by_to_id >();
+   auto htlc_index_end = htlc_idx.end();
+   const account_id_type account = get_account_from_string(account_id_or_name)->id;
+   auto htlc_itr = htlc_idx.lower_bound(boost::make_tuple(account, start));
+
+   while(htlc_itr != htlc_index_end && htlc_itr->transfer.to == account && result.size() < limit)
+   {
+      result.push_back(*htlc_itr);
+      ++htlc_itr;
+   }
+   return result;
+}
+
+vector<htlc_object> database_api::list_htlcs(const htlc_id_type start, uint32_t limit)const
+{
+   return my->list_htlcs(start, limit);
+}
+
+vector<htlc_object> database_api_impl::list_htlcs(const htlc_id_type start, uint32_t limit) const
+{
+   FC_ASSERT( _app_options, "Internal error" );
+   const auto configured_limit = _app_options->api_limit_list_htlcs;
+   FC_ASSERT( limit <= configured_limit,
+              "limit can not be greater than ${configured_limit}",
+              ("configured_limit", configured_limit) );
+
+   vector<htlc_object> result;
+   const auto& htlc_idx = _db.get_index_type<htlc_index>().indices().get<by_id>();
+   auto itr = htlc_idx.lower_bound(start);
+   while(itr != htlc_idx.end() && result.size() < limit)
+   {
+      result.push_back(*itr);
+      ++itr;
+   }
+   return result;
+}
+
+//////////////////////////////////////////////////////////////////////
+//                                                                  //
 //  RevPop                                                          //
 //                                                                  //
 //////////////////////////////////////////////////////////////////////

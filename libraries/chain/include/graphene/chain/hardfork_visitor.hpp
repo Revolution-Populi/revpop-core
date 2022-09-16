@@ -61,6 +61,11 @@ struct hardfork_visitor {
                                   content_card_v2_remove_operation, personal_data_v2_create_operation,
                                   personal_data_v2_remove_operation>;
    using RevPop_workers_ops = TL::list<worker_create_operation>;
+   using htlc_ops = TL::list< htlc_create_operation,
+                              htlc_redeem_operation,
+                              htlc_redeemed_operation,
+                              htlc_extend_operation,
+                              htlc_refund_operation>;
 
    fc::time_point_sec now;
 
@@ -92,6 +97,9 @@ struct hardfork_visitor {
    template<typename Op>
    std::enable_if_t<TL::contains<RevPop_workers_ops, Op>(), bool>
    visit() { return HARDFORK_REVPOP_15_PASSED(now); }
+   template<typename Op>
+   std::enable_if_t<TL::contains<htlc_ops, Op>(), bool>
+   visit() { return true; }
    /// @}
 
    /// typelist::runtime::dispatch adaptor

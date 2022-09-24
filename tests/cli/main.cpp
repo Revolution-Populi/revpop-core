@@ -1360,7 +1360,7 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
          con.wallet_api_ptr->issue_asset("bob", "5", "BOBCOIN", "Here are your BOBCOINs", true);
       }
 
-      BOOST_TEST_MESSAGE("Alice has agreed to buy 3 BOBCOIN from Bob for 3 BTS. Alice creates an HTLC");
+      BOOST_TEST_MESSAGE("Alice has agreed to buy 3 BOBCOIN from Bob for 3 RVP. Alice creates an HTLC");
       // create an HTLC
       std::string preimage_string = "My Secret";
       fc::sha256 preimage_md = fc::sha256::hash(preimage_string);
@@ -1430,7 +1430,7 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
       }
 
       // TODO: Bob can look at Alice's history to see her preimage
-      // Bob can use the preimage to retrieve his BTS
+      // Bob can use the preimage to retrieve his RVP
       {
          BOOST_TEST_MESSAGE("Bob uses Alice's preimage to retrieve the BOBCOIN");
          std::string secret = "My Secret";
@@ -1904,7 +1904,7 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc_bsip64 )
          con.wallet_api_ptr->issue_asset("bob", "5", "BOBCOIN", "Here are your BOBCOINs", true);
       }
 
-      BOOST_TEST_MESSAGE("Alice has agreed to buy 3 BOBCOIN from Bob for 3 BTS. Alice creates an HTLC");
+      BOOST_TEST_MESSAGE("Alice has agreed to buy 3 BOBCOIN from Bob for 3 RVP. Alice creates an HTLC");
       // create an HTLC
       std::string preimage_string = "My Super Long Secret that is larger than 50 charaters. How do I look?\n";
       fc::hash160 preimage_md = fc::hash160::hash(preimage_string);
@@ -1987,7 +1987,7 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc_bsip64 )
          BOOST_CHECK( hist[0].description.find("with preimage \"4d792") != hist[0].description.npos);
       }
 
-      // Bob can use the preimage to retrieve his BTS
+      // Bob can use the preimage to retrieve his RVP
       {
          BOOST_TEST_MESSAGE("Bob uses Alice's preimage to retrieve the BOBCOIN");
          con.wallet_api_ptr->htlc_redeem(alice_htlc_id_as_string, "bob", preimage_string, true);

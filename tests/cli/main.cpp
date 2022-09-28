@@ -1339,8 +1339,8 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
          signed_transaction create_acct_tx = con.wallet_api_ptr->create_account_with_brain_key(bki.brain_priv_key,
                "alice", "nathan", "nathan", true);
          con.wallet_api_ptr->save_wallet_file(con.wallet_filename);
-         // attempt to give alice some bitshares
-         BOOST_TEST_MESSAGE("Transferring bitshares from Nathan to alice");
+         // attempt to give alice some revpop
+         BOOST_TEST_MESSAGE("Transferring revpop from Nathan to alice");
          signed_transaction transfer_tx = con.wallet_api_ptr->transfer("nathan", "alice", "10000", "1.3.0",
                "Here are some CORE token for your new account", true);
       }
@@ -1353,8 +1353,8 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
                "bob", "nathan", "nathan", true);
          // this should cause resync which will import the keys of alice and bob
          generate_block(app1);
-         // attempt to give bob some bitshares
-         BOOST_TEST_MESSAGE("Transferring bitshares from Nathan to Bob");
+         // attempt to give bob some revpop
+         BOOST_TEST_MESSAGE("Transferring revpop from Nathan to Bob");
          signed_transaction transfer_tx = con.wallet_api_ptr->transfer("nathan", "bob", "10000", "1.3.0",
                "Here are some CORE token for your new account", true);
          con.wallet_api_ptr->issue_asset("bob", "5", "BOBCOIN", "Here are your BOBCOINs", true);
@@ -1883,8 +1883,8 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc_bsip64 )
          signed_transaction create_acct_tx = con.wallet_api_ptr->create_account_with_brain_key(bki.brain_priv_key,
                "alice", "nathan", "nathan", true);
          con.wallet_api_ptr->save_wallet_file(con.wallet_filename);
-         // attempt to give alice some bitshares
-         BOOST_TEST_MESSAGE("Transferring bitshares from Nathan to alice");
+         // attempt to give alice some revpop
+         BOOST_TEST_MESSAGE("Transferring revpop from Nathan to alice");
          signed_transaction transfer_tx = con.wallet_api_ptr->transfer("nathan", "alice", "10000", "1.3.0",
                "Here are some CORE token for your new account", true);
       }
@@ -1897,8 +1897,8 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc_bsip64 )
                "bob", "nathan", "nathan", true);
          // this should cause resync which will import the keys of alice and bob
          generate_block(app1);
-         // attempt to give bob some bitshares
-         BOOST_TEST_MESSAGE("Transferring bitshares from Nathan to Bob");
+         // attempt to give bob some revpop
+         BOOST_TEST_MESSAGE("Transferring revpop from Nathan to Bob");
          signed_transaction transfer_tx = con.wallet_api_ptr->transfer("nathan", "bob", "10000", "1.3.0",
                "Here are some CORE token for your new account", true);
          con.wallet_api_ptr->issue_asset("bob", "5", "BOBCOIN", "Here are your BOBCOINs", true);

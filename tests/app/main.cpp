@@ -43,7 +43,6 @@
 #include "../../libraries/app/application_impl.hxx"
 
 #include "../common/init_unit_test_suite.hpp"
-
 #include "../common/genesis_file_util.hpp"
 #include "../common/program_options_util.hpp"
 #include "../common/utils.hpp"
@@ -249,7 +248,7 @@ BOOST_AUTO_TEST_CASE( two_node_network )
       fc::set_option( cfg, "p2p-endpoint", app1_p2p_endpoint_str );
       fc::set_option( cfg, "genesis-json", genesis_file );
       fc::set_option( cfg, "seed-nodes", string("[]") );
-      app1.initialize(app_dir.path(), cfg);
+      app1.initialize(app_dir.path(), sharable_cfg);
       BOOST_TEST_MESSAGE( "Starting app1 and waiting" );
       app1.startup();
 
@@ -271,7 +270,7 @@ BOOST_AUTO_TEST_CASE( two_node_network )
       auto& cfg2 = *sharable_cfg2;
       fc::set_option( cfg2, "genesis-json", genesis_file );
       fc::set_option( cfg2, "seed-nodes", app2_seed_nodes_str );
-      app2.initialize(app2_dir.path(), cfg2);
+      app2.initialize(app2_dir.path(), sharable_cfg2);
 
       BOOST_TEST_MESSAGE( "Starting app2 and waiting for connection" );
       app2.startup();
@@ -387,12 +386,14 @@ BOOST_AUTO_TEST_CASE( two_node_network )
 }
 
 // a contrived example to test the breaking out of application_impl to a header file
-
 BOOST_AUTO_TEST_CASE(application_impl_breakout) {
+
+   static graphene::app::application my_app;
+
    class test_impl : public graphene::app::detail::application_impl {
       // override the constructor, just to test that we can
    public:
-      test_impl() : application_impl(nullptr) {}
+      test_impl() : application_impl(my_app) {}
       bool has_item(const net::item_id& id) override {
          return true;
       }

@@ -1338,7 +1338,6 @@ set<public_key_type> database_api::get_required_signatures( const signed_transac
 set<public_key_type> database_api_impl::get_required_signatures( const signed_transaction& trx,
                                                             const flat_set<public_key_type>& available_keys )const
 {
-   auto chain_time = _db.head_block_time();
    bool allow_non_immediate_owner = true;
    bool ignore_custom_op_reqd_auths = false;
 
@@ -1363,7 +1362,6 @@ set<address> database_api::get_potential_address_signatures( const signed_transa
 
 set<public_key_type> database_api_impl::get_potential_signatures( const signed_transaction& trx )const
 {
-   auto chain_time = _db.head_block_time();
    bool allow_non_immediate_owner = true;
    bool ignore_custom_op_reqd_auths = false;
 
@@ -1402,7 +1400,6 @@ set<public_key_type> database_api_impl::get_potential_signatures( const signed_t
 
 set<address> database_api_impl::get_potential_address_signatures( const signed_transaction& trx )const
 {
-   auto chain_time = _db.head_block_time();
    bool allow_non_immediate_owner = true;
    bool ignore_custom_op_reqd_auths = false;
 

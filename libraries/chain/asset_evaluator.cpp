@@ -41,7 +41,6 @@ void_result asset_create_evaluator::do_evaluate( const asset_create_operation& o
 { try {
 
    const database& d = db();
-   const time_point_sec now = d.head_block_time();
 
    op.common_options.validate_flags( op.bitasset_opts.valid() );
    const auto& chain_parameters = d.get_global_properties().parameters;
@@ -452,7 +451,6 @@ void check_children_of_bitasset(const database& d, const asset_update_bitasset_o
 void_result asset_update_bitasset_evaluator::do_evaluate(const asset_update_bitasset_operation& op)
 { try {
    const database& d = db();
-   const time_point_sec now = d.head_block_time();
 
    const asset_object& asset_obj = op.asset_to_update(d);
 

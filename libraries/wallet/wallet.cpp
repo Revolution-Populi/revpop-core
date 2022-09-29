@@ -535,7 +535,7 @@ account_id_type wallet_api::get_account_id(string account_name_or_id) const
    return my->get_account_id(account_name_or_id);
 }
 
-asset_id_type wallet_api::get_asset_id(string asset_symbol_or_id) const
+asset_id_type wallet_api::get_asset_id(const string& asset_symbol_or_id) const
 {
    return my->get_asset_id(asset_symbol_or_id);
 }

@@ -199,6 +199,89 @@ std::string operation_printer::operator()(const asset_create_operation& op) cons
    return "";
 }
 
+std::string operation_printer::operator()(const asset_update_operation& op) const
+{
+   out << "Update asset '" << wallet.get_asset(op.asset_to_update).symbol << "'";
+   print_fee(op.fee);
+   return "";
+}
+
+std::string operation_printer::operator()(const asset_update_bitasset_operation& op) const
+{
+   out << "Update bitasset options of '" << wallet.get_asset(op.asset_to_update).symbol << "'";
+   print_fee(op.fee);
+   return "";
+}
+
+string operation_printer::operator()(const asset_issue_operation& op) const
+{
+   out << wallet.get_account(op.issuer).name
+       << " issue " << format_asset(op.asset_to_issue)
+       << " to " << wallet.get_account(op.issue_to_account).name;
+   std::string memo = print_memo( op.memo );
+   print_fee(op.fee);
+   return memo;
+}
+
+string operation_printer::operator()(const asset_reserve_operation& op) const
+{
+   out << "Reserve (burn) " << format_asset(op.amount_to_reserve);
+   print_fee(op.fee);
+   return "";
+}
+
+std::string operation_printer::operator()(const asset_settle_operation& op) const
+{
+   out << "Force-settle " << format_asset(op.amount);
+   print_fee(op.fee);
+   print_result();
+   return "";
+}
+
+std::string operation_printer::operator()(const asset_fund_fee_pool_operation& op) const
+{
+   out << "Fund " << format_asset(op.amount) << " into asset fee pool of "
+       << wallet.get_asset(op.asset_id).symbol;
+   print_fee(op.fee);
+   print_result();
+   return "";
+}
+
+std::string operation_printer::operator()(const asset_claim_pool_operation& op) const
+{
+   out << "Claim " << format_asset(op.amount_to_claim) << " from asset fee pool of "
+       << wallet.get_asset(op.asset_id).symbol;
+   print_fee(op.fee);
+   print_result();
+   return "";
+}
+
+std::string operation_printer::operator()(const asset_update_feed_producers_operation& op) const
+{
+   out << "Update price feed producers of asset " << wallet.get_asset(op.asset_to_update).symbol
+       << " to ";
+   vector<string> accounts;
+   accounts.reserve( op.new_feed_producers.size() );
+   for( const auto& account_id : op.new_feed_producers )
+   {
+      accounts.push_back( wallet.get_account( account_id ).name );
+   }
+   out << fc::json::to_string(accounts);
+   print_fee(op.fee);
+   print_result();
+   return "";
+}
+
+std::string operation_printer::operator()(const asset_publish_feed_operation& op) const
+{
+   // TODO prettify the price
+   out << "Publish price feed " << format_asset(op.feed.settlement_price.base)
+       << " / " << format_asset(op.feed.settlement_price.quote);
+   print_fee(op.fee);
+   print_result();
+   return "";
+}
+
 std::string operation_printer::operator()(const proposal_update_operation& op) const
 {
    out << "Update proposal " << std::string( static_cast<object_id_type>(op.proposal) );
@@ -245,18 +328,24 @@ std::string operation_result_printer::operator()(const void_result& x) const
    return "";
 }
 
-std::string operation_result_printer::operator()(const object_id_type& oid)
+std::string operation_result_printer::operator()(const object_id_type& oid) const
 {
    return std::string(oid);
 }
 
-std::string operation_result_printer::operator()(const asset& a)
+std::string operation_result_printer::operator()(const asset& a) const
 {
    return _wallet.get_asset(a.asset_id).amount_to_pretty_string(a);
 }
 
-std::string operation_result_printer::operator()(const generic_operation_result& r)
+std::string operation_result_printer::operator()(const generic_operation_result& r) const
 {
+   return fc::json::to_string(r);
+}
+
+std::string operation_result_printer::operator()(const extendable_operation_result& r) const
+{
+   // TODO show pretty amounts instead of raw json
    return fc::json::to_string(r);
 }
 

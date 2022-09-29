@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(content_cards_plugin_enabled_test)
 try {
    ACTORS((nathan)(alice)(robert)(patty));
 
-   app.enable_plugin("content_cards");
+   app.register_plugin<graphene::content_cards::content_cards_plugin>(true);
 
    content_card_v2_create_operation op;
    op.subject_account = alice_id;

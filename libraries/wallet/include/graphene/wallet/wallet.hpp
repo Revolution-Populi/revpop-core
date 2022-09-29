@@ -215,12 +215,35 @@ class wallet_api
        */
       account_id_type                   get_account_id(string account_name_or_id) const;
 
+      /** Lookup the name of an account.
+       * @param account_name_or_id the name or ID of the account to look up
+       * @returns the name of the account
+       */
+      string                            get_account_name(const string& account_name_or_id) const
+      { return get_account( account_name_or_id ).name; }
+
       /**
-       * Lookup the id of a named asset.
-       * @param asset_name_or_id the symbol or ID of an asset to look up
+       * Lookup the id of an asset.
+       * @param asset_symbol_or_id the symbol or ID of an asset to look up
        * @returns the id of the given asset
        */
-      asset_id_type                     get_asset_id(string asset_name_or_id) const;
+      asset_id_type                     get_asset_id(const string& asset_symbol_or_id) const;
+
+      /**
+       * Lookup the symbol of an asset.
+       * @param asset_symbol_or_id the symbol or ID of an asset to look up
+       * @returns the symbol of the given asset
+       */
+      string                            get_asset_symbol(const string& asset_symbol_or_id) const
+      { return get_asset( asset_symbol_or_id ).symbol; }
+
+      /**
+       * Lookup the symbol of an asset. Synonym of @ref get_asset_symbol.
+       * @param asset_symbol_or_id the symbol or ID of an asset to look up
+       * @returns the symbol of the given asset
+       */
+      string                            get_asset_name(const string& asset_symbol_or_id) const
+      { return get_asset_symbol( asset_symbol_or_id ); }
 
       /**
        * Returns the blockchain object corresponding to the given id.
@@ -889,17 +912,17 @@ class wallet_api
                                       fc::optional<bitasset_options> bitasset_opts,
                                       bool broadcast = false);
 
-      /** Issue new shares of an asset.
+      /** Create the specified amount of the specified asset and credit into the specified account.
        *
-       * @param to_account the name or id of the account to receive the new shares
+       * @param to_account the name or id of the account to receive the new supply
        * @param amount the amount to issue, in nominal units
-       * @param symbol the ticker symbol of the asset to issue
+       * @param symbol_or_id the ticker symbol or id of the asset to issue
        * @param memo a memo to include in the transaction, readable by the recipient
        * @param broadcast true to broadcast the transaction on the network
-       * @returns the signed transaction issuing the new shares
+       * @returns the signed transaction issuing the new supply
        */
       signed_transaction issue_asset(string to_account, string amount,
-                                     string symbol,
+                                     string symbol_or_id,
                                      string memo,
                                      bool broadcast = false);
 
@@ -911,7 +934,7 @@ class wallet_api
        * @note This operation cannot be used to update BitAsset-specific options. For these options,
        * \c update_bitasset() instead.
        *
-       * @param symbol the name or id of the asset to update
+       * @param symbol_or_id the symbol or id of the asset to update
        * @param new_issuer if changing the asset's issuer, the name or id of the new issuer.
        *                   null if you wish to remain the issuer of the asset
        * @param new_options the new asset_options object, which will entirely replace the existing
@@ -919,7 +942,7 @@ class wallet_api
        * @param broadcast true to broadcast the transaction on the network
        * @returns the signed transaction updating the asset
        */
-      signed_transaction update_asset(string symbol,
+      signed_transaction update_asset(string symbol_or_id,
                                       optional<string> new_issuer,
                                       asset_options new_options,
                                       bool broadcast = false);
@@ -930,12 +953,12 @@ class wallet_api
        *
        * @note This operation requires the owner key to be available in the wallet.
        *
-       * @param symbol the name or id of the asset to update
+       * @param symbol_or_id the symbol or id of the asset to update
        * @param new_issuer if changing the asset's issuer, the name or id of the new issuer.
        * @param broadcast true to broadcast the transaction on the network
        * @returns the signed transaction updating the asset
        */
-      signed_transaction update_asset_issuer(string symbol,
+      signed_transaction update_asset_issuer(string symbol_or_id,
                                              string new_issuer,
                                              bool broadcast = false);
 
@@ -946,13 +969,13 @@ class wallet_api
        *
        * @see update_asset()
        *
-       * @param symbol the name or id of the asset to update, which must be a market-issued asset
+       * @param symbol_or_id the symbol or id of the asset to update, which must be a market-issued asset
        * @param new_options the new bitasset_options object, which will entirely replace the existing
        *                    options.
        * @param broadcast true to broadcast the transaction on the network
        * @returns the signed transaction updating the bitasset
        */
-      signed_transaction update_bitasset(string symbol,
+      signed_transaction update_bitasset(string symbol_or_id,
                                          bitasset_options new_options,
                                          bool broadcast = false);
 
@@ -960,13 +983,13 @@ class wallet_api
        *
        * BitAssets have price feeds selected by taking the median values of recommendations from a set of feed producers.
        * This command is used to specify which accounts may produce feeds for a given BitAsset.
-       * @param symbol the name or id of the asset to update
+       * @param symbol_or_id the symbol or id of the asset to update
        * @param new_feed_producers a list of account names or ids which are authorized to produce feeds for the asset.
        *                           this list will completely replace the existing list
        * @param broadcast true to broadcast the transaction on the network
        * @returns the signed transaction updating the bitasset's feed producers
        */
-      signed_transaction update_asset_feed_producers(string symbol,
+      signed_transaction update_asset_feed_producers(string symbol_or_id,
                                                      flat_set<string> new_feed_producers,
                                                      bool broadcast = false);
 
@@ -985,13 +1008,13 @@ class wallet_api
        * its collateral.
        *
        * @param publishing_account the account publishing the price feed
-       * @param symbol the name or id of the asset whose feed we're publishing
+       * @param symbol_or_id the symbol or id of the asset whose feed we're publishing
        * @param feed the price_feed object containing the three prices making up the feed
        * @param broadcast true to broadcast the transaction on the network
        * @returns the signed transaction updating the price feed for the given asset
        */
       signed_transaction publish_asset_feed(string publishing_account,
-                                            string symbol,
+                                            string symbol_or_id,
                                             price_feed feed,
                                             bool broadcast = false);
 
@@ -1004,13 +1027,13 @@ class wallet_api
        * This command allows anyone to deposit the core asset into this fee pool.
        *
        * @param from the name or id of the account sending the core asset
-       * @param symbol the name or id of the asset whose fee pool you wish to fund
+       * @param symbol_or_id the symbol or id of the asset whose fee pool you wish to fund
        * @param amount the amount of the core asset to deposit
        * @param broadcast true to broadcast the transaction on the network
        * @returns the signed transaction funding the fee pool
        */
       signed_transaction fund_asset_fee_pool(string from,
-                                             string symbol,
+                                             string symbol_or_id,
                                              string amount,
                                              bool broadcast = false);
 
@@ -1022,33 +1045,33 @@ class wallet_api
        *
        * This command allows the issuer to withdraw those funds from the fee pool.
        *
-       * @param symbol the name or id of the asset whose fee pool you wish to claim
+       * @param symbol_or_id the symbol or id of the asset whose fee pool you wish to claim
        * @param amount the amount of the core asset to withdraw
        * @param broadcast true to broadcast the transaction on the network
        * @returns the signed transaction claiming from the fee pool
        */
-      signed_transaction claim_asset_fee_pool(string symbol,
+      signed_transaction claim_asset_fee_pool(string symbol_or_id,
                                               string amount,
                                               bool broadcast = false);
 
-      /** Burns an amount of given asset.
+      /** Burns an amount of given asset to its reserve pool.
        *
        * This command burns an amount of given asset to reduce the amount in circulation.
        * @note you cannot burn market-issued assets.
        * @param from the account containing the asset you wish to burn
        * @param amount the amount to burn, in nominal units
-       * @param symbol the name or id of the asset to burn
+       * @param symbol_or_id the symbol or id of the asset to burn
        * @param broadcast true to broadcast the transaction on the network
        * @returns the signed transaction burning the asset
        */
       signed_transaction reserve_asset(string from,
                                     string amount,
-                                    string symbol,
+                                    string symbol_or_id,
                                     bool broadcast = false);
 
       /** Forces a global settling of the given asset (black swan or prediction markets).
        *
-       * In order to use this operation, asset_to_settle must have the global_settle flag set
+       * In order to use this operation, asset_to_settle must have the \c global_settle permission set
        *
        * When this operation is executed all open margin positions are called at the settle price.
        * A pool will be formed containing the collateral got from the margin positions.
@@ -1058,12 +1081,12 @@ class wallet_api
        *
        * @note this operation is used only by the asset issuer.
        *
-       * @param symbol the name or id of the asset to globally settle
+       * @param symbol_or_id the symbol or id of the asset to globally settle
        * @param settle_price the price at which to settle
        * @param broadcast true to broadcast the transaction on the network
        * @returns the signed transaction settling the named asset
        */
-      signed_transaction global_settle_asset(string symbol,
+      signed_transaction global_settle_asset(string symbol_or_id,
                                              price settle_price,
                                              bool broadcast = false);
 
@@ -1077,17 +1100,17 @@ class wallet_api
        * will be based on the feed price for the market-issued asset being settled.
        * The exact settlement price will be the
        * feed price at the time of settlement with an offset in favor of the margin position, where the offset is a
-       * blockchain parameter set in the global_property_object.
+       * blockchain parameter set in the asset's bitasset options.
        *
        * @param account_to_settle the name or id of the account owning the asset
-       * @param amount_to_settle the amount of the named asset to schedule for settlement
-       * @param symbol the name or id of the asset to settle
+       * @param amount_to_settle the amount of the asset to schedule for settlement
+       * @param symbol_or_id the symbol or id of the asset to settle
        * @param broadcast true to broadcast the transaction on the network
        * @returns the signed transaction settling the named asset
        */
       signed_transaction settle_asset(string account_to_settle,
                                       string amount_to_settle,
-                                      string symbol,
+                                      string symbol_or_id,
                                       bool broadcast = false);
 
       /** Whitelist and blacklist accounts, primarily for transacting in whitelisted assets.
@@ -2060,6 +2083,9 @@ FC_API( graphene::wallet::wallet_api,
         (publish_asset_feed)
         (issue_asset)
         (get_asset)
+        (get_asset_id)
+        (get_asset_name)
+        (get_asset_symbol)
         (get_bitasset_data)
         (fund_asset_fee_pool)
         (claim_asset_fee_pool)
@@ -2073,6 +2099,7 @@ FC_API( graphene::wallet::wallet_api,
         (list_witnesses)
         (list_committee_members)
         (create_witness)
+        (update_witness)
         (create_worker)
         (update_worker_votes)
         (htlc_create)
@@ -2086,6 +2113,7 @@ FC_API( graphene::wallet::wallet_api,
         (set_desired_witness_and_committee_member_count)
         (get_account)
         (get_account_id)
+        (get_account_name)
         (get_block)
         (get_account_count)
         (get_account_history)
@@ -2175,7 +2203,7 @@ FC_API( graphene::wallet::wallet_api,
         (remove_content_card_v2)
         (get_content_card_v2_by_id)
         (get_content_cards_v2)
-        (create_personal_data_v2)        
+        (create_personal_data_v2)
         (remove_personal_data_v2)
         (get_personal_data_v2)
         (get_last_personal_data_v2)

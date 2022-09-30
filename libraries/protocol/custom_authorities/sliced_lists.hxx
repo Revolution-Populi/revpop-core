@@ -48,11 +48,13 @@ using operation_list_12 = static_variant<typelist::builder<>
                                                 ::add_list<typelist::slice<operation::list, 63, 71>>
                                                 ::add<htlc_extend_operation> // 72
                                                 ::finalize>;
+using operation_list_13 = static_variant<typelist::slice<operation::list, 74, 77>>;
 using virtual_operations_list = static_variant<
                                                asset_settle_cancel_operation, // 37
                                                fba_distribute_operation,      // 39
                                                htlc_redeemed_operation,       // 71
-                                               htlc_refund_operation          // 73
+                                               htlc_refund_operation,         // 73
+                                               fill_order_operation           // 77
                                               >;
 
 object_restriction_predicate<operation> get_restriction_predicate_list_1(size_t idx, vector<restriction> rs);
@@ -67,5 +69,6 @@ object_restriction_predicate<operation> get_restriction_predicate_list_9(size_t 
 object_restriction_predicate<operation> get_restriction_predicate_list_10(size_t idx, vector<restriction> rs);
 object_restriction_predicate<operation> get_restriction_predicate_list_11(size_t idx, vector<restriction> rs);
 object_restriction_predicate<operation> get_restriction_predicate_list_12(size_t idx, vector<restriction> rs);
+object_restriction_predicate<operation> get_restriction_predicate_list_13(size_t idx, vector<restriction> rs);
 
 } } // namespace graphene::protocol

@@ -58,6 +58,22 @@ struct get_impacted_account_visitor
    {
       _impacted.insert( op.fee_payer() ); // issuer
    }
+   void operator()( const limit_order_create_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // seller
+   }
+   void operator()( const limit_order_cancel_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // fee_paying_account
+   }
+   void operator()( const call_order_update_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // funding_account
+   }
+   void operator()( const fill_order_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // account_id
+   }
    void operator()( const account_create_operation& op )
    {
       _impacted.insert( op.fee_payer() ); // registrar
@@ -620,12 +636,6 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
               break;
              case impl_fba_accumulator_object_type:
               break;
-             case impl_collateral_bid_object_type:{
-              const auto& aobj = dynamic_cast<const collateral_bid_object*>(obj);
-              FC_ASSERT( aobj != nullptr );
-              accounts.insert( aobj->bidder );
-              break;
-           }
       }
    }
 } // end get_relevant_accounts( const object* obj, flat_set<account_id_type>& accounts )
@@ -696,6 +706,9 @@ void database::notify_changed_objects()
            GRAPHENE_TRY_NOTIFY( removed_objects, removed_ids, removed, removed_accounts_impacted )
       }
    }
+} catch( const graphene::chain::plugin_exception& e ) {
+   elog( "Caught plugin exception: ${e}", ("e", e.to_detail_string() ) );
+   throw;
 } FC_CAPTURE_AND_LOG( (0) ) }
 
 } } // namespace graphene::chain

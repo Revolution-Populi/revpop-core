@@ -238,23 +238,6 @@ std::string operation_printer::operator()(const asset_settle_operation& op) cons
    return "";
 }
 
-std::string operation_printer::operator()(const asset_fund_fee_pool_operation& op) const
-{
-   out << "Fund " << format_asset(op.amount) << " into asset fee pool of "
-       << wallet.get_asset(op.asset_id).symbol;
-   print_fee(op.fee);
-   print_result();
-   return "";
-}
-
-std::string operation_printer::operator()(const asset_claim_pool_operation& op) const
-{
-   out << "Claim " << format_asset(op.amount_to_claim) << " from asset fee pool of "
-       << wallet.get_asset(op.asset_id).symbol;
-   print_fee(op.fee);
-   print_result();
-   return "";
-}
 
 std::string operation_printer::operator()(const asset_update_feed_producers_operation& op) const
 {
@@ -277,6 +260,42 @@ std::string operation_printer::operator()(const asset_publish_feed_operation& op
    // TODO prettify the price
    out << "Publish price feed " << format_asset(op.feed.settlement_price.base)
        << " / " << format_asset(op.feed.settlement_price.quote);
+   print_fee(op.fee);
+   print_result();
+   return "";
+}
+
+std::string operation_printer::operator()(const call_order_update_operation& op) const
+{
+   out << "Adjust debt position with delta debt amount " << format_asset(op.delta_debt)
+       << " and delta collateral amount " << format_asset(op.delta_collateral);
+   print_fee(op.fee);
+   print_result();
+   return "";
+}
+
+std::string operation_printer::operator()(const limit_order_create_operation& op) const
+{
+   out << "Create limit order to sell " << format_asset(op.amount_to_sell)
+       << " for " << format_asset(op.min_to_receive);
+   print_fee(op.fee);
+   print_result();
+   return "";
+}
+
+std::string operation_printer::operator()(const limit_order_cancel_operation& op) const
+{
+   out << "Cancel limit order " << std::string( static_cast<object_id_type>(op.order) );
+   print_fee(op.fee);
+   print_result();
+   return "";
+}
+
+std::string operation_printer::operator()(const fill_order_operation& op) const
+{
+   out << "Pays " << format_asset(op.pays) << " for " << format_asset(op.receives)
+       << " for order " << std::string( static_cast<object_id_type>(op.order_id) )
+       << " as " << ( op.is_maker ? "maker" : "taker" );
    print_fee(op.fee);
    print_result();
    return "";
@@ -328,18 +347,24 @@ std::string operation_result_printer::operator()(const void_result& x) const
    return "";
 }
 
-std::string operation_result_printer::operator()(const object_id_type& oid) const
+std::string operation_result_printer::operator()(const object_id_type& oid)
 {
    return std::string(oid);
 }
 
-std::string operation_result_printer::operator()(const asset& a) const
+std::string operation_result_printer::operator()(const asset& a)
 {
    return _wallet.get_asset(a.asset_id).amount_to_pretty_string(a);
 }
 
-std::string operation_result_printer::operator()(const generic_operation_result& r) const
+std::string operation_result_printer::operator()(const generic_operation_result& r)
 {
+   return fc::json::to_string(r);
+}
+
+std::string operation_result_printer::operator()(const generic_exchange_operation_result& r)
+{
+   // TODO show pretty amounts instead of raw json
    return fc::json::to_string(r);
 }
 

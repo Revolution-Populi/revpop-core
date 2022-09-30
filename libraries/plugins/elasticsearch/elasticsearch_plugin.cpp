@@ -475,7 +475,7 @@ void elasticsearch_plugin::plugin_set_program_options(
          ("elasticsearch-basic-auth", boost::program_options::value<std::string>(),
                "Pass basic auth to elasticsearch database('')")
          ("elasticsearch-index-prefix", boost::program_options::value<std::string>(),
-               "Add a prefix to the index(bitshares-)")
+               "Add a prefix to the index(revpop-)")
          ("elasticsearch-operation-object", boost::program_options::value<bool>(),
                "Save operation as object(true)")
          ("elasticsearch-start-es-after-block", boost::program_options::value<uint32_t>(),

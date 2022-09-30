@@ -45,9 +45,10 @@ public:
    typedef std::string result_type;
 
    std::string operator()(const graphene::protocol::void_result& x) const;
-   std::string operator()(const graphene::protocol::object_id_type& oid) const;
-   std::string operator()(const graphene::protocol::asset& a) const;
-   std::string operator()(const graphene::protocol::generic_operation_result& r) const;
+   std::string operator()(const graphene::protocol::object_id_type& oid);
+   std::string operator()(const graphene::protocol::asset& a);
+   std::string operator()(const graphene::protocol::generic_operation_result& r);
+   std::string operator()(const graphene::protocol::generic_exchange_operation_result& r);
    std::string operator()(const graphene::protocol::extendable_operation_result& r) const;
 };
 
@@ -101,11 +102,13 @@ public:
    std::string operator()(const graphene::protocol::asset_update_bitasset_operation& op)const;
    std::string operator()(const graphene::protocol::asset_update_feed_producers_operation& op)const;
    std::string operator()(const graphene::protocol::asset_publish_feed_operation& op)const;
-   std::string operator()(const graphene::protocol::asset_fund_fee_pool_operation& op)const;
-   std::string operator()(const graphene::protocol::asset_claim_pool_operation& op)const;
    std::string operator()(const graphene::protocol::asset_issue_operation& op)const;
    std::string operator()(const graphene::protocol::asset_reserve_operation& op)const;
    std::string operator()(const graphene::protocol::asset_settle_operation& op)const;
+   std::string operator()(const graphene::protocol::call_order_update_operation& op)const;
+   std::string operator()(const graphene::protocol::limit_order_create_operation& op)const;
+   std::string operator()(const graphene::protocol::limit_order_cancel_operation& op)const;
+   std::string operator()(const graphene::protocol::fill_order_operation& op)const;
    std::string operator()(const graphene::protocol::proposal_update_operation& op)const;
    std::string operator()(const graphene::protocol::htlc_create_operation& op)const;
    std::string operator()(const graphene::protocol::htlc_redeem_operation& op)const;

@@ -38,7 +38,6 @@
 #include <boost/filesystem/path.hpp>
 
 #include <iostream>
-#include <cmath>
 #include <chrono>
 
 using namespace graphene::chain;
@@ -173,7 +172,7 @@ void witness_plugin::plugin_initialize(const boost::program_options::variables_m
        else if(required_participation > 90)
            wlog("witness plugin: Warning - High required participation of ${rp}% found", ("rp", required_participation));
    }
-      if(options.count("user-provided-seed"))
+   if(options.count("user-provided-seed") > 0)
    {
       uint64_t user_provided_seed = options["user-provided-seed"].as<uint64_t>();
       uint64_t seed = static_cast<uint64_t>(
@@ -249,6 +248,7 @@ void witness_plugin::check_resources() {
    o_v->set_master_accounts(masters);
    _witness_accounts.swap(masters);
 }
+
 void witness_plugin::stop_block_production()
 {
    _shutting_down = true;

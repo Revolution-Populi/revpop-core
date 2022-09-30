@@ -38,8 +38,8 @@ namespace graphene { namespace chain {
         class vote_master_summary_object : public graphene::db::abstract_object<vote_master_summary_object>
         {
         public:
-            static const uint8_t space_id = protocol_ids;
-            static const uint8_t type_id  = vote_master_summary_object_type;
+            static constexpr uint8_t space_id = protocol_ids;
+            static constexpr uint8_t type_id  = vote_master_summary_object_type;
 
             account_id_type master_account;
             uint64_t total_votes;

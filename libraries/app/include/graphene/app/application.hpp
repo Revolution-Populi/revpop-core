@@ -53,7 +53,6 @@ namespace graphene { namespace app {
          uint64_t api_limit_get_htlc_by = 100;
          uint64_t api_limit_get_full_accounts = 50;
          uint64_t api_limit_get_full_accounts_lists = 500;
-         uint64_t api_limit_get_top_voters = 200;
          uint64_t api_limit_get_call_orders = 300;
          uint64_t api_limit_get_settle_orders = 300;
          uint64_t api_limit_get_assets = 101;
@@ -73,16 +72,6 @@ namespace graphene { namespace app {
          uint64_t api_limit_get_withdraw_permissions_by_giver = 101;
          uint64_t api_limit_get_withdraw_permissions_by_recipient = 101;
          uint64_t api_limit_get_tickets = 101;
-         uint64_t api_limit_get_liquidity_pools = 101;
-         uint64_t api_limit_get_liquidity_pool_history = 101;
-         uint64_t api_limit_get_samet_funds = 101;
-         uint64_t api_limit_get_credit_offers = 101;
-
-         static const application_options& get_default()
-         {
-            static const application_options default_options;
-            return default_options;
-         }
    };
 
    class application

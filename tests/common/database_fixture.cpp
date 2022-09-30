@@ -269,10 +269,6 @@ std::shared_ptr<boost::program_options::variables_map> database_fixture_base::in
    {
       fc::set_option( options, "api-limit-get-account-limit-orders", (uint64_t)250 );
    }
-   if(fixture.current_test_name =="api_limit_get_collateral_bids")
-   {
-      fc::set_option( options, "api-limit-get-collateral-bids", (uint64_t)250 );
-   }
    if(fixture.current_test_name =="api_limit_get_top_markets")
    {
       fc::set_option( options, "api-limit-get-top-markets", (uint64_t)250 );
@@ -368,7 +364,6 @@ std::shared_ptr<boost::program_options::variables_map> database_fixture_base::in
 
    if( fixture.current_test_name == "asset_in_collateral"
             || fixture.current_test_name == "htlc_database_api"
-            || fixture.current_test_name == "liquidity_pool_apis_test"
             || fixture.current_suite_name == "database_api_tests"
             || fixture.current_suite_name == "api_limit_tests"
             || fixture.current_suite_name == "revpop_14_tests" )
@@ -452,7 +447,6 @@ void database_fixture_base::verify_asset_supplies( const database& db )
    const auto& statistics_index = db.get_index_type<account_stats_index>().indices();
    const auto& acct_balance_index = db.get_index_type<account_balance_index>().indices();
    const auto& settle_index = db.get_index_type<force_settlement_index>().indices();
-   const auto& bids = db.get_index_type<collateral_bid_index>().indices();
    map<asset_id_type,share_type> total_balances;
    map<asset_id_type,share_type> total_debts;
    share_type core_in_orders;
@@ -472,8 +466,6 @@ void database_fixture_base::verify_asset_supplies( const database& db )
       total_balances[b.asset_type] += b.balance;
    for( const force_settlement_object& s : settle_index )
       total_balances[s.balance.asset_id] += s.balance.amount;
-   for( const collateral_bid_object& b : bids )
-      total_balances[b.inv_swan_price.base.asset_id] += b.inv_swan_price.base.amount;
    for( const account_statistics_object& a : statistics_index )
    {
       reported_core_in_orders += a.total_core_in_orders;

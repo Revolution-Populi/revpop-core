@@ -258,10 +258,6 @@ public:
    signed_transaction publish_asset_feed(string publishing_account, string symbol, price_feed feed,
          bool broadcast );
 
-   signed_transaction fund_asset_fee_pool(string from, string symbol, string amount, bool broadcast );
-
-   signed_transaction claim_asset_fee_pool(string symbol, string amount, bool broadcast );
-
    signed_transaction reserve_asset(string from, string amount, string symbol, bool broadcast );
 
    signed_transaction global_settle_asset(string symbol, price settle_price, bool broadcast );
@@ -344,6 +340,8 @@ public:
    signed_transaction sell_asset(string seller_account, string amount_to_sell, string symbol_to_sell,
          string min_to_receive, string symbol_to_receive, uint32_t timeout_sec = 0,
          bool fill_or_kill = false, bool broadcast = false);
+
+   signed_transaction cancel_order(limit_order_id_type order_id, bool broadcast = false);
 
    signed_transaction transfer(string from, string to, string amount,
          string asset_symbol, string memo, bool broadcast = false);

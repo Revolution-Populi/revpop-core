@@ -72,6 +72,12 @@ namespace graphene { namespace app {
          uint64_t api_limit_get_withdraw_permissions_by_giver = 101;
          uint64_t api_limit_get_withdraw_permissions_by_recipient = 101;
          uint64_t api_limit_get_tickets = 101;
+
+         static const application_options& get_default()
+         {
+            static const application_options default_options;
+            return default_options;
+         }
    };
 
    class application

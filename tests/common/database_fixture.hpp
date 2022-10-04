@@ -213,8 +213,6 @@ struct database_fixture_base {
    fc::temp_directory data_dir;
    bool skip_key_index_test = false;
    uint32_t anon_acct_count;
-   bool hf1270 = false;
-    bool bsip77 = false;
 
    string es_index_prefix; ///< Index prefix for elasticsearch plugin
    string es_obj_index_prefix; ///< Index prefix for es_objects plugin

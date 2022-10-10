@@ -238,6 +238,23 @@ std::string operation_printer::operator()(const asset_settle_operation& op) cons
    return "";
 }
 
+std::string operation_printer::operator()(const asset_fund_fee_pool_operation& op) const
+{
+   out << "Fund " << format_asset(op.amount) << " into asset fee pool of "
+       << wallet.get_asset(op.asset_id).symbol;
+   print_fee(op.fee);
+   print_result();
+   return "";
+}
+
+std::string operation_printer::operator()(const asset_claim_pool_operation& op) const
+{
+   out << "Claim " << format_asset(op.amount_to_claim) << " from asset fee pool of "
+       << wallet.get_asset(op.asset_id).symbol;
+   print_fee(op.fee);
+   print_result();
+   return "";
+}
 
 std::string operation_printer::operator()(const asset_update_feed_producers_operation& op) const
 {
@@ -347,22 +364,22 @@ std::string operation_result_printer::operator()(const void_result& x) const
    return "";
 }
 
-std::string operation_result_printer::operator()(const object_id_type& oid)
+std::string operation_result_printer::operator()(const object_id_type& oid) const
 {
    return std::string(oid);
 }
 
-std::string operation_result_printer::operator()(const asset& a)
+std::string operation_result_printer::operator()(const asset& a) const
 {
    return _wallet.get_asset(a.asset_id).amount_to_pretty_string(a);
 }
 
-std::string operation_result_printer::operator()(const generic_operation_result& r)
+std::string operation_result_printer::operator()(const generic_operation_result& r) const
 {
    return fc::json::to_string(r);
 }
 
-std::string operation_result_printer::operator()(const generic_exchange_operation_result& r)
+std::string operation_result_printer::operator()(const generic_exchange_operation_result& r) const
 {
    // TODO show pretty amounts instead of raw json
    return fc::json::to_string(r);

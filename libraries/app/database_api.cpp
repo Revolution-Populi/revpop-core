@@ -726,8 +726,8 @@ map<string,account_id_type> database_api_impl::lookup_accounts( const string& lo
    // In addition to the common auto-subscription rules, here we auto-subscribe if only look for one account
    bool to_subscribe = (limit == 1 && get_whether_to_subscribe( subscribe ));
    for( auto itr = accounts_by_name.lower_bound(lower_bound_name);
-        limit-- && itr != accounts_by_name.end();
-        ++itr )
+        limit > 0 && itr != accounts_by_name.end();
+        ++itr, --limit )
    {
       result.insert(make_pair(itr->name, itr->get_id()));
       if( to_subscribe )
@@ -914,12 +914,9 @@ vector<extended_asset_object> database_api_impl::list_assets(const string& lower
    result.reserve(limit);
 
    auto itr = assets_by_symbol.lower_bound(lower_bound_symbol);
-
-   if( lower_bound_symbol == "" )
-      itr = assets_by_symbol.begin();
-
-   while(limit-- && itr != assets_by_symbol.end())
-      result.emplace_back( extend_asset( *itr++ ) );
+   auto end = assets_by_symbol.end();
+   for( ; limit > 0 && itr != end; ++itr, --limit )
+      result.emplace_back( extend_asset( *itr ) );
 
    return result;
 }
@@ -1729,8 +1726,11 @@ map<string, witness_id_type> database_api_impl::lookup_witness_accounts( const s
                witnesses_by_account_name.insert(std::make_pair(account_iter->name, witness.id));
 
    auto end_iter = witnesses_by_account_name.begin();
-   while (end_iter != witnesses_by_account_name.end() && limit--)
-       ++end_iter;
+   while( end_iter != witnesses_by_account_name.end() && limit > 0 )
+   {
+      ++end_iter;
+      --limit;
+   }
    witnesses_by_account_name.erase(end_iter, witnesses_by_account_name.end());
    return witnesses_by_account_name;
 }
@@ -1816,8 +1816,11 @@ map<string, committee_member_id_type> database_api_impl::lookup_committee_member
                committee_members_by_account_name.insert(std::make_pair(account_iter->name, committee_member.id));
 
    auto end_iter = committee_members_by_account_name.begin();
-   while (end_iter != committee_members_by_account_name.end() && limit--)
-       ++end_iter;
+   while( end_iter != committee_members_by_account_name.end() && limit > 0 )
+   {
+      ++end_iter;
+      --limit;
+   }
    committee_members_by_account_name.erase(end_iter, committee_members_by_account_name.end());
    return committee_members_by_account_name;
 }
@@ -2908,40 +2911,52 @@ const account_object* database_api_impl::get_account_from_string( const std::str
                                                                   bool throw_if_not_found ) const
 {
    // TODO cache the result to avoid repeatly fetching from db
-   FC_ASSERT( name_or_id.size() > 0);
-   const account_object* account = nullptr;
-   if (std::isdigit(name_or_id[0]))
-      account = _db.find(fc::variant(name_or_id, 1).as<account_id_type>(1));
+   if( name_or_id.empty() )
+   {
+      if( throw_if_not_found )
+         FC_THROW_EXCEPTION( fc::assert_exception, "no such account" );
+      else
+         return nullptr;
+   }
+   const account_object* account_ptr = nullptr;
+   if( 0 != std::isdigit(name_or_id[0]) )
+      account_ptr = _db.find(fc::variant(name_or_id, 1).as<account_id_type>(1));
    else
    {
       const auto& idx = _db.get_index_type<account_index>().indices().get<by_name>();
       auto itr = idx.find(name_or_id);
       if (itr != idx.end())
-         account = &*itr;
+         account_ptr = &(*itr);
    }
    if(throw_if_not_found)
-      FC_ASSERT( account, "no such account" );
-   return account;
+      FC_ASSERT( account_ptr, "no such account" );
+   return account_ptr;
 }
 
 const asset_object* database_api_impl::get_asset_from_string( const std::string& symbol_or_id,
                                                               bool throw_if_not_found ) const
 {
    // TODO cache the result to avoid repeatly fetching from db
-   FC_ASSERT( symbol_or_id.size() > 0);
-   const asset_object* asset = nullptr;
-   if (std::isdigit(symbol_or_id[0]))
-      asset = _db.find(fc::variant(symbol_or_id, 1).as<asset_id_type>(1));
+   if( symbol_or_id.empty() )
+   {
+      if( throw_if_not_found )
+         FC_THROW_EXCEPTION( fc::assert_exception, "no such asset" );
+      else
+         return nullptr;
+   }
+   const asset_object* asset_ptr = nullptr;
+   if( 0 != std::isdigit(symbol_or_id[0]) )
+      asset_ptr = _db.find(fc::variant(symbol_or_id, 1).as<asset_id_type>(1));
    else
    {
       const auto& idx = _db.get_index_type<asset_index>().indices().get<by_symbol>();
       auto itr = idx.find(symbol_or_id);
       if (itr != idx.end())
-         asset = &*itr;
+         asset_ptr = &(*itr);
    }
    if(throw_if_not_found)
-      FC_ASSERT( asset, "no such asset" );
-   return asset;
+      FC_ASSERT( asset_ptr, "no such asset" );
+   return asset_ptr;
 }
 
 // helper function
@@ -3003,7 +3018,7 @@ vector<limit_order_object> database_api_impl::get_limit_orders( const asset_id_t
 
 bool database_api_impl::is_impacted_account( const flat_set<account_id_type>& accounts)
 {
-   if( !_subscribed_accounts.size() || !accounts.size() )
+   if( _subscribed_accounts.empty() || accounts.empty() )
       return false;
 
    return std::any_of(accounts.begin(), accounts.end(), [this](const account_id_type& account) {
@@ -3013,7 +3028,7 @@ bool database_api_impl::is_impacted_account( const flat_set<account_id_type>& ac
 
 void database_api_impl::broadcast_updates( const vector<variant>& updates )
 {
-   if( updates.size() && _subscribe_callback ) {
+   if( !updates.empty() && _subscribe_callback ) {
       auto capture_this = shared_from_this();
       fc::async([capture_this,updates](){
           if(capture_this->_subscribe_callback)
@@ -3024,7 +3039,7 @@ void database_api_impl::broadcast_updates( const vector<variant>& updates )
 
 void database_api_impl::broadcast_market_updates( const market_queue_type& queue)
 {
-   if( queue.size() )
+   if( !queue.empty() )
    {
       auto capture_this = shared_from_this();
       fc::async([capture_this, this, queue](){
@@ -3101,11 +3116,11 @@ void database_api_impl::handle_object_changed( bool force_notify,
          }
       }
 
-      if( updates.size() )
+      if( !updates.empty() )
          broadcast_updates(updates);
    }
 
-   if( _market_subscriptions.size() )
+   if( !_market_subscriptions.empty() )
    {
       market_queue_type broadcast_queue;
 
@@ -3126,7 +3141,7 @@ void database_api_impl::handle_object_changed( bool force_notify,
          }
       }
 
-      if( broadcast_queue.size() )
+      if( !broadcast_queue.empty() )
          broadcast_market_updates(broadcast_queue);
    }
 }
@@ -3145,7 +3160,7 @@ void database_api_impl::on_applied_block()
       });
    }
 
-   if(_market_subscriptions.size() == 0)
+   if( _market_subscriptions.empty() )
       return;
 
    const auto& ops = _db.get_applied_operations();

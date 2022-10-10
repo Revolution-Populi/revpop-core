@@ -258,6 +258,10 @@ public:
    signed_transaction publish_asset_feed(string publishing_account, string symbol, price_feed feed,
          bool broadcast );
 
+   signed_transaction fund_asset_fee_pool(string from, string symbol, string amount, bool broadcast );
+
+   signed_transaction claim_asset_fee_pool(string symbol, string amount, bool broadcast );
+
    signed_transaction reserve_asset(string from, string amount, string symbol, bool broadcast );
 
    signed_transaction global_settle_asset(string symbol, price settle_price, bool broadcast );

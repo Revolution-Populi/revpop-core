@@ -1073,6 +1073,42 @@ class wallet_api
                                             price_feed feed,
                                             bool broadcast = false);
 
+      /** Pay into the fee pool for the given asset.
+       *
+       * User-issued assets can optionally have a pool of the core asset which is
+       * automatically used to pay transaction fees for any transaction using that
+       * asset (using the asset's core exchange rate).
+       *
+       * This command allows anyone to deposit the core asset into this fee pool.
+       *
+       * @param from the name or id of the account sending the core asset
+       * @param symbol_or_id the symbol or id of the asset whose fee pool you wish to fund
+       * @param amount the amount of the core asset to deposit
+       * @param broadcast true to broadcast the transaction on the network
+       * @returns the signed transaction funding the fee pool
+       */
+      signed_transaction fund_asset_fee_pool(string from,
+                                             string symbol_or_id,
+                                             string amount,
+                                             bool broadcast = false);
+
+      /** Claim funds from the fee pool for the given asset.
+       *
+       * User-issued assets can optionally have a pool of the core asset which is
+       * automatically used to pay transaction fees for any transaction using that
+       * asset (using the asset's core exchange rate).
+       *
+       * This command allows the issuer to withdraw those funds from the fee pool.
+       *
+       * @param symbol_or_id the symbol or id of the asset whose fee pool you wish to claim
+       * @param amount the amount of the core asset to withdraw
+       * @param broadcast true to broadcast the transaction on the network
+       * @returns the signed transaction claiming from the fee pool
+       */
+      signed_transaction claim_asset_fee_pool(string symbol_or_id,
+                                              string amount,
+                                              bool broadcast = false);
+
       /** Burns an amount of given asset to its reserve pool.
        *
        * This command burns an amount of given asset to reduce the amount in circulation.
@@ -2100,6 +2136,7 @@ FC_API( graphene::wallet::wallet_api,
         (upgrade_account)
         (create_account_with_brain_key)
         (sell_asset)
+        (cancel_order)
         (transfer)
         (get_transaction_id)
         (create_asset)
@@ -2115,6 +2152,8 @@ FC_API( graphene::wallet::wallet_api,
         (get_asset_name)
         (get_asset_symbol)
         (get_bitasset_data)
+        (fund_asset_fee_pool)
+        (claim_asset_fee_pool)
         (reserve_asset)
         (global_settle_asset)
         (settle_asset)

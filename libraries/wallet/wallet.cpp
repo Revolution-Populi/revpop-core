@@ -700,6 +700,21 @@ signed_transaction wallet_api::publish_asset_feed(string publishing_account,
    return my->publish_asset_feed(publishing_account, symbol, feed, broadcast);
 }
 
+signed_transaction wallet_api::fund_asset_fee_pool(string from,
+                                                   string symbol,
+                                                   string amount,
+                                                   bool broadcast /* = false */)
+{
+   return my->fund_asset_fee_pool(from, symbol, amount, broadcast);
+}
+
+signed_transaction wallet_api::claim_asset_fee_pool(string symbol,
+                                                    string amount,
+                                                    bool broadcast /* = false */)
+{
+   return my->claim_asset_fee_pool(symbol, amount, broadcast);
+}
+
 signed_transaction wallet_api::reserve_asset(string from,
                                           string amount,
                                           string symbol,

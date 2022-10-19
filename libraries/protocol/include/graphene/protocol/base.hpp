@@ -92,6 +92,13 @@ namespace graphene { namespace protocol {
       flat_set<object_id_type> removed_objects;
    };
 
+   struct generic_exchange_operation_result
+   {
+      vector<asset> paid;
+      vector<asset> received;
+      vector<asset> fees;
+   };
+
    struct extendable_operation_result_dtl
    {
       optional<flat_set<account_id_type>> impacted_accounts;
@@ -110,6 +117,7 @@ namespace graphene { namespace protocol {
          /* 1 */ object_id_type,
          /* 2 */ asset,
          /* 3 */ generic_operation_result,
+         /* 4 */ generic_exchange_operation_result,
          /* 5 */ extendable_operation_result
          >;
 
@@ -156,9 +164,12 @@ FC_REFLECT_TYPENAME( graphene::protocol::future_extensions )
 FC_REFLECT_TYPENAME( graphene::protocol::extensions_type )
 FC_REFLECT( graphene::protocol::void_result, )
 FC_REFLECT( graphene::protocol::generic_operation_result, (new_objects)(updated_objects)(removed_objects) )
+FC_REFLECT( graphene::protocol::generic_exchange_operation_result, (paid)(received)(fees) )
 FC_REFLECT( graphene::protocol::extendable_operation_result_dtl,
             (impacted_accounts)(new_objects)(updated_objects)(removed_objects)(paid)(received)(fees) )
 
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::generic_operation_result ) // impl in operations.cpp
+// impl in operations.cpp
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::generic_exchange_operation_result )
 // impl in operations.cpp
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::extendable_operation_result_dtl )

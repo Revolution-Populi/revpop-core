@@ -45,7 +45,6 @@ void database::debug_dump()
 
    const auto& balance_index = db.get_index_type<account_balance_index>().indices();
    const auto& statistics_index = db.get_index_type<account_stats_index>().indices();
-   const auto& bids = db.get_index_type<collateral_bid_index>().indices();
    const auto& settle_index = db.get_index_type<force_settlement_index>().indices();
    const auto& htlcs = db.get_index_type<htlc_index>().indices();
    map<asset_id_type,share_type> total_balances;
@@ -71,8 +70,6 @@ void database::debug_dump()
     //  idump(("statistics")(s));
       reported_core_in_orders += s.total_core_in_orders;
    }
-   for( const collateral_bid_object& b : bids )
-      total_balances[b.inv_swan_price.base.asset_id] += b.inv_swan_price.base.amount;
    for( const limit_order_object& o : db.get_index_type<limit_order_index>().indices() )
    {
  //     idump(("limit_order")(o));

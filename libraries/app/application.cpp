@@ -339,10 +339,6 @@ void application_impl::set_api_limit() {
       _app_options.api_limit_get_full_accounts_lists =
             _options->at("api-limit-get-full-accounts-lists").as<uint64_t>();
    }
-   if(_options->count("api-limit-get-top-voters") > 0) {
-      _app_options.api_limit_get_top_voters =
-            _options->at("api-limit-get-top-voters").as<uint64_t>();
-   }
    if(_options->count("api-limit-get-call-orders") > 0) {
       _app_options.api_limit_get_call_orders =
             _options->at("api-limit-get-call-orders").as<uint64_t>();
@@ -418,22 +414,6 @@ void application_impl::set_api_limit() {
    if(_options->count("api-limit-get-tickets") > 0) {
       _app_options.api_limit_get_tickets =
             _options->at("api-limit-get-tickets").as<uint64_t>();
-   }
-   if(_options->count("api-limit-get-liquidity-pools") > 0) {
-      _app_options.api_limit_get_liquidity_pools =
-            _options->at("api-limit-get-liquidity-pools").as<uint64_t>();
-   }
-   if(_options->count("api-limit-get-liquidity-pool-history") > 0) {
-      _app_options.api_limit_get_liquidity_pool_history =
-            _options->at("api-limit-get-liquidity-pool-history").as<uint64_t>();
-   }
-   if(_options->count("api-limit-get-samet-funds") > 0) {
-      _app_options.api_limit_get_samet_funds =
-            _options->at("api-limit-get-samet-funds").as<uint64_t>();
-   }
-   if(_options->count("api-limit-get-credit-offers") > 0) {
-      _app_options.api_limit_get_credit_offers =
-            _options->at("api-limit-get-credit-offers").as<uint64_t>();
    }
 }
 
@@ -1198,9 +1178,6 @@ void application::set_program_options(boost::program_options::options_descriptio
          ("api-limit-get-full-accounts-lists",
           bpo::value<uint64_t>()->default_value(default_opts.api_limit_get_full_accounts_lists),
           "For database_api_impl::get_full_accounts to set max items to return in the lists")
-         ("api-limit-get-top-voters",
-          bpo::value<uint64_t>()->default_value(default_opts.api_limit_get_top_voters),
-          "For database_api_impl::get_top_voters to set max limit value")
          ("api-limit-get-call-orders",
           bpo::value<uint64_t>()->default_value(default_opts.api_limit_get_call_orders),
           "For database_api_impl::get_call_orders and get_call_orders_by_account to set max limit value")
@@ -1258,18 +1235,6 @@ void application::set_program_options(boost::program_options::options_descriptio
          ("api-limit-get-tickets",
           bpo::value<uint64_t>()->default_value(default_opts.api_limit_get_tickets),
           "Set maximum limit value for database APIs which query for tickets")
-         ("api-limit-get-liquidity-pools",
-          bpo::value<uint64_t>()->default_value(default_opts.api_limit_get_liquidity_pools),
-          "Set maximum limit value for database APIs which query for liquidity pools")
-         ("api-limit-get-liquidity-pool-history",
-          bpo::value<uint64_t>()->default_value(default_opts.api_limit_get_liquidity_pool_history),
-          "Set maximum limit value for APIs which query for history of liquidity pools")
-         ("api-limit-get-samet-funds",
-          bpo::value<uint64_t>()->default_value(default_opts.api_limit_get_samet_funds),
-          "Set maximum limit value for database APIs which query for SameT Funds")
-         ("api-limit-get-credit-offers",
-          bpo::value<uint64_t>()->default_value(default_opts.api_limit_get_credit_offers),
-          "Set maximum limit value for database APIs which query for credit offers or credit deals")
          ;
    command_line_options.add(configuration_file_options);
    command_line_options.add_options()

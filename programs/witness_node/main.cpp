@@ -29,8 +29,11 @@
 #include <graphene/debug_witness/debug_witness.hpp>
 #include <graphene/account_history/account_history_plugin.hpp>
 #include <graphene/elasticsearch/elasticsearch_plugin.hpp>
+#include <graphene/market_history/market_history_plugin.hpp>
+#include <graphene/delayed_node/delayed_node_plugin.hpp>
 #include <graphene/snapshot/snapshot.hpp>
 #include <graphene/es_objects/es_objects.hpp>
+#include <graphene/grouped_orders/grouped_orders_plugin.hpp>
 #include <graphene/api_helper_indexes/api_helper_indexes.hpp>
 #include <graphene/custom_operations/custom_operations_plugin.hpp>
 #include <graphene/content_cards/content_cards.hpp>
@@ -84,7 +87,7 @@ int main(int argc, char** argv) {
    try {
       bpo::options_description app_options("RevPop Witness Node");
       bpo::options_description cfg_options("RevPop Witness Node");
-      std::string default_plugins = "witness account_history "
+      std::string default_plugins = "witness account_history market_history grouped_orders "
                                     "api_helper_indexes custom_operations";
       app_options.add_options()
             ("help,h", "Print this help message and exit.")
@@ -112,8 +115,11 @@ int main(int argc, char** argv) {
       node->register_plugin<graphene::debug_witness_plugin::debug_witness_plugin>();
       node->register_plugin<graphene::account_history::account_history_plugin>();
       node->register_plugin<graphene::elasticsearch::elasticsearch_plugin>();
+      node->register_plugin<graphene::market_history::market_history_plugin>();
+      node->register_plugin<graphene::delayed_node::delayed_node_plugin>();
       node->register_plugin<graphene::snapshot_plugin::snapshot_plugin>();
       node->register_plugin<graphene::es_objects::es_objects_plugin>();
+      node->register_plugin<graphene::grouped_orders::grouped_orders_plugin>();
       node->register_plugin<graphene::api_helper_indexes::api_helper_indexes>();
       node->register_plugin<graphene::custom_operations::custom_operations_plugin>();
       node->register_plugin<graphene::content_cards::content_cards_plugin>();

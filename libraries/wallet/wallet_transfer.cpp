@@ -189,7 +189,7 @@ namespace graphene { namespace wallet { namespace detail {
          uint32_t timeout_sec, bool fill_or_kill, bool broadcast )
    {
       account_object seller   = get_account( seller_account );
-/*
+
       limit_order_create_operation op;
       op.seller = seller.id;
       op.amount_to_sell = get_asset(symbol_to_sell).amount_from_string(amount_to_sell);
@@ -200,39 +200,31 @@ namespace graphene { namespace wallet { namespace detail {
 
       signed_transaction tx;
       tx.operations.push_back(op);
-*/    signed_transaction tx;
       set_operation_fees( tx, _remote_db->get_global_properties().parameters.get_current_fees());
       tx.validate();
 
       return sign_transaction( tx, broadcast );
    }
 
-   signed_transaction wallet_api_impl::borrow_asset(string seller_name, string amount_to_borrow, 
-         string asset_symbol, string amount_of_collateral, bool broadcast )
-   {
-      account_object seller = get_account(seller_name);
-      asset_object mia = get_asset(asset_symbol);
-      FC_ASSERT(mia.is_market_issued());
-      asset_object collateral = get_asset(get_object(*mia.bitasset_data_id).options.short_backing_asset);
-/*
-      call_order_update_operation op;
-      op.funding_account = seller.id;
-      op.delta_debt   = mia.amount_from_string(amount_to_borrow);
-      op.delta_collateral = collateral.amount_from_string(amount_of_collateral);
+   signed_transaction wallet_api_impl::cancel_order(limit_order_id_type order_id, bool broadcast )
+   { try {
+         FC_ASSERT(!is_locked());
+         signed_transaction trx;
 
-      signed_transaction trx;
-      trx.operations = {op};
-*/    signed_transaction trx;
-      set_operation_fees( trx, _remote_db->get_global_properties().parameters.get_current_fees());
-      trx.validate();
+         limit_order_cancel_operation op;
+         op.fee_paying_account = get_object(order_id).seller;
+         op.order = order_id;
+         trx.operations = {op};
+         set_operation_fees( trx, _remote_db->get_global_properties().parameters.get_current_fees());
 
-      return sign_transaction(trx, broadcast);
-   }
+         trx.validate();
+         return sign_transaction(trx, broadcast);
+   } FC_CAPTURE_AND_RETHROW((order_id)) }
 
    signed_transaction wallet_api_impl::withdraw_vesting( string witness_name, string amount, string asset_symbol,
          bool broadcast )
    { try {
-      asset_object asset_obj = get_asset( asset_symbol );
+      auto asset_obj = get_asset( asset_symbol );
       fc::optional<vesting_balance_id_type> vbid = maybe_id<vesting_balance_id_type>(witness_name);
       if( !vbid )
       {

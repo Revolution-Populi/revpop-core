@@ -291,11 +291,6 @@ struct database_fixture_base {
    void publish_feed( const asset_object& mia, const account_object& by, const price_feed& f,
                       const optional<uint16_t> icr = {} );
 
-   const call_order_object* borrow( account_id_type who, asset what, asset collateral,
-                                    optional<uint16_t> target_cr = {} )
-   { return borrow(who(db), what, collateral, target_cr); }
-   const call_order_object* borrow( const account_object& who, asset what, asset collateral,
-                                    optional<uint16_t> target_cr = {} );
    void cover(account_id_type who, asset what, asset collateral_freed,
                                     optional<uint16_t> target_cr = {} )
    { cover(who(db), what, collateral_freed, target_cr); }

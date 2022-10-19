@@ -37,8 +37,8 @@ namespace graphene { namespace chain {
         class commit_reveal_object : public graphene::db::abstract_object<commit_reveal_object>
         {
         public:
-            static const uint8_t space_id = protocol_ids;
-            static const uint8_t type_id  = commit_reveal_object_type;
+            static constexpr uint8_t space_id = protocol_ids;
+            static constexpr uint8_t type_id  = commit_reveal_object_type;
 
             account_id_type account;
             string          hash;

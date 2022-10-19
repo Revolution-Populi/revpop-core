@@ -32,6 +32,7 @@
 #include <graphene/protocol/confidential.hpp>
 #include <graphene/protocol/custom_authority.hpp>
 #include <graphene/protocol/fba.hpp>
+#include <graphene/protocol/market.hpp>
 #include <graphene/protocol/proposal.hpp>
 #include <graphene/protocol/ticket.hpp>
 #include <graphene/protocol/transfer.hpp>
@@ -131,7 +132,11 @@ namespace graphene { namespace protocol {
             /* 70 */ htlc_redeem_operation,
             /* 71 */ htlc_redeemed_operation,         // VIRTUAL
             /* 72 */ htlc_extend_operation,
-            /* 73 */ htlc_refund_operation            // VIRTUAL
+            /* 73 */ htlc_refund_operation,           // VIRTUAL
+            /* 74 */ limit_order_create_operation,
+            /* 75 */ limit_order_cancel_operation,
+            /* 76 */ call_order_update_operation,
+            /* 77 */ fill_order_operation            // VIRTUAL
          > operation;
 
    /// @} // operations group
@@ -140,7 +145,7 @@ namespace graphene { namespace protocol {
     *  Appends required authorites to the result vector.  The authorities appended are not the
     *  same as those returned by get_required_auth 
     *
-    *  @return a set of required authorities for @ref op
+    *  @return a set of required authorities for @p op
     */
    void operation_get_required_authorities( const operation& op,
                                             flat_set<account_id_type>& active,

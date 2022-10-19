@@ -282,6 +282,42 @@ std::string operation_printer::operator()(const asset_publish_feed_operation& op
    return "";
 }
 
+std::string operation_printer::operator()(const call_order_update_operation& op) const
+{
+   out << "Adjust debt position with delta debt amount " << format_asset(op.delta_debt)
+       << " and delta collateral amount " << format_asset(op.delta_collateral);
+   print_fee(op.fee);
+   print_result();
+   return "";
+}
+
+std::string operation_printer::operator()(const limit_order_create_operation& op) const
+{
+   out << "Create limit order to sell " << format_asset(op.amount_to_sell)
+       << " for " << format_asset(op.min_to_receive);
+   print_fee(op.fee);
+   print_result();
+   return "";
+}
+
+std::string operation_printer::operator()(const limit_order_cancel_operation& op) const
+{
+   out << "Cancel limit order " << std::string( static_cast<object_id_type>(op.order) );
+   print_fee(op.fee);
+   print_result();
+   return "";
+}
+
+std::string operation_printer::operator()(const fill_order_operation& op) const
+{
+   out << "Pays " << format_asset(op.pays) << " for " << format_asset(op.receives)
+       << " for order " << std::string( static_cast<object_id_type>(op.order_id) )
+       << " as " << ( op.is_maker ? "maker" : "taker" );
+   print_fee(op.fee);
+   print_result();
+   return "";
+}
+
 std::string operation_printer::operator()(const proposal_update_operation& op) const
 {
    out << "Update proposal " << std::string( static_cast<object_id_type>(op.proposal) );
@@ -340,6 +376,12 @@ std::string operation_result_printer::operator()(const asset& a) const
 
 std::string operation_result_printer::operator()(const generic_operation_result& r) const
 {
+   return fc::json::to_string(r);
+}
+
+std::string operation_result_printer::operator()(const generic_exchange_operation_result& r) const
+{
+   // TODO show pretty amounts instead of raw json
    return fc::json::to_string(r);
 }
 

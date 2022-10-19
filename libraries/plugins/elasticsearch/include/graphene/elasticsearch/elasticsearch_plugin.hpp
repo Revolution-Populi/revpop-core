@@ -112,6 +112,21 @@ struct operation_visitor
    double              fill_fill_price;
    bool                fill_is_maker;
 
+   void operator()( const graphene::chain::fill_order_operation& o )
+   {
+      fee_asset = o.fee.asset_id;
+      fee_amount = o.fee.amount;
+
+      fill_order_id = o.order_id;
+      fill_account_id = o.account_id;
+      fill_pays_asset_id = o.pays.asset_id;
+      fill_pays_amount = o.pays.amount;
+      fill_receives_asset_id = o.receives.asset_id;
+      fill_receives_amount = o.receives.amount;
+      fill_fill_price = o.fill_price.to_real();
+      fill_is_maker = o.is_maker;
+   }
+
    template<typename T>
    void operator()( const T& o )
    {
@@ -244,24 +259,31 @@ struct adaptor_struct {
          o["owner_"] = o["owner"].as_string();
          o.erase("owner");
       }
-
-      vector<string> to_string_fields = {
-         "proposed_ops",
-         "initializer",
-         "policy",
-         "predicates",
-         "active_special_authority",
-         "owner_special_authority",
-         "acceptable_collateral",
-         "acceptable_borrowers"
-      };
-      for( const auto& name : to_string_fields )
+      if (o.find("proposed_ops") != o.end())
       {
-         if (o.find(name) != o.end())
-         {
-            o[name] = fc::json::to_string(o[name]);
-         }
+         o["proposed_ops"] = fc::json::to_string(o["proposed_ops"]);
       }
+      if (o.find("initializer") != o.end())
+      {
+         o["initializer"] = fc::json::to_string(o["initializer"]);
+      }
+      if (o.find("policy") != o.end())
+      {
+         o["policy"] = fc::json::to_string(o["policy"]);
+      }
+      if (o.find("predicates") != o.end())
+      {
+         o["predicates"] = fc::json::to_string(o["predicates"]);
+      }
+      if (o.find("active_special_authority") != o.end())
+      {
+         o["active_special_authority"] = fc::json::to_string(o["active_special_authority"]);
+      }
+      if (o.find("owner_special_authority") != o.end())
+      {
+         o["owner_special_authority"] = fc::json::to_string(o["owner_special_authority"]);
+      }
+
 
       variant v;
       fc::to_variant(o, v, FC_PACK_MAX_DEPTH);

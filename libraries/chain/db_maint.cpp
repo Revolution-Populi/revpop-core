@@ -839,47 +839,13 @@ void database::process_bids( const asset_bitasset_data_object& bad )
    const asset_object& to_revive = to_revive_id( *this );
    const asset_dynamic_data_object& bdd = to_revive.dynamic_data( *this );
 
-   const auto& bid_idx = get_index_type< collateral_bid_index >().indices().get<by_price>();
-   const auto start = bid_idx.lower_bound( boost::make_tuple( to_revive_id, price::max( bad.options.short_backing_asset, to_revive_id ), collateral_bid_id_type() ) );
 
    share_type covered = 0;
-   auto itr = start;
-   while( covered < bdd.current_supply && itr != bid_idx.end() && itr->inv_swan_price.quote.asset_id == to_revive_id )
-   {
-      const collateral_bid_object& bid = *itr;
-      asset debt_in_bid = bid.inv_swan_price.quote;
-      if( debt_in_bid.amount > bdd.current_supply )
-         debt_in_bid.amount = bdd.current_supply;
-      asset total_collateral = debt_in_bid * bad.settlement_price;
-      total_collateral += bid.inv_swan_price.base;
-      price call_price = price::call_price( debt_in_bid, total_collateral, bad.current_feed.maintenance_collateral_ratio );
-      if( ~call_price >= bad.current_feed.settlement_price ) break;
-      covered += debt_in_bid.amount;
-      ++itr;
-   }
    if( covered < bdd.current_supply ) return;
 
-   const auto end = itr;
    share_type to_cover = bdd.current_supply;
    share_type remaining_fund = bad.settlement_fund;
-   for( itr = start; itr != end; )
-   {
-      const collateral_bid_object& bid = *itr;
-      ++itr;
-      asset debt_in_bid = bid.inv_swan_price.quote;
-      if( debt_in_bid.amount > bdd.current_supply )
-         debt_in_bid.amount = bdd.current_supply;
-      share_type debt = debt_in_bid.amount;
-      share_type collateral = (debt_in_bid * bad.settlement_price).amount;
-      if( debt >= to_cover )
-      {
-         debt = to_cover;
-         collateral = remaining_fund;
-      }
-      to_cover -= debt;
-      remaining_fund -= collateral;
-      execute_bid( bid, debt, collateral, bad.current_feed );
-   }
+
    FC_ASSERT( remaining_fund == 0 );
    FC_ASSERT( to_cover == 0 );
 

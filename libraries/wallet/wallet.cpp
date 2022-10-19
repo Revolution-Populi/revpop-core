@@ -103,7 +103,6 @@ namespace graphene { namespace wallet {
 
       // Create as many derived owner keys as requested
       vector<brain_key_info> results;
-      brain_key = graphene::wallet::detail::normalize_brain_key(brain_key);
       for (int i = 0; i < number_of_desired_keys; ++i) {
         fc::ecc::private_key priv_key = graphene::wallet::detail::derive_private_key( brain_key, i );
 
@@ -152,7 +151,7 @@ namespace graphene { namespace wallet {
 namespace graphene { namespace wallet {
 
 wallet_api::wallet_api(const wallet_data& initial_data, fc::api<login_api> rapi)
-   : my(new detail::wallet_api_impl(*this, initial_data, rapi))
+   : my( std::make_unique<detail::wallet_api_impl>(*this, initial_data, rapi) )
 {
 }
 
@@ -277,7 +276,7 @@ signed_transaction wallet_api::htlc_extend ( std::string htlc_id, std::string is
    return my->htlc_extend(htlc_id, issuer, seconds_to_add, broadcast);
 }
 
-vector<operation_detail> wallet_api::get_account_history(string name, int limit)const
+vector<operation_detail> wallet_api::get_account_history(const string& name, uint32_t limit)const
 {
    vector<operation_detail> result;
 
@@ -299,7 +298,9 @@ vector<operation_detail> wallet_api::get_account_history(string name, int limit)
          }
       }
 
-      int page_limit = skip_first_row ? std::min( 100, limit + 1 ) : std::min( 100, limit );
+      uint32_t default_page_size = 100;
+      uint32_t page_limit = skip_first_row ? std::min<uint32_t>( default_page_size, limit + 1 )
+                                           : std::min<uint32_t>( default_page_size, limit );
 
       vector<operation_history_object> current = my->_remote_hist->get_account_history(
             name,
@@ -322,7 +323,7 @@ vector<operation_detail> wallet_api::get_account_history(string name, int limit)
          result.push_back( operation_detail{ memo, ss.str(), o } );
       }
 
-      if( int(current.size()) < page_limit )
+      if( current.size() < page_limit )
          break;
 
       limit -= current.size();
@@ -334,9 +335,9 @@ vector<operation_detail> wallet_api::get_account_history(string name, int limit)
 }
 
 vector<operation_detail> wallet_api::get_relative_account_history(
-      string name,
+      const string& name,
       uint32_t stop,
-      int limit,
+      uint32_t limit,
       uint32_t start)const
 {
    vector<operation_detail> result;
@@ -350,37 +351,38 @@ vector<operation_detail> wallet_api::get_relative_account_history(
    else
       start = std::min<uint32_t>(start, stats.total_ops);
 
+   uint32_t default_page_size = 100;
    while( limit > 0 )
    {
+      uint32_t page_size = std::min<uint32_t>(default_page_size, limit);
       vector <operation_history_object> current = my->_remote_hist->get_relative_account_history(
             name,
             stop,
-            std::min<uint32_t>(100, limit),
+            page_size,
             start);
       for (auto &o : current) {
          std::stringstream ss;
          auto memo = o.op.visit(detail::operation_printer(ss, *my, o));
          result.push_back(operation_detail{memo, ss.str(), o});
       }
-      if (current.size() < std::min<uint32_t>(100, limit))
+      if (current.size() < page_size)
          break;
-      limit -= current.size();
-      start -= 100;
+      limit -= page_size;
+      start -= page_size;
       if( start == 0 ) break;
    }
    return result;
 }
 
 account_history_operation_detail wallet_api::get_account_history_by_operations(
-      string name,
-      flat_set<uint16_t> operation_types,
+      const string& name,
+      const flat_set<uint16_t>& operation_types,
       uint32_t start,
-      int limit)
+      uint32_t limit)
 {
     account_history_operation_detail result;
-    auto account_id = get_account(name).get_id();
 
-    const auto& account = my->get_account(account_id);
+    const auto& account = my->get_account(name);
     const auto& stats = my->get_object(account.statistics);
 
     // sequence of account_transaction_history_object start with 1
@@ -391,10 +393,14 @@ account_history_operation_detail wallet_api::get_account_history_by_operations(
         result.total_count =stats.removed_ops;
     }
 
+    uint32_t default_page_size = 100;
     while (limit > 0 && start <= stats.total_ops) {
-        uint32_t min_limit = std::min<uint32_t> (100, limit);
+        uint32_t min_limit = std::min(default_page_size, limit);
         auto current = my->_remote_hist->get_account_history_by_operations(name, operation_types, start, min_limit);
-        for (auto& obj : current.operation_history_objs) {
+        auto his_rend = current.operation_history_objs.rend();
+        for( auto it = current.operation_history_objs.rbegin(); it != his_rend; ++it )
+        {
+            auto& obj = *it;
             std::stringstream ss;
             auto memo = obj.op.visit(detail::operation_printer(ss, *my, obj));
 
@@ -418,6 +424,42 @@ account_history_operation_detail wallet_api::get_account_history_by_operations(
 full_account wallet_api::get_full_account( const string& name_or_id)
 {
     return my->_remote_db->get_full_accounts({name_or_id}, false)[name_or_id];
+}
+
+vector<bucket_object> wallet_api::get_market_history(
+      string symbol1,
+      string symbol2,
+      uint32_t bucket,
+      fc::time_point_sec start,
+      fc::time_point_sec end )const
+{
+   return my->_remote_hist->get_market_history( symbol1, symbol2, bucket, start, end );
+}
+
+vector<limit_order_object> wallet_api::get_account_limit_orders(
+      const string& name_or_id,
+      const string &base,
+      const string &quote,
+      uint32_t limit,
+      optional<limit_order_id_type> ostart_id,
+      optional<price> ostart_price)
+{
+   return my->_remote_db->get_account_limit_orders(name_or_id, base, quote, limit, ostart_id, ostart_price);
+}
+
+vector<limit_order_object> wallet_api::get_limit_orders(std::string a, std::string b, uint32_t limit)const
+{
+   return my->_remote_db->get_limit_orders(a, b, limit);
+}
+
+vector<call_order_object> wallet_api::get_call_orders(std::string a, uint32_t limit)const
+{
+   return my->_remote_db->get_call_orders(a, limit);
+}
+
+vector<force_settlement_object> wallet_api::get_settle_orders(std::string a, uint32_t limit)const
+{
+   return my->_remote_db->get_settle_orders(a, limit);
 }
 
 brain_key_info wallet_api::suggest_brain_key()const
@@ -737,15 +779,6 @@ signed_transaction wallet_api::create_witness(string owner_account,
    return my->create_witness(owner_account, url, broadcast);
 }
 
-signed_transaction wallet_api::update_witness(
-   string witness_name,
-   string url,
-   string block_signing_key,
-   bool broadcast /* = false */)
-{
-   return my->update_witness(witness_name, url, block_signing_key, broadcast);
-}
-
 signed_transaction wallet_api::create_worker(
    string owner_account,
    time_point_sec work_begin_date,
@@ -766,6 +799,15 @@ signed_transaction wallet_api::update_worker_votes(
    bool broadcast /* = false */)
 {
    return my->update_worker_votes( owner_account, delta, broadcast );
+}
+
+signed_transaction wallet_api::update_witness(
+   string witness_name,
+   string url,
+   string block_signing_key,
+   bool broadcast /* = false */)
+{
+   return my->update_witness(witness_name, url, block_signing_key, broadcast);
 }
 
 vector< vesting_balance_object_with_info > wallet_api::get_vesting_balances( string account_name )
@@ -1227,7 +1269,7 @@ string wallet_api::help()const
 {
    std::vector<std::string> method_names = my->method_documentation.get_method_names();
    std::stringstream ss;
-   for (const std::string method_name : method_names)
+   for (const std::string& method_name : method_names)
    {
       try
       {
@@ -1402,11 +1444,10 @@ signed_transaction wallet_api::sell_asset(string seller_account,
                          symbol_to_receive, expiration, fill_or_kill, broadcast);
 }
 
-signed_transaction wallet_api::borrow_asset(string seller_name, string amount_to_sell,
-                                                string asset_symbol, string amount_of_collateral, bool broadcast)
+signed_transaction wallet_api::cancel_order(object_id_type order_id, bool broadcast)
 {
    FC_ASSERT(!is_locked());
-   return my->borrow_asset(seller_name, amount_to_sell, asset_symbol, amount_of_collateral, broadcast);
+   return my->cancel_order(order_id, broadcast);
 }
 
 memo_data wallet_api::sign_memo(string from, string to, string memo)
@@ -1989,6 +2030,11 @@ vector<blind_receipt> wallet_api::blind_history( string key_or_account )
    std::sort( result.begin(), result.end(),
               [&]( const blind_receipt& a, const blind_receipt& b ){ return a.date > b.date; } );
    return result;
+}
+
+order_book wallet_api::get_order_book( const string& base, const string& quote, unsigned limit )
+{
+   return( my->_remote_db->get_order_book( base, quote, limit ) );
 }
 
 // custom operations

@@ -18,6 +18,7 @@ target_link_libraries( graphene_elasticsearch graphene_chain graphene_app ${CURL
 target_include_directories( graphene_elasticsearch
                             PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
                             PUBLIC "${CURL_INCLUDE_DIR}" )
+set_target_properties( graphene_elasticsearch PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${lto_supported} )
 
 
 install( TARGETS

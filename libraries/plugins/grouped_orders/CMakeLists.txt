@@ -7,6 +7,7 @@ add_library( graphene_grouped_orders
 target_link_libraries( graphene_grouped_orders graphene_chain graphene_app )
 target_include_directories( graphene_grouped_orders
                             PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )
+set_target_properties( graphene_grouped_orders PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${lto_supported} )
 
 if(MSVC)
   set_source_files_properties( grouped_orders_plugin.cpp PROPERTIES COMPILE_FLAGS "/bigobj" )

@@ -7,6 +7,7 @@ add_library( graphene_template_plugin
 target_link_libraries( graphene_template_plugin graphene_chain graphene_app )
 target_include_directories( graphene_template_plugin
                             PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )
+set_target_properties( graphene_template_plugin PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${lto_supported} )
 
 if(MSVC)
   set_source_files_properties(template_plugin.cpp PROPERTIES COMPILE_FLAGS "/bigobj" )

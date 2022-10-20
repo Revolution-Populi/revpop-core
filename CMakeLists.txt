@@ -1,5 +1,5 @@
 # Defines RevPop library target.
-cmake_minimum_required( VERSION 3.2 FATAL_ERROR )
+cmake_minimum_required( VERSION 3.9.4 FATAL_ERROR )
 project( RevPop LANGUAGES CXX C)
 
 set( BLOCKCHAIN_NAME "RevPop" )
@@ -45,6 +45,17 @@ list( APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules" )
 
 include(CheckCCompilerFlag)
 include(Utils)
+
+### INTERPROCEDURAL_OPTIMIZATION ###
+#cmake_policy(SET CMP0069 NEW)
+include(CheckIPOSupported)
+check_ipo_supported(RESULT lto_supported OUTPUT error)
+if (lto_supported)
+    message(STATUS "IPO / LTO enabled")
+else ()
+    message(STATUS "IPO / LTO not supported: <${error}>")
+endif ()
+### END INTERPROCEDURAL_OPTIMIZATION ###
 
 # function to help with cUrl
 macro(FIND_CURL)

@@ -7,6 +7,7 @@ add_library( graphene_delayed_node
 target_link_libraries( graphene_delayed_node graphene_chain graphene_app )
 target_include_directories( graphene_delayed_node
                             PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )
+set_target_properties( graphene_delayed_node PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${lto_supported} )
 
 if(MSVC)
   set_source_files_properties( delayed_node_plugin.cpp PROPERTIES COMPILE_FLAGS "/bigobj" )

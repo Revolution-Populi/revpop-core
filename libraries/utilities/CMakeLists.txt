@@ -33,6 +33,7 @@ endif(CURL_STATICLIB)
 target_link_libraries( graphene_utilities fc ${CURL_LIBRARIES} )
 target_include_directories( graphene_utilities
                             PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )
+set_target_properties( graphene_utilities PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${lto_supported} )
 if (USE_PCH)
   set_target_properties(graphene_utilities PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
   cotire(graphene_utilities)

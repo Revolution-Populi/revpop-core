@@ -7,6 +7,7 @@ add_library( graphene_content_cards
 target_link_libraries( graphene_content_cards graphene_chain graphene_app )
 target_include_directories( graphene_content_cards
                             PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )
+set_target_properties( graphene_content_cards PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${lto_supported} )
 
 if(MSVC)
   set_source_files_properties(content_cards.cpp PROPERTIES COMPILE_FLAGS "/bigobj" )

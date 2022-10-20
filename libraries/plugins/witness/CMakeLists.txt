@@ -7,6 +7,7 @@ add_library( graphene_witness
 target_link_libraries( graphene_witness graphene_chain graphene_app )
 target_include_directories( graphene_witness
                             PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )
+set_target_properties( graphene_witness PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${lto_supported} )
 
 if (MSVC)
     set_target_properties( graphene_witness PROPERTIES COMPILE_FLAGS "/bigobj" )

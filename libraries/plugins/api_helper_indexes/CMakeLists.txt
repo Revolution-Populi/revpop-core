@@ -7,6 +7,7 @@ add_library( graphene_api_helper_indexes
 target_link_libraries( graphene_api_helper_indexes graphene_chain graphene_app )
 target_include_directories( graphene_api_helper_indexes
                             PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )
+set_target_properties( graphene_api_helper_indexes PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${lto_supported} )
 
 if(MSVC)
   set_source_files_properties(api_helper_indexes.cpp PROPERTIES COMPILE_FLAGS "/bigobj" )

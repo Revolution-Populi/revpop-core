@@ -8,6 +8,7 @@ add_library( graphene_debug_witness
 target_link_libraries( graphene_debug_witness graphene_chain graphene_app )
 target_include_directories( graphene_debug_witness
                             PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )
+set_target_properties( graphene_debug_witness PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${lto_supported} )
 
 install( TARGETS
    graphene_debug_witness

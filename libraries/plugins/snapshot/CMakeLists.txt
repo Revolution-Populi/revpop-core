@@ -7,6 +7,7 @@ add_library( graphene_snapshot
 target_link_libraries( graphene_snapshot graphene_chain graphene_app )
 target_include_directories( graphene_snapshot
                             PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )
+set_target_properties( graphene_snapshot PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${lto_supported} )
 
 install( TARGETS
    graphene_snapshot

@@ -9,6 +9,7 @@ add_library( graphene_custom_operations
 target_link_libraries( graphene_custom_operations graphene_chain graphene_app )
 target_include_directories( graphene_custom_operations
                             PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )
+set_target_properties( graphene_custom_operations PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${lto_supported} )
 
 if(MSVC)
   set_source_files_properties(custom_operations_plugin.cpp custom_operations.cpp custom_evaluators.cpp

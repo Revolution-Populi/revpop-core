@@ -18,6 +18,7 @@ endif(MSVC)
 target_link_libraries( graphene_es_objects graphene_chain graphene_app ${CURL_LIBRARIES} )
 target_include_directories( graphene_es_objects
                             PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )
+set_target_properties( graphene_es_objects PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${lto_supported} )
 
 
 install( TARGETS

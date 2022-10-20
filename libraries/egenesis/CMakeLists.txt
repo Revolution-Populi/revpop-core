@@ -34,6 +34,10 @@ target_link_libraries( graphene_egenesis_none graphene_chain fc )
 target_link_libraries( graphene_egenesis_brief graphene_chain fc )
 target_link_libraries( graphene_egenesis_full graphene_chain fc )
 
+set_target_properties( graphene_egenesis_none PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${lto_supported} )
+set_target_properties( graphene_egenesis_brief PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${lto_supported} )
+set_target_properties( graphene_egenesis_full PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${lto_supported} )
+
 target_include_directories( graphene_egenesis_none
    PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )
 target_include_directories( graphene_egenesis_brief

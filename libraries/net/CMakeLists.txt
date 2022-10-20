@@ -17,6 +17,7 @@ target_include_directories( graphene_net
   PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
   PRIVATE "${CMAKE_SOURCE_DIR}/libraries/chain/include"
 )
+set_target_properties( graphene_net PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${lto_supported} )
 
 if(MSVC)
   set_source_files_properties( node.cpp PROPERTIES COMPILE_FLAGS "/bigobj" )

@@ -7,6 +7,7 @@ add_library( graphene_account_history
 target_link_libraries( graphene_account_history graphene_chain graphene_app )
 target_include_directories( graphene_account_history
                             PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )
+set_target_properties( graphene_account_history PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${lto_supported} )
 
 if(MSVC)
   set_source_files_properties( account_history_plugin.cpp PROPERTIES COMPILE_FLAGS "/bigobj" )

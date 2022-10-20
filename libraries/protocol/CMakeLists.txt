@@ -69,6 +69,7 @@ file(GLOB CUSTOM_AUTHS_HEADERS "custom_authorities/*.hxx")
 add_library( graphene_protocol_custom_auths ${CUSTOM_AUTHS_FILES} ${CUSTOM_AUTHS_HEADERS} )
 target_link_libraries( graphene_protocol_custom_auths fc )
 target_include_directories( graphene_protocol_custom_auths PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )
+set_target_properties( graphene_protocol_custom_auths PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${lto_supported} )
 
 if( MSVC )
    set_source_files_properties( ${CUSTOM_AUTHS_FILES} ${SOURCES} PROPERTIES COMPILE_FLAGS /bigobj )

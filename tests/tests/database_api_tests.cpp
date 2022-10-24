@@ -757,7 +757,8 @@ BOOST_AUTO_TEST_CASE( get_required_signatures_partially_signed_or_not )
 
 BOOST_AUTO_TEST_CASE( subscription_key_collision_test )
 {
-   object_id_type uia_object_id = create_user_issued_asset( "UIATEST" ).get_id();
+   auto nathan = create_account("nathan");
+   object_id_type uia_object_id = create_user_issued_asset( "UIATEST", nathan, 0 ).get_id();
 
    uint32_t objects_changed = 0;
    auto callback = [&]( const variant& v )
@@ -796,9 +797,9 @@ BOOST_AUTO_TEST_CASE( subscription_notification_test )
       generate_block();
       set_expiration( db, trx );
 
-      ACTORS( (alice)(bob) );
+      ACTORS( (alice)(bob)(nathan) );
 
-      create_user_issued_asset( "UIATEST" );
+      create_user_issued_asset( "UIATEST", nathan, 0 );
 
 // declare db_api1 ~ db_api60
 #define SUB_NOTIF_TEST_NUM_CALLBACKS_PLUS_ONE 61
@@ -1323,34 +1324,5 @@ BOOST_AUTO_TEST_CASE( verify_authority_multiple_accounts )
       throw;
    }
 }
-
-BOOST_AUTO_TEST_CASE( get_assets_by_issuer ) {
-   try {
-      graphene::app::database_api db_api(db, &(this->app.get_options()));
-
-      create_bitasset("CNY");
-      create_bitasset("EUR");
-      create_bitasset("USD");
-
-      generate_block();
-
-      auto assets = db_api.get_assets_by_issuer("witness-account", asset_id_type(), 10);
-
-      BOOST_CHECK(assets.size() == 3);
-      BOOST_CHECK(assets[0].symbol == "CNY");
-      BOOST_CHECK(assets[1].symbol == "EUR");
-      BOOST_CHECK(assets[2].symbol == "USD");
-
-      assets = db_api.get_assets_by_issuer("witness-account", asset_id_type(200), 100);
-      BOOST_CHECK(assets.size() == 0);
-
-      GRAPHENE_CHECK_THROW(db_api.get_assets_by_issuer("nosuchaccount", asset_id_type(), 100), fc::exception);
-
-   } catch (fc::exception& e) {
-      edump((e.to_detail_string()));
-      throw;
-   }
-}
-
 
 BOOST_AUTO_TEST_SUITE_END()

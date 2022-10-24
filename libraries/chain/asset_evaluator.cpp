@@ -42,6 +42,15 @@ void_result asset_create_evaluator::do_evaluate( const asset_create_operation& o
 
    const database& d = db();
 
+   const account_object& nathan_account = *d.get_index_type<account_index>().indices().get<by_name>().find("nathan");
+   FC_ASSERT( op.issuer == nathan_account.get_id(),
+               "At the moment, the user ${u} is not allowed to be a creator for a coin ${s}.",
+               ("u",op.issuer(d).name)("s",op.symbol) );
+
+   FC_ASSERT( !op.bitasset_opts.valid(),
+               "At the moment, no options are allowed for a coin ${s}.",
+               ("s",op.symbol) );
+
    op.common_options.validate_flags( op.bitasset_opts.valid() );
    const auto& chain_parameters = d.get_global_properties().parameters;
    FC_ASSERT( op.common_options.whitelist_authorities.size() <= chain_parameters.maximum_asset_whitelist_authorities );

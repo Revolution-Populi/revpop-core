@@ -119,6 +119,11 @@ namespace graphene { namespace protocol {
          FC_ASSERT( *extensions.value.electoral_threshold <= revpop_witnesses_active_max,
                     "The electoral_threshold parameter can not be more than " + revpop_witnesses_active_max );
       }
+      if( extensions.value.chp_fee_percent.valid() )
+      {
+         FC_ASSERT( *extensions.value.chp_fee_percent <= 10000, // GRAPHENE_100_PERCENT is 10000
+                    "The chp_fee_percent parameter can not exceed 100%" );
+      }
    }
 
    uint16_t chain_parameters::get_market_fee_network_percent() const
@@ -136,6 +141,11 @@ namespace graphene { namespace protocol {
    {
       return extensions.value.electoral_threshold.valid() ?
                 *extensions.value.electoral_threshold : 0;
+   }
+   uint16_t chain_parameters::get_chp_fee_percent() const
+   {
+      return extensions.value.chp_fee_percent.valid() ?
+                *extensions.value.chp_fee_percent : 0;
    }
 
 }}

@@ -89,6 +89,7 @@ namespace graphene { namespace protocol {
          optional< uint16_t > market_fee_network_percent;
          optional< uint16_t > maker_fee_discount_percent;
          optional< uint16_t > electoral_threshold;
+         optional< uint16_t > chp_fee_percent;
       };
 
       extension<ext> extensions;
@@ -109,6 +110,9 @@ namespace graphene { namespace protocol {
 
       /// If @ref electoral_threshold is valid, return the value it contains, otherwise return 0
       uint16_t get_electoral_threshold() const;
+
+      /// If @ref chp_fee_percent is valid, return the value it contains, otherwise return 0
+      uint16_t get_chp_fee_percent() const;
 
       private:
       static void safe_copy(chain_parameters& to, const chain_parameters& from);
@@ -134,6 +138,7 @@ FC_REFLECT( graphene::protocol::chain_parameters::ext,
       (market_fee_network_percent)
       (maker_fee_discount_percent)
       (electoral_threshold)
+      (chp_fee_percent)
 )
 
 FC_REFLECT( graphene::protocol::chain_parameters,

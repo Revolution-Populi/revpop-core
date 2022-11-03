@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(elasticsearch_account_history) {
             res = graphene::utilities::simpleQuery(es);
             j = fc::json::from_string(res);
             total = j["count"].as_string();
-            return (total == "5");
+            return (total == "7");
          });
 
          es.endpoint = es.index_prefix + "*/data/_search";
@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE(elasticsearch_account_history) {
             res = graphene::utilities::simpleQuery(es);
             j = fc::json::from_string(res);
             total = j["count"].as_string();
-            return (total == "7");
+            return (total == "9");
          });
 
          // do some transfers in 1 block
@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(elasticsearch_account_history) {
             res = graphene::utilities::simpleQuery(es);
             j = fc::json::from_string(res);
             total = j["count"].as_string();
-            return (total == "13");
+            return (total == "15");
          });
 
          // check the visitor data
@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE(elasticsearch_account_history) {
          res = graphene::utilities::getEndPoint(es);
          j = fc::json::from_string(res);
          auto last_transfer_amount = j["_source"]["operation_history"]["op_object"]["amount_"]["amount"].as_string();
-         BOOST_CHECK_EQUAL(last_transfer_amount, "300");
+         BOOST_CHECK_EQUAL(last_transfer_amount, "200");
       }
    }
    catch (fc::exception &e) {
@@ -187,14 +187,6 @@ BOOST_AUTO_TEST_CASE(elasticsearch_objects) {
          j = fc::json::from_string(res);
          auto first_id = j["hits"]["hits"][size_t(0)]["_source"]["symbol"].as_string();
          BOOST_CHECK_EQUAL(first_id, "USD");
-
-         auto bitasset_data_id = j["hits"]["hits"][size_t(0)]["_source"]["bitasset_data_id"].as_string();
-         es.endpoint = es.index_prefix + "bitasset/data/_search";
-         es.query = "{ \"query\" : { \"bool\": { \"must\" : [{ \"term\": { \"object_id\": \""+bitasset_data_id+"\"}}] } } }";
-         res = graphene::utilities::simpleQuery(es);
-         j = fc::json::from_string(res);
-         auto bitasset_object_id = j["hits"]["hits"][size_t(0)]["_source"]["object_id"].as_string();
-         BOOST_CHECK_EQUAL(bitasset_object_id, bitasset_data_id);
       }
    }
    catch (fc::exception &e) {

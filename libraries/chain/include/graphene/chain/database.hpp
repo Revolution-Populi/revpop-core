@@ -59,7 +59,6 @@ namespace graphene { namespace chain {
    class witness_object;
    class force_settlement_object;
    class limit_order_object;
-   class collateral_bid_object;
    class call_order_object;
 
    struct budget_record;
@@ -111,6 +110,7 @@ namespace graphene { namespace chain {
 
          /**
           * @brief Rebuild object graph from block history and open detabase
+          * @param data_dir the path to store the database
           *
           * This method may be called after or instead of @ref database::open, and will rebuild the object graph by
           * replaying blockchain history. When this method exits successfully, the database will be open.
@@ -119,6 +119,7 @@ namespace graphene { namespace chain {
 
          /**
           * @brief wipe Delete database from disk, and potentially the raw chain as well.
+          * @param data_dir the path to store the database
           * @param include_blocks If true, delete the raw chain as well as the database.
           *
           * Will close the database before wiping. Database will be closed when this function returns.
@@ -316,8 +317,8 @@ namespace graphene { namespace chain {
          template<typename EvaluatorType>
          void register_evaluator()
          {
-            _operation_evaluators[
-               operation::tag<typename EvaluatorType::operation_type>::value].reset( new op_evaluator_impl<EvaluatorType>() );
+            _operation_evaluators[operation::tag<typename EvaluatorType::operation_type>::value]
+                  = std::make_unique<op_evaluator_impl<EvaluatorType>>();
          }
 
          //////////////////// db_balance.cpp ////////////////////
@@ -342,7 +343,7 @@ namespace graphene { namespace chain {
          void deposit_market_fee_vesting_balance(const account_id_type &account_id, const asset &delta);
         /**
           * @brief Retrieve a particular account's market fee vesting balance in a given asset
-          * @param owner Account whose balance should be retrieved
+          * @param account_id Account whose balance should be retrieved
           * @param asset_id ID of the asset to get balance in
           * @return owner's balance in asset
           */
@@ -382,13 +383,12 @@ namespace graphene { namespace chain {
 
          //////////////////// db_market.cpp ////////////////////
 
-         /// @{ @group Market Helpers
+         /// @ingroup Market Helpers
+         /// @{
          void globally_settle_asset( const asset_object& bitasset, const price& settle_price );
          void cancel_settle_order(const force_settlement_object& order, bool create_virtual_op = true);
          void cancel_limit_order(const limit_order_object& order, bool create_virtual_op = true, bool skip_cancel_fee = false);
          void revive_bitasset( const asset_object& bitasset );
-         void cancel_bid(const collateral_bid_object& bid, bool create_virtual_op = true);
-         void execute_bid( const collateral_bid_object& bid, share_type debt_covered, share_type collateral_from_fund, const price_feed& current_feed );
 
       private:
          template<typename IndexType>
@@ -399,7 +399,8 @@ namespace graphene { namespace chain {
       public:
          /**
           * @brief Process a new limit order through the markets
-          * @param order The new order to process
+          * @param new_order_object The new order to process
+          * @param allow_black_swan whether to allow a black swan event
           * @return true if order was completely filled; false otherwise
           *
           * This function takes a new limit order, and runs the markets attempting to match it with existing orders
@@ -502,9 +503,10 @@ namespace graphene { namespace chain {
           * @param trade_amount the quantity that the fee calculation is based upon
           * @param is_maker TRUE if this is the fee for a maker, FALSE if taker
           */
-         asset calculate_market_fee( const asset_object& trade_asset, const asset& trade_amount, const bool& is_maker);
+         asset calculate_market_fee( const asset_object& trade_asset, const asset& trade_amount,
+                                     const bool& is_maker )const;
          asset pay_market_fees(const account_object* seller, const asset_object& recv_asset, const asset& receives,
-                               const bool& is_maker);
+                               const bool& is_maker, const optional<asset>& calculated_market_fees = {});
          asset pay_force_settle_fees(const asset_object& collecting_asset, const asset& collat_receives);
          ///@}
 
@@ -657,6 +659,7 @@ namespace graphene { namespace chain {
          uint32_t                          _current_virtual_op   = 0;
 
          vector<uint64_t>                  _vote_tally_buffer;
+         vector<uint64_t>                  _cm_vote_for_worker; // flat_map saves memory, but vector is still faster
          vector<uint64_t>                  _witness_count_histogram_buffer;
          vector<uint64_t>                  _committee_count_histogram_buffer;
          uint64_t                          _total_voting_stake[2]; // 0=committee, 1=witness,

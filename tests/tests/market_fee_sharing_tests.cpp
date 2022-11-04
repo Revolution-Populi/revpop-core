@@ -114,10 +114,10 @@ BOOST_AUTO_TEST_CASE(create_asset_with_reward_percent_of_100_after_hf1774)
    {
       generate_block();
 
-      ACTOR(issuer);
+      ACTOR(nathan);
 
       uint16_t reward_percent = GRAPHENE_100_PERCENT; // 100.00%
-      flat_set<account_id_type> whitelist = {issuer_id};
+      flat_set<account_id_type> whitelist = {nathan_id};
       price price(asset(1, asset_id_type(1)), asset(1));
       uint16_t market_fee_percent = 100;
 
@@ -126,7 +126,7 @@ BOOST_AUTO_TEST_CASE(create_asset_with_reward_percent_of_100_after_hf1774)
       options.value.whitelist_market_fee_sharing = whitelist;
 
       asset_object usd_asset = create_user_issued_asset("USD",
-                                                        issuer,
+                                                        nathan,
                                                         charge_market_fee,
                                                         price,
                                                         2,
@@ -144,15 +144,15 @@ BOOST_AUTO_TEST_CASE(set_reward_percent_to_100_after_hf1774)
 {
    try
    {
-      ACTOR(issuer);
+      ACTOR(nathan);
 
-      asset_object usd_asset = create_user_issued_asset("USD", issuer, charge_market_fee); // make a copy
+      asset_object usd_asset = create_user_issued_asset("USD", nathan, charge_market_fee); // make a copy
 
       generate_block();
 
       uint16_t reward_percent = GRAPHENE_100_PERCENT; // 100.00%
-      flat_set<account_id_type> whitelist = {issuer_id};
-      update_asset(issuer_id, issuer_private_key, usd_asset.get_id(), reward_percent, whitelist);
+      flat_set<account_id_type> whitelist = {nathan_id};
+      update_asset(nathan_id, nathan_private_key, usd_asset.get_id(), reward_percent, whitelist);
 
       additional_asset_options options = usd_asset.get_id()(db).options.extensions.value;
       BOOST_CHECK_EQUAL(reward_percent, *options.reward_percent);
@@ -165,7 +165,7 @@ BOOST_AUTO_TEST_CASE(create_actors)
 {
    try
    {
-      ACTORS((jill)(izzyregistrar)(izzyreferrer)(tempregistrar));
+      ACTORS((nathan)(izzyregistrar)(izzyreferrer)(tempregistrar));
 
       upgrade_to_lifetime_member(izzyregistrar);
       upgrade_to_lifetime_member(izzyreferrer);
@@ -173,7 +173,7 @@ BOOST_AUTO_TEST_CASE(create_actors)
 
       price price(asset(1, asset_id_type(1)), asset(1));
       uint16_t market_fee_percent = 20 * GRAPHENE_1_PERCENT;
-      const asset_object jillcoin = create_user_issued_asset( "JCOIN", jill, charge_market_fee,
+      const asset_object nathancoin = create_user_issued_asset( "JCOIN", nathan, charge_market_fee,
                                                               price, 2, market_fee_percent );
 
       const account_object alice = create_account("alice", izzyregistrar, izzyreferrer, 50/*0.5%*/);
@@ -184,7 +184,7 @@ BOOST_AUTO_TEST_CASE(create_actors)
                                                            GRAPHENE_TEMP_ACCOUNT(db), 50u);
 
       // prepare users' balance
-      issue_uia( alice, jillcoin.amount( 20000000 ) );
+      issue_uia( alice, nathancoin.amount( 20000000 ) );
 
       transfer( committee_account, alice.get_id(), core_asset(1000) );
       transfer( committee_account, bob.get_id(),   core_asset(1000) );
@@ -244,15 +244,15 @@ BOOST_AUTO_TEST_CASE(update_asset_via_proposal_test)
 {
    try
    {
-      ACTOR(issuer);
-      asset_object usd_asset = create_user_issued_asset("USD", issuer, charge_market_fee);
+      ACTOR(nathan);
+      asset_object usd_asset = create_user_issued_asset("USD", nathan, charge_market_fee);
 
       additional_asset_options_t options;
       options.value.reward_percent = 100;
-      options.value.whitelist_market_fee_sharing = flat_set<account_id_type>{issuer_id};
+      options.value.whitelist_market_fee_sharing = flat_set<account_id_type>{nathan_id};
 
       asset_update_operation update_op;
-      update_op.issuer = issuer_id;
+      update_op.issuer = nathan_id;
       update_op.asset_to_update = usd_asset.get_id();
       asset_options new_options;
       update_op.new_options = usd_asset.options;
@@ -261,7 +261,7 @@ BOOST_AUTO_TEST_CASE(update_asset_via_proposal_test)
       const auto& curfees = *db.get_global_properties().parameters.current_fees;
       const auto& proposal_create_fees = curfees.get<proposal_create_operation>();
       proposal_create_operation prop;
-      prop.fee_paying_account = issuer_id;
+      prop.fee_paying_account = nathan_id;
       prop.proposed_ops.emplace_back( update_op );
       prop.expiration_time =  db.head_block_time() + fc::days(1);
       prop.fee = asset( proposal_create_fees.fee + proposal_create_fees.price_per_kbyte );
@@ -272,7 +272,7 @@ BOOST_AUTO_TEST_CASE(update_asset_via_proposal_test)
          tx.operations.push_back( prop );
          db.current_fee_schedule().set_fee( tx.operations.back() );
          set_expiration( db, tx );
-         sign( tx, issuer_private_key );
+         sign( tx, nathan_private_key );
          PUSH_TX( db, tx );
       }
    }
@@ -282,25 +282,25 @@ BOOST_AUTO_TEST_CASE(update_asset_via_proposal_test)
 BOOST_AUTO_TEST_CASE(issue_asset){
    try
    {
-       ACTORS((alice)(bob)(izzy)(jill));
+       ACTORS((alice)(bob)(izzy)(nathan));
       // Izzy issues asset to Alice  (Izzycoin market percent - 10%)
-      // Jill issues asset to Bob    (Jillcoin market percent - 20%)
+      // Nathan issues asset to Bob    (Jillcoin market percent - 20%)
 
       fund( alice, core_asset(1000000) );
       fund( bob, core_asset(1000000) );
       fund( izzy, core_asset(1000000) );
-      fund( jill, core_asset(1000000) );
+      fund( nathan, core_asset(1000000) );
 
       price price(asset(1, asset_id_type(1)), asset(1));
       constexpr auto izzycoin_market_percent = 10*GRAPHENE_1_PERCENT;
-      asset_object izzycoin = create_user_issued_asset( "IZZYCOIN", izzy,  charge_market_fee, price, 2, izzycoin_market_percent );
+      asset_object izzycoin = create_user_issued_asset( "IZZYCOIN", nathan,  charge_market_fee, price, 2, izzycoin_market_percent );
 
-      constexpr auto jillcoin_market_percent = 20*GRAPHENE_1_PERCENT;
-      asset_object jillcoin = create_user_issued_asset( "JILLCOIN", jill,  charge_market_fee, price, 2, jillcoin_market_percent );
+      constexpr auto nathancoin_market_percent = 20*GRAPHENE_1_PERCENT;
+      asset_object nathancoin = create_user_issued_asset( "JILLCOIN", nathan,  charge_market_fee, price, 2, nathancoin_market_percent );
 
       // Alice and Bob create some coins
       issue_uia( alice, izzycoin.amount( 100000 ) );
-      issue_uia( bob, jillcoin.amount( 100000 ) );
+      issue_uia( bob, nathancoin.amount( 100000 ) );
    }
    FC_LOG_AND_RETHROW()
 }
@@ -399,6 +399,9 @@ BOOST_AUTO_TEST_CASE( create_vesting_balance_object_test )
 
       create_vesting_balance_object(actor_id, vesting_balance_type::witness);
       create_vesting_balance_object(actor_id, vesting_balance_type::witness);
+
+      create_vesting_balance_object(actor_id, vesting_balance_type::worker);
+      create_vesting_balance_object(actor_id, vesting_balance_type::worker);
 
       create_vesting_balance_object(actor_id, vesting_balance_type::market_fee_sharing);
       GRAPHENE_CHECK_THROW(create_vesting_balance_object(actor_id, vesting_balance_type::market_fee_sharing), fc::exception);

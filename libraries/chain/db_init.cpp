@@ -66,12 +66,15 @@
 #include <graphene/chain/committee_member_evaluator.hpp>
 #include <graphene/chain/confidential_evaluator.hpp>
 #include <graphene/chain/custom_evaluator.hpp>
+#include <graphene/chain/market_evaluator.hpp>
 #include <graphene/chain/proposal_evaluator.hpp>
 #include <graphene/chain/ticket_evaluator.hpp>
 #include <graphene/chain/transfer_evaluator.hpp>
 #include <graphene/chain/vesting_balance_evaluator.hpp>
 #include <graphene/chain/withdraw_permission_evaluator.hpp>
 #include <graphene/chain/witness_evaluator.hpp>
+#include <graphene/chain/worker_evaluator.hpp>
+#include <graphene/chain/htlc_evaluator.hpp>
 #include <graphene/chain/custom_authority_evaluator.hpp>
 #include <graphene/chain/personal_data_evaluator.hpp>
 #include <graphene/chain/personal_data_v2_evaluator.hpp>
@@ -88,93 +91,6 @@
 #include <boost/algorithm/string.hpp>
 
 namespace graphene { namespace chain {
-
-// C++ requires that static class variables declared and initialized
-// in headers must also have a definition in a single source file,
-// else linker errors will occur [1].
-//
-// The purpose of this source file is to collect such definitions in
-// a single place.
-//
-// [1] http://stackoverflow.com/questions/8016780/undefined-reference-to-static-constexpr-char
-
-const uint8_t account_object::space_id;
-const uint8_t account_object::type_id;
-
-const uint8_t asset_object::space_id;
-const uint8_t asset_object::type_id;
-
-const uint8_t block_summary_object::space_id;
-const uint8_t block_summary_object::type_id;
-
-const uint8_t call_order_object::space_id;
-const uint8_t call_order_object::type_id;
-
-const uint8_t committee_member_object::space_id;
-const uint8_t committee_member_object::type_id;
-
-const uint8_t force_settlement_object::space_id;
-const uint8_t force_settlement_object::type_id;
-
-const uint8_t global_property_object::space_id;
-const uint8_t global_property_object::type_id;
-
-const uint8_t limit_order_object::space_id;
-const uint8_t limit_order_object::type_id;
-
-const uint8_t operation_history_object::space_id;
-const uint8_t operation_history_object::type_id;
-
-const uint8_t proposal_object::space_id;
-const uint8_t proposal_object::type_id;
-
-const uint8_t transaction_history_object::space_id;
-const uint8_t transaction_history_object::type_id;
-
-const uint8_t vesting_balance_object::space_id;
-const uint8_t vesting_balance_object::type_id;
-
-const uint8_t withdraw_permission_object::space_id;
-const uint8_t withdraw_permission_object::type_id;
-
-const uint8_t witness_object::space_id;
-const uint8_t witness_object::type_id;
-
-const uint8_t worker_object::space_id;
-const uint8_t worker_object::type_id;
-
-const uint8_t htlc_object::space_id;
-const uint8_t htlc_object::type_id;
-
-const uint8_t custom_authority_object::space_id;
-const uint8_t custom_authority_object::type_id;
-
-const uint8_t ticket_object::space_id;
-const uint8_t ticket_object::type_id;
-
-const uint8_t personal_data_object::space_id;
-const uint8_t personal_data_object::type_id;
-
-const uint8_t personal_data_v2_object::space_id;
-const uint8_t personal_data_v2_object::type_id;
-
-const uint8_t content_card_object::space_id;
-const uint8_t content_card_object::type_id;
-
-const uint8_t content_card_v2_object::space_id;
-const uint8_t content_card_v2_object::type_id;
-
-const uint8_t permission_object::space_id;
-const uint8_t permission_object::type_id;
-
-const uint8_t vote_master_summary_object::space_id;
-const uint8_t vote_master_summary_object::type_id;
-
-const uint8_t commit_reveal_object::space_id;
-const uint8_t commit_reveal_object::type_id;
-
-const uint8_t commit_reveal_v2_object::space_id;
-const uint8_t commit_reveal_v2_object::type_id;
 
 void database::initialize_evaluators()
 {
@@ -196,6 +112,9 @@ void database::initialize_evaluators()
    register_evaluator<asset_settle_evaluator>();
    register_evaluator<asset_global_settle_evaluator>();
    register_evaluator<assert_evaluator>();
+   register_evaluator<limit_order_create_evaluator>();
+   register_evaluator<limit_order_cancel_evaluator>();
+   register_evaluator<call_order_update_evaluator>();
    register_evaluator<transfer_evaluator>();
    register_evaluator<override_transfer_evaluator>();
    register_evaluator<asset_fund_fee_pool_evaluator>();
@@ -211,6 +130,7 @@ void database::initialize_evaluators()
    register_evaluator<withdraw_permission_claim_evaluator>();
    register_evaluator<withdraw_permission_update_evaluator>();
    register_evaluator<withdraw_permission_delete_evaluator>();
+   register_evaluator<worker_create_evaluator>();
    register_evaluator<balance_claim_evaluator>();
    register_evaluator<transfer_to_blind_evaluator>();
    register_evaluator<transfer_from_blind_evaluator>();
@@ -218,6 +138,9 @@ void database::initialize_evaluators()
    register_evaluator<asset_claim_fees_evaluator>();
    register_evaluator<asset_update_issuer_evaluator>();
    register_evaluator<asset_claim_pool_evaluator>();
+   register_evaluator<htlc_create_evaluator>();
+   register_evaluator<htlc_redeem_evaluator>();
+   register_evaluator<htlc_extend_evaluator>();
    register_evaluator<custom_authority_create_evaluator>();
    register_evaluator<custom_authority_update_evaluator>();
    register_evaluator<custom_authority_delete_evaluator>();
@@ -287,7 +210,6 @@ void database::initialize_indexes()
    add_index< primary_index<simple_index<budget_record_object           > > >();
    add_index< primary_index< special_authority_index                      > >();
    add_index< primary_index< buyback_index                                > >();
-   add_index< primary_index<collateral_bid_index                          > >();
    add_index< primary_index< simple_index< fba_accumulator_object       > > >();
 
    add_index< primary_index< personal_data_index,                       20> >();
@@ -734,6 +656,21 @@ void database::init_genesis(const genesis_state_type& genesis_state)
       committee_member_create_operation op;
       op.committee_member_account = get_account_id(member.owner_name);
       apply_operation(genesis_eval_state, op);
+   });
+
+   // Create initial workers
+   std::for_each(genesis_state.initial_worker_candidates.begin(), genesis_state.initial_worker_candidates.end(),
+                  [&](const genesis_state_type::initial_worker_type& worker)
+   {
+       worker_create_operation op;
+       op.owner = get_account_id(worker.owner_name);
+       op.work_begin_date = genesis_state.initial_timestamp;
+       op.work_end_date = time_point_sec::maximum();
+       op.daily_pay = worker.daily_pay;
+       op.name = "Genesis-Worker-" + worker.owner_name;
+       op.initializer = vesting_balance_worker_initializer{uint16_t(0)};
+
+       apply_operation(genesis_eval_state, std::move(op));
    });
 
    // Set active witnesses

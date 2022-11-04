@@ -141,7 +141,7 @@ void database::update_worker_votes()
       modify( *itr, [this]( worker_object& obj )
       {
          obj.total_votes_for = _vote_tally_buffer[obj.vote_for];
-         obj.total_votes_against = 0;
+         obj.total_cm_votes_for = _cm_vote_for_worker[obj.vote_for];
       });
       ++itr;
    }
@@ -839,47 +839,13 @@ void database::process_bids( const asset_bitasset_data_object& bad )
    const asset_object& to_revive = to_revive_id( *this );
    const asset_dynamic_data_object& bdd = to_revive.dynamic_data( *this );
 
-   const auto& bid_idx = get_index_type< collateral_bid_index >().indices().get<by_price>();
-   const auto start = bid_idx.lower_bound( boost::make_tuple( to_revive_id, price::max( bad.options.short_backing_asset, to_revive_id ), collateral_bid_id_type() ) );
 
    share_type covered = 0;
-   auto itr = start;
-   while( covered < bdd.current_supply && itr != bid_idx.end() && itr->inv_swan_price.quote.asset_id == to_revive_id )
-   {
-      const collateral_bid_object& bid = *itr;
-      asset debt_in_bid = bid.inv_swan_price.quote;
-      if( debt_in_bid.amount > bdd.current_supply )
-         debt_in_bid.amount = bdd.current_supply;
-      asset total_collateral = debt_in_bid * bad.settlement_price;
-      total_collateral += bid.inv_swan_price.base;
-      price call_price = price::call_price( debt_in_bid, total_collateral, bad.current_feed.maintenance_collateral_ratio );
-      if( ~call_price >= bad.current_feed.settlement_price ) break;
-      covered += debt_in_bid.amount;
-      ++itr;
-   }
    if( covered < bdd.current_supply ) return;
 
-   const auto end = itr;
    share_type to_cover = bdd.current_supply;
    share_type remaining_fund = bad.settlement_fund;
-   for( itr = start; itr != end; )
-   {
-      const collateral_bid_object& bid = *itr;
-      ++itr;
-      asset debt_in_bid = bid.inv_swan_price.quote;
-      if( debt_in_bid.amount > bdd.current_supply )
-         debt_in_bid.amount = bdd.current_supply;
-      share_type debt = debt_in_bid.amount;
-      share_type collateral = (debt_in_bid * bad.settlement_price).amount;
-      if( debt >= to_cover )
-      {
-         debt = to_cover;
-         collateral = remaining_fund;
-      }
-      to_cover -= debt;
-      remaining_fund -= collateral;
-      execute_bid( bid, debt, collateral, bad.current_feed );
-   }
+
    FC_ASSERT( remaining_fund == 0 );
    FC_ASSERT( to_cover == 0 );
 
@@ -1064,6 +1030,7 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
            pob_activated( dprops.total_pob > 0 || dprops.total_inactive > 0 )
       {
          d._vote_tally_buffer.resize( props.next_available_vote_id, 0 );
+         d._cm_vote_for_worker.resize( props.next_available_vote_id, 0 );
          d._witness_count_histogram_buffer.resize( props.parameters.maximum_witness_count / 2 + 1, 0 );
          d._committee_count_histogram_buffer.resize( props.parameters.maximum_committee_count / 2 + 1, 0 );
          d._total_voting_stake[0] = 0;
@@ -1167,8 +1134,22 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
                uint32_t offset = id.instance();
                uint32_t type = std::min( id.type(), vote_id_type::vote_type::worker ); // cap the data
                // if they somehow managed to specify an illegal offset, ignore it.
-               if( offset < d._vote_tally_buffer.size() )
-                  d._vote_tally_buffer[offset] += voting_stake[type];
+               if( offset >= d._vote_tally_buffer.size() || offset >= d._cm_vote_for_worker.size() )
+                  continue;
+
+               if (type == vote_id_type::vote_type::worker)
+               {
+                  // Add up only the committee members votes
+                  const auto& idx = d.get_index_type<committee_member_index>().indices().get<by_account>();
+                  const account_id_type account = stake_account.id;
+                  auto itr = idx.find(account);
+                  if( itr != idx.end() )
+                  {
+                     d._cm_vote_for_worker[offset] += voting_stake[type];
+                  }
+               }
+
+               d._vote_tally_buffer[offset] += voting_stake[type];
             }
 
             // votes for a number greater than maximum_witness_count are skipped here

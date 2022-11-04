@@ -24,20 +24,18 @@
 
 #include <graphene/protocol/fee_schedule.hpp>
 
-#include <fc/io/raw.hpp>
 #include <fc/uint128.hpp>
-
-#define MAX_FEE_STABILIZATION_ITERATION 4
 
 namespace graphene { namespace protocol {
 
    struct calc_fee_visitor
    {
-      typedef uint64_t result_type;
+      using result_type = uint64_t;
 
       const fee_schedule& param;
-      const int current_op;
-      calc_fee_visitor( const fee_schedule& p, const operation& op ):param(p),current_op(op.which()){}
+      const operation::tag_type current_op;
+      calc_fee_visitor( const fee_schedule& p, const operation& op ):param(p),current_op(op.which())
+      { /* Nothing else to do */ }
 
       template<typename OpType>
       result_type operator()( const OpType& op )const
@@ -45,13 +43,25 @@ namespace graphene { namespace protocol {
          try {
             return op.calculate_fee( param.get<OpType>() ).value;
          } catch (fc::assert_exception& e) {
-             fee_parameters params; params.set_which(current_op);
+             fee_parameters params;
+             params.set_which(current_op);
              auto itr = param.parameters.find(params);
-             if( itr != param.parameters.end() ) params = *itr;
+             if( itr != param.parameters.end() )
+                params = *itr;
              return op.calculate_fee( params.get<typename OpType::fee_parameters_type>() ).value;
          }
       }
    };
+
+   template<>
+   uint64_t calc_fee_visitor::operator()(const htlc_create_operation& op)const
+   {
+      //TODO: refactor for performance (see https://github.com/bitshares/bitshares-core/issues/2150)
+      transfer_operation::fee_parameters_type t;
+      if (param.exists<transfer_operation>())
+         t = param.get<transfer_operation>();
+      return op.calculate_fee( param.get<htlc_create_operation>(), t.price_per_kbyte).value;
+   }
 
    template<>
    uint64_t calc_fee_visitor::operator()(const asset_create_operation& op)const
@@ -86,5 +96,3 @@ namespace graphene { namespace protocol {
    }
 
 } } // graphene::protocol
-
-GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::protocol::fee_schedule )

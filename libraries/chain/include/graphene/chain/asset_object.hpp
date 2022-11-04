@@ -34,7 +34,7 @@
  * A prediction market is a specialized BitAsset such that total debt and total collateral are always equal amounts
  * (although asset IDs differ). No margin calls or force settlements may be performed on a prediction market asset. A
  * prediction market is globally settled by the issuer after the event being predicted resolves, thus a prediction
- * market must always have the @ref global_settle permission enabled. The maximum price for global settlement or short
+ * market must always have the @c global_settle permission enabled. The maximum price for global settlement or short
  * sale of a prediction market asset is 1-to-1.
  */
 
@@ -58,8 +58,8 @@ namespace graphene { namespace chain {
    class asset_dynamic_data_object : public abstract_object<asset_dynamic_data_object>
    {
       public:
-         static const uint8_t space_id = implementation_ids;
-         static const uint8_t type_id  = impl_asset_dynamic_data_object_type;
+         static constexpr uint8_t space_id = implementation_ids;
+         static constexpr uint8_t type_id  = impl_asset_dynamic_data_object_type;
 
          /// The number of shares currently in existence
          share_type current_supply;
@@ -79,8 +79,8 @@ namespace graphene { namespace chain {
    class asset_object : public graphene::db::abstract_object<asset_object>
    {
       public:
-         static const uint8_t space_id = protocol_ids;
-         static const uint8_t type_id  = asset_object_type;
+         static constexpr uint8_t space_id = protocol_ids;
+         static constexpr uint8_t type_id  = asset_object_type;
 
          /// This function does not check if any registered asset has this symbol or not; it simply checks whether the
          /// symbol would be valid.
@@ -249,8 +249,8 @@ namespace graphene { namespace chain {
    class asset_bitasset_data_object : public abstract_object<asset_bitasset_data_object>
    {
       public:
-         static const uint8_t space_id = implementation_ids;
-         static const uint8_t type_id  = impl_asset_bitasset_data_object_type;
+         static constexpr uint8_t space_id = implementation_ids;
+         static constexpr uint8_t type_id  = impl_asset_bitasset_data_object_type;
 
          /// The asset this object belong to
          asset_id_type asset_id;

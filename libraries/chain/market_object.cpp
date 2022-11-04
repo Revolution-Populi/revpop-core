@@ -301,10 +301,6 @@ FC_REFLECT_DERIVED_NO_TYPENAME( graphene::chain::force_settlement_object,
                     (owner)(balance)(settlement_date)
                   )
 
-FC_REFLECT_DERIVED_NO_TYPENAME( graphene::chain::collateral_bid_object, (graphene::db::object),
-                    (bidder)(inv_swan_price) )
-
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::limit_order_object )
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::call_order_object )
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::force_settlement_object )
-GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::collateral_bid_object )

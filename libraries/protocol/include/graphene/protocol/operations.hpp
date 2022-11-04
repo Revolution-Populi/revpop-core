@@ -32,6 +32,7 @@
 #include <graphene/protocol/confidential.hpp>
 #include <graphene/protocol/custom_authority.hpp>
 #include <graphene/protocol/fba.hpp>
+#include <graphene/protocol/market.hpp>
 #include <graphene/protocol/proposal.hpp>
 #include <graphene/protocol/ticket.hpp>
 #include <graphene/protocol/transfer.hpp>
@@ -39,6 +40,7 @@
 #include <graphene/protocol/withdraw_permission.hpp>
 #include <graphene/protocol/witness.hpp>
 #include <graphene/protocol/worker.hpp>
+#include <graphene/protocol/htlc.hpp>
 #include <graphene/protocol/personal_data.hpp>
 #include <graphene/protocol/personal_data_v2.hpp>
 #include <graphene/protocol/content_card.hpp>
@@ -124,7 +126,17 @@ namespace graphene { namespace protocol {
             /* 64 */ content_card_v2_update_operation,
             /* 65 */ content_card_v2_remove_operation,
             /* 66 */ personal_data_v2_create_operation,
-            /* 67 */ personal_data_v2_remove_operation
+            /* 67 */ personal_data_v2_remove_operation,
+            /* 68 */ worker_create_operation,
+            /* 69 */ htlc_create_operation,
+            /* 70 */ htlc_redeem_operation,
+            /* 71 */ htlc_redeemed_operation,         // VIRTUAL
+            /* 72 */ htlc_extend_operation,
+            /* 73 */ htlc_refund_operation,           // VIRTUAL
+            /* 74 */ limit_order_create_operation,
+            /* 75 */ limit_order_cancel_operation,
+            /* 76 */ call_order_update_operation,
+            /* 77 */ fill_order_operation            // VIRTUAL
          > operation;
 
    /// @} // operations group
@@ -133,7 +145,7 @@ namespace graphene { namespace protocol {
     *  Appends required authorites to the result vector.  The authorities appended are not the
     *  same as those returned by get_required_auth 
     *
-    *  @return a set of required authorities for @ref op
+    *  @return a set of required authorities for @p op
     */
    void operation_get_required_authorities( const operation& op,
                                             flat_set<account_id_type>& active,

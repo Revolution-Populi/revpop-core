@@ -8,6 +8,9 @@ list(APPEND SOURCES account.cpp
                     chain_parameters.cpp
                     fee_schedule.cpp
                     fee_schedule_calc.cpp
+                    fee_schedule_serialization_pack.cpp
+                    fee_schedule_serialization_variant.cpp
+                    fee_schedule_set_fee.cpp
                     memo.cpp
                     proposal.cpp
                     transfer.cpp
@@ -21,6 +24,7 @@ list(APPEND SOURCES account.cpp
                     custom_authority.cpp
                     committee_member.cpp
                     custom.cpp
+                    market.cpp
                     ticket.cpp
                     operations.cpp
                     pts_address.cpp
@@ -28,6 +32,7 @@ list(APPEND SOURCES account.cpp
                     transaction.cpp
                     types.cpp
                     withdraw_permission.cpp
+                    worker.cpp
                     personal_data.cpp
                     personal_data_v2.cpp
                     content_card.cpp
@@ -36,7 +41,8 @@ list(APPEND SOURCES account.cpp
                     content_vote.cpp
                     commit_reveal.cpp
                     commit_reveal_v2.cpp
-                    commit_reveal_v3.cpp)
+                    commit_reveal_v3.cpp
+                    htlc.cpp)
 
 
 list(APPEND CUSTOM_AUTHS_FILES
@@ -55,7 +61,8 @@ list(APPEND CUSTOM_AUTHS_FILES
      custom_authorities/list_9.cpp
      custom_authorities/list_10.cpp
      custom_authorities/list_11.cpp
-     custom_authorities/list_12.cpp)
+     custom_authorities/list_12.cpp
+     custom_authorities/list_13.cpp)
 
 file(GLOB CUSTOM_AUTHS_HEADERS "custom_authorities/*.hxx")
 

@@ -1,20 +1,28 @@
-/**
- * The Revolution Populi Project
- * Copyright (C) 2021 Revolution Populi Limited
+/*
+ * Copyright (c) 2022 Revolution Populi Limited, and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * The MIT License
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  */
+
+#include <graphene/app/database_api.hpp>
 
 #include "../common/database_fixture.hpp"
 
@@ -23,13 +31,25 @@
 
 #include <boost/test/unit_test.hpp>
 
+#define BOOST_TEST_MODULE Update global properties tests
+
 using namespace graphene::chain;
 using namespace graphene::chain::test;
+using namespace graphene::app;
 
 BOOST_FIXTURE_TEST_SUITE( revpop_14_tests, database_fixture )
 
 BOOST_AUTO_TEST_CASE( hardfork_time_test )
 { try {
+
+   // Initialize committee by voting for each memeber and for desired count
+   vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
+   generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
+   set_expiration(db, trx);
+
+   application_options opt = app.get_options();
+   opt.has_api_helper_indexes_plugin = true;
+   database_api db_api( db, &opt );
 
    {
       // The electoral threshold is 0 by default
@@ -58,11 +78,6 @@ BOOST_AUTO_TEST_CASE( hardfork_time_test )
    set_expiration( db, trx );
 
    {
-         // Initialize committee by voting for each memeber and for desired count
-         vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
-         generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
-         set_expiration(db, trx);
-
       // The electoral threshold is still 0
       BOOST_CHECK_EQUAL( db.get_global_properties().parameters.get_electoral_threshold(), 0 );
 
@@ -97,12 +112,16 @@ BOOST_AUTO_TEST_CASE( hardfork_time_test )
       trx.operations.clear();
       proposal_id_type prop_id = ptx.operation_results[0].get<object_id_type>();
 
+      // One active proposal is pending approval
+      BOOST_CHECK_EQUAL( db_api.get_proposed_global_parameters().size(), 1 );
+
       // The electoral threshold is still 0
       BOOST_CHECK_EQUAL( db.get_global_properties().parameters.get_electoral_threshold(), 0 );
 
       // Approve the proposal
       proposal_update_operation uop;
       uop.fee_paying_account = GRAPHENE_TEMP_ACCOUNT;
+      uop.proposal = prop_id;
       uop.active_approvals_to_add = { get_account("init0").get_id(), get_account("init1").get_id(),
                                       get_account("init2").get_id(), get_account("init3").get_id(),
                                       get_account("init4").get_id(), get_account("init5").get_id(),
@@ -112,10 +131,24 @@ BOOST_AUTO_TEST_CASE( hardfork_time_test )
 
       // The electoral threshold is still 0
       BOOST_CHECK_EQUAL( db.get_global_properties().parameters.get_electoral_threshold(), 0 );
+      BOOST_CHECK_EQUAL( db_api.get_proposed_global_parameters().size(), 1 );
+
+      // Make sure that the received operation really offers to change the network parameters
+      vector<operation> operations = db_api
+                                       .get_proposed_global_parameters()
+                                       .at(0)
+                                       .proposed_transaction.operations;
+      BOOST_CHECK( find_if(begin(operations), end(operations), [](const op_wrapper &op)
+                   {
+                      return op.op.is_type<committee_member_update_global_parameters_operation>();
+                   }) != std::end(operations) );
 
       generate_blocks( prop_id( db ).expiration_time + 5 );
       generate_blocks( db.get_dynamic_global_properties().next_maintenance_time );
       generate_block();
+
+      // No active proposals
+      BOOST_CHECK_EQUAL( db_api.get_proposed_global_parameters().size(), 0 );
 
       // The maker fee discount percent should have changed
       BOOST_CHECK_EQUAL( db.get_global_properties().parameters.get_electoral_threshold(), 3 );

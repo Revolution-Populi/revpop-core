@@ -527,9 +527,9 @@ void database::clear_expired_htlcs()
       const auto amount = asset(obj.transfer.amount, obj.transfer.asset_id);
       adjust_balance( obj.transfer.from, amount );
       // notify related parties
-      //htlc_refund_operation vop( obj.id, obj.transfer.from, obj.transfer.to, amount,
-      //   obj.conditions.hash_lock.preimage_hash, obj.conditions.hash_lock.preimage_size );
-      //push_applied_operation( vop );
+      htlc_refund_operation vop( obj.id, obj.transfer.from, obj.transfer.to, amount,
+         obj.conditions.hash_lock.preimage_hash, obj.conditions.hash_lock.preimage_size );
+      push_applied_operation( vop );
       remove( obj );
    }
 }

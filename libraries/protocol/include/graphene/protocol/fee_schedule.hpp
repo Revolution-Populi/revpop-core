@@ -112,14 +112,52 @@ namespace graphene { namespace protocol {
       }
    };
 
+   template<>
+   class fee_helper<htlc_create_operation> {
+     public:
+      const htlc_create_operation::fee_parameters_type& cget(const fee_parameters::flat_set_type& parameters)const
+      {
+         auto itr = parameters.find( htlc_create_operation::fee_parameters_type() );
+         if ( itr != parameters.end() )
+            return itr->get<htlc_create_operation::fee_parameters_type>();
+
+         static htlc_create_operation::fee_parameters_type htlc_create_operation_fee_dummy;
+         return htlc_create_operation_fee_dummy;
+      }
+   };
+
+   template<>
+   class fee_helper<htlc_redeem_operation> {
+     public:
+      const htlc_redeem_operation::fee_parameters_type& cget(const fee_parameters::flat_set_type& parameters)const
+      {
+         auto itr = parameters.find( htlc_redeem_operation::fee_parameters_type() );
+         if ( itr != parameters.end() )
+            return itr->get<htlc_redeem_operation::fee_parameters_type>();
+
+         static htlc_redeem_operation::fee_parameters_type htlc_redeem_operation_fee_dummy;
+         return htlc_redeem_operation_fee_dummy;
+      }
+   };
+   template<>
+   class fee_helper<htlc_extend_operation> {
+     public:
+      const htlc_extend_operation::fee_parameters_type& cget(const fee_parameters::flat_set_type& parameters)const
+      {
+         auto itr = parameters.find( htlc_extend_operation::fee_parameters_type() );
+         if ( itr != parameters.end() )
+            return itr->get<htlc_extend_operation::fee_parameters_type>();
+
+         static htlc_extend_operation::fee_parameters_type htlc_extend_operation_fee_dummy;
+         return htlc_extend_operation_fee_dummy;
+      }
+   };
    /**
     *  @brief contains all of the parameters necessary to calculate the fee for any operation
     */
    struct fee_schedule
    {
-      fee_schedule();
-
-      static fee_schedule get_default();
+      static const fee_schedule& get_default();
 
       /**
        *  Finds the appropriate fee parameter struct for the operation
@@ -165,12 +203,12 @@ namespace graphene { namespace protocol {
        *  @note must be sorted by fee_parameters.which() and have no duplicates
        */
       fee_parameters::flat_set_type parameters;
-      uint32_t                 scale = GRAPHENE_100_PERCENT; ///< fee * scale / GRAPHENE_100_PERCENT
-      private:
-      static void set_fee_parameters(fee_schedule& sched);
+      uint32_t                      scale = GRAPHENE_100_PERCENT; ///< fee * scale / GRAPHENE_100_PERCENT
+   private:
+      static fee_schedule get_default_impl();
    };
 
-   typedef fee_schedule fee_schedule_type;
+   using fee_schedule_type = fee_schedule;
 
 } } // graphene::protocol
 

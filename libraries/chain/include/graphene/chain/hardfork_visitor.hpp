@@ -60,6 +60,16 @@ struct hardfork_visitor {
    using RevPop_15_ops = TL::list<content_card_v2_create_operation, content_card_v2_update_operation,
                                   content_card_v2_remove_operation, personal_data_v2_create_operation,
                                   personal_data_v2_remove_operation>;
+   using RevPop_workers_ops = TL::list<worker_create_operation>;
+   using htlc_ops = TL::list< htlc_create_operation,
+                                  htlc_redeem_operation,
+                                  htlc_redeemed_operation,
+                                  htlc_extend_operation,
+                                  htlc_refund_operation>;
+   using market_ops = TL::list< limit_order_create_operation,
+                                  limit_order_cancel_operation,
+                                  call_order_update_operation,
+                                  fill_order_operation>;
 
    fc::time_point_sec now;
 
@@ -88,6 +98,15 @@ struct hardfork_visitor {
    template<typename Op>
    std::enable_if_t<TL::contains<RevPop_15_ops, Op>(), bool>
    visit() { return HARDFORK_REVPOP_15_PASSED(now); }
+   template<typename Op>
+   std::enable_if_t<TL::contains<RevPop_workers_ops, Op>(), bool>
+   visit() { return HARDFORK_REVPOP_15_PASSED(now); }
+   template<typename Op>
+   std::enable_if_t<TL::contains<htlc_ops, Op>(), bool>
+   visit() { return true; }
+   template<typename Op>
+   std::enable_if_t<TL::contains<market_ops, Op>(), bool>
+   visit() { return true; }
    /// @}
 
    /// typelist::runtime::dispatch adaptor

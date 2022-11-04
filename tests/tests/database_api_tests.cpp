@@ -757,7 +757,8 @@ BOOST_AUTO_TEST_CASE( get_required_signatures_partially_signed_or_not )
 
 BOOST_AUTO_TEST_CASE( subscription_key_collision_test )
 {
-   object_id_type uia_object_id = create_user_issued_asset( "UIATEST" ).get_id();
+   auto nathan = create_account("nathan");
+   object_id_type uia_object_id = create_user_issued_asset( "UIATEST", nathan, 0 ).get_id();
 
    uint32_t objects_changed = 0;
    auto callback = [&]( const variant& v )
@@ -796,9 +797,9 @@ BOOST_AUTO_TEST_CASE( subscription_notification_test )
       generate_block();
       set_expiration( db, trx );
 
-      ACTORS( (alice)(bob) );
+      ACTORS( (alice)(bob)(nathan) );
 
-      create_user_issued_asset( "UIATEST" );
+      create_user_issued_asset( "UIATEST", nathan, 0 );
 
 // declare db_api1 ~ db_api60
 #define SUB_NOTIF_TEST_NUM_CALLBACKS_PLUS_ONE 61
@@ -1048,6 +1049,122 @@ BOOST_AUTO_TEST_CASE( subscription_notification_test )
    } FC_LOG_AND_RETHROW()
 }
 
+BOOST_AUTO_TEST_CASE( get_all_workers )
+{ try {
+   graphene::app::database_api db_api( db, &( app.get_options() ));
+   ACTORS( (connie)(whitney)(wolverine) );
+
+   fund(connie);
+   upgrade_to_lifetime_member(connie);
+   fund(whitney);
+   upgrade_to_lifetime_member(whitney);
+   fund(wolverine);
+   upgrade_to_lifetime_member(wolverine);
+
+   vector<worker_object> results;
+
+   const auto& worker1 = create_worker( connie_id, 1000, fc::days(10) );
+   worker_id_type worker1_id = worker1.id;
+
+   BOOST_REQUIRE_EQUAL( db_api.get_all_workers().size(), 1 );
+   BOOST_REQUIRE_EQUAL( db_api.get_all_workers(true).size(), 0 );
+   BOOST_REQUIRE_EQUAL( db_api.get_all_workers(false).size(), 1 );
+   BOOST_CHECK( db_api.get_all_workers().front().id == worker1_id );
+   BOOST_CHECK( db_api.get_all_workers(false).front().id == worker1_id );
+
+   generate_blocks( db.head_block_time() + fc::days(11) );
+   set_expiration( db, trx );
+
+   BOOST_REQUIRE_EQUAL( db_api.get_all_workers().size(), 1 );
+   BOOST_REQUIRE_EQUAL( db_api.get_all_workers(true).size(), 1 );
+   BOOST_REQUIRE_EQUAL( db_api.get_all_workers(false).size(), 0 );
+   BOOST_CHECK( db_api.get_all_workers().front().id == worker1_id );
+   BOOST_CHECK( db_api.get_all_workers(true).front().id == worker1_id );
+
+   const auto& worker2 = create_worker( whitney_id, 1000, fc::days(50) );
+   worker_id_type worker2_id = worker2.id;
+
+   BOOST_REQUIRE_EQUAL( db_api.get_all_workers().size(), 2 );
+   BOOST_REQUIRE_EQUAL( db_api.get_all_workers(true).size(), 1 );
+   BOOST_REQUIRE_EQUAL( db_api.get_all_workers(false).size(), 1 );
+   BOOST_CHECK( db_api.get_all_workers().front().id == worker1_id );
+   BOOST_CHECK( db_api.get_all_workers().back().id == worker2_id );
+   BOOST_CHECK( db_api.get_all_workers(true).front().id == worker1_id );
+   BOOST_CHECK( db_api.get_all_workers(false).front().id == worker2_id );
+
+   const auto& worker3 = create_worker( wolverine_id, 1000, fc::days(100) );
+   worker_id_type worker3_id = worker3.id;
+
+   BOOST_REQUIRE_EQUAL( db_api.get_all_workers().size(), 3 );
+   BOOST_REQUIRE_EQUAL( db_api.get_all_workers(true).size(), 1 );
+   BOOST_REQUIRE_EQUAL( db_api.get_all_workers(false).size(), 2 );
+   BOOST_CHECK( db_api.get_all_workers().front().id == worker1_id );
+   BOOST_CHECK( db_api.get_all_workers().back().id == worker3_id );
+   BOOST_CHECK( db_api.get_all_workers(true).front().id == worker1_id );
+   BOOST_CHECK( db_api.get_all_workers(false).front().id == worker2_id );
+   BOOST_CHECK( db_api.get_all_workers(false).back().id == worker3_id );
+
+   generate_blocks( db.head_block_time() + fc::days(55) );
+   set_expiration( db, trx );
+
+   BOOST_REQUIRE_EQUAL( db_api.get_all_workers().size(), 3 );
+   BOOST_REQUIRE_EQUAL( db_api.get_all_workers(true).size(), 2 );
+   BOOST_REQUIRE_EQUAL( db_api.get_all_workers(false).size(), 1 );
+   BOOST_CHECK( db_api.get_all_workers().front().id == worker1_id );
+   BOOST_CHECK( db_api.get_all_workers().back().id == worker3_id );
+   BOOST_CHECK( db_api.get_all_workers(true).front().id == worker1_id );
+   BOOST_CHECK( db_api.get_all_workers(true).back().id == worker2_id );
+   BOOST_CHECK( db_api.get_all_workers(false).front().id == worker3_id );
+
+   generate_blocks( db.head_block_time() + fc::days(55) );
+   set_expiration( db, trx );
+
+   BOOST_REQUIRE_EQUAL( db_api.get_all_workers().size(), 3 );
+   BOOST_REQUIRE_EQUAL( db_api.get_all_workers(true).size(), 3 );
+   BOOST_REQUIRE_EQUAL( db_api.get_all_workers(false).size(), 0 );
+   BOOST_CHECK( db_api.get_all_workers().front().id == worker1_id );
+   BOOST_CHECK( db_api.get_all_workers().back().id == worker3_id );
+   BOOST_CHECK( db_api.get_all_workers(true).front().id == worker1_id );
+   BOOST_CHECK( db_api.get_all_workers(true).back().id == worker3_id );
+
+} FC_LOG_AND_RETHROW() }
+
+BOOST_AUTO_TEST_CASE( get_workers_by_account )
+{ try {
+   graphene::app::database_api db_api( db, &( app.get_options() ));
+   ACTORS( (connie)(whitney)(wolverine) );
+
+   fund(connie);
+   upgrade_to_lifetime_member(connie);
+   fund(whitney);
+   upgrade_to_lifetime_member(whitney);
+   fund(wolverine);
+   upgrade_to_lifetime_member(wolverine);
+
+   vector<worker_object> results;
+
+   const auto& worker1 = create_worker( connie_id );
+   worker_id_type worker1_id = worker1.id;
+
+   const auto& worker2 = create_worker( whitney_id, 1000, fc::days(50) );
+   worker_id_type worker2_id = worker2.id;
+
+   const auto& worker3 = create_worker( whitney_id, 1000, fc::days(100) );
+   worker_id_type worker3_id = worker3.id;
+
+   BOOST_REQUIRE_EQUAL( db_api.get_workers_by_account("connie").size(), 1 );
+   BOOST_CHECK( db_api.get_workers_by_account("connie").front().id == worker1_id );
+
+   BOOST_REQUIRE_EQUAL( db_api.get_workers_by_account(string(whitney.id)).size(), 2 );
+   BOOST_CHECK( db_api.get_workers_by_account(string(whitney.id)).front().id == worker2_id );
+   BOOST_CHECK( db_api.get_workers_by_account(string(whitney.id)).back().id == worker3_id );
+
+   BOOST_REQUIRE_EQUAL( db_api.get_workers_by_account("wolverine").size(), 0 );
+
+   BOOST_REQUIRE_THROW( db_api.get_workers_by_account("not-a-user"), fc::exception );
+
+} FC_LOG_AND_RETHROW() }
+
 BOOST_AUTO_TEST_CASE( lookup_vote_ids )
 { try {
    graphene::app::database_api db_api( db, &( app.get_options() ));
@@ -1062,10 +1179,12 @@ BOOST_AUTO_TEST_CASE( lookup_vote_ids )
 
    const auto& committee = create_committee_member( connie );
    const auto& witness = create_witness( whitney );
+   const auto& worker = create_worker( wolverine_id );
 
    std::vector<vote_id_type> votes;
    votes.push_back( committee.vote_id );
    votes.push_back( witness.vote_id );
+   votes.push_back( worker.vote_for );
 
    const auto results = db_api.lookup_vote_ids( votes );
 
@@ -1205,34 +1324,5 @@ BOOST_AUTO_TEST_CASE( verify_authority_multiple_accounts )
       throw;
    }
 }
-
-BOOST_AUTO_TEST_CASE( get_assets_by_issuer ) {
-   try {
-      graphene::app::database_api db_api(db, &(this->app.get_options()));
-
-      create_bitasset("CNY");
-      create_bitasset("EUR");
-      create_bitasset("USD");
-
-      generate_block();
-
-      auto assets = db_api.get_assets_by_issuer("witness-account", asset_id_type(), 10);
-
-      BOOST_CHECK(assets.size() == 3);
-      BOOST_CHECK(assets[0].symbol == "CNY");
-      BOOST_CHECK(assets[1].symbol == "EUR");
-      BOOST_CHECK(assets[2].symbol == "USD");
-
-      assets = db_api.get_assets_by_issuer("witness-account", asset_id_type(200), 100);
-      BOOST_CHECK(assets.size() == 0);
-
-      GRAPHENE_CHECK_THROW(db_api.get_assets_by_issuer("nosuchaccount", asset_id_type(), 100), fc::exception);
-
-   } catch (fc::exception& e) {
-      edump((e.to_detail_string()));
-      throw;
-   }
-}
-
 
 BOOST_AUTO_TEST_SUITE_END()

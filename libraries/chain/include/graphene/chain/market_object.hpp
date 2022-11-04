@@ -44,8 +44,8 @@ using namespace graphene::db;
 class limit_order_object : public abstract_object<limit_order_object>
 {
    public:
-      static const uint8_t space_id = protocol_ids;
-      static const uint8_t type_id  = limit_order_object_type;
+      static constexpr uint8_t space_id = protocol_ids;
+      static constexpr uint8_t type_id  = limit_order_object_type;
 
       time_point_sec   expiration;
       account_id_type  seller;
@@ -119,8 +119,8 @@ typedef generic_index<limit_order_object, limit_order_multi_index_type> limit_or
 class call_order_object : public abstract_object<call_order_object>
 {
    public:
-      static const uint8_t space_id = protocol_ids;
-      static const uint8_t type_id  = call_order_object_type;
+      static constexpr uint8_t space_id = protocol_ids;
+      static constexpr uint8_t type_id  = call_order_object_type;
 
       asset get_collateral()const { return asset( collateral, call_price.base.asset_id ); }
       asset get_debt()const { return asset( debt, debt_type() ); }
@@ -167,8 +167,8 @@ class call_order_object : public abstract_object<call_order_object>
 class force_settlement_object : public abstract_object<force_settlement_object>
 {
    public:
-      static const uint8_t space_id = protocol_ids;
-      static const uint8_t type_id  = force_settlement_object_type;
+      static constexpr uint8_t space_id = protocol_ids;
+      static constexpr uint8_t type_id  = force_settlement_object_type;
 
       account_id_type   owner;
       asset             balance;
@@ -176,27 +176,6 @@ class force_settlement_object : public abstract_object<force_settlement_object>
 
       asset_id_type settlement_asset_id()const
       { return balance.asset_id; }
-};
-
-/**
- * @class collateral_bid_object
- * @brief bids of collateral for debt after a black swan
- *
- * There should only be one collateral_bid_object per asset per account, and
- * only for smartcoin assets that have a global settlement_price.
- */
-class collateral_bid_object : public abstract_object<collateral_bid_object>
-{
-   public:
-      static const uint8_t space_id = implementation_ids;
-      static const uint8_t type_id  = impl_collateral_bid_object_type;
-
-      asset get_additional_collateral()const { return inv_swan_price.base; }
-      asset get_debt_covered()const { return inv_swan_price.quote; }
-      asset_id_type debt_type()const { return inv_swan_price.quote.asset_id; }
-
-      account_id_type  bidder;
-      price            inv_swan_price;  // Collateral / Debt
 };
 
 struct by_collateral;
@@ -250,45 +229,19 @@ typedef multi_index_container<
    >
 > force_settlement_object_multi_index_type;
 
-typedef multi_index_container<
-   collateral_bid_object,
-   indexed_by<
-      ordered_unique< tag<by_id>,
-         member< object, object_id_type, &object::id > >,
-      ordered_unique< tag<by_account>,
-         composite_key< collateral_bid_object,
-            const_mem_fun< collateral_bid_object, asset_id_type, &collateral_bid_object::debt_type>,
-            member< collateral_bid_object, account_id_type, &collateral_bid_object::bidder>
-         >
-      >,
-      ordered_unique< tag<by_price>,
-         composite_key< collateral_bid_object,
-            const_mem_fun< collateral_bid_object, asset_id_type, &collateral_bid_object::debt_type>,
-            member< collateral_bid_object, price, &collateral_bid_object::inv_swan_price >,
-            member< object, object_id_type, &object::id >
-         >,
-         composite_key_compare< std::less<asset_id_type>, std::greater<price>, std::less<object_id_type> >
-      >
-   >
-> collateral_bid_object_multi_index_type;
-
 typedef generic_index<call_order_object, call_order_multi_index_type>                      call_order_index;
 typedef generic_index<force_settlement_object, force_settlement_object_multi_index_type>   force_settlement_index;
-typedef generic_index<collateral_bid_object, collateral_bid_object_multi_index_type>       collateral_bid_index;
 
 } } // graphene::chain
 
 MAP_OBJECT_ID_TO_TYPE(graphene::chain::limit_order_object)
 MAP_OBJECT_ID_TO_TYPE(graphene::chain::call_order_object)
 MAP_OBJECT_ID_TO_TYPE(graphene::chain::force_settlement_object)
-MAP_OBJECT_ID_TO_TYPE(graphene::chain::collateral_bid_object)
 
 FC_REFLECT_TYPENAME( graphene::chain::limit_order_object )
 FC_REFLECT_TYPENAME( graphene::chain::call_order_object )
 FC_REFLECT_TYPENAME( graphene::chain::force_settlement_object )
-FC_REFLECT_TYPENAME( graphene::chain::collateral_bid_object )
 
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::chain::limit_order_object )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::chain::call_order_object )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::chain::force_settlement_object )
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::chain::collateral_bid_object )

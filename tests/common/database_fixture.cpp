@@ -1,7 +1,6 @@
 /*
  * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
- * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
- * 
+ *
  * The MIT License
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -270,10 +269,6 @@ std::shared_ptr<boost::program_options::variables_map> database_fixture_base::in
    {
       fc::set_option( options, "api-limit-get-account-limit-orders", (uint64_t)250 );
    }
-   if(fixture.current_test_name =="api_limit_get_collateral_bids")
-   {
-      fc::set_option( options, "api-limit-get-collateral-bids", (uint64_t)250 );
-   }
    if(fixture.current_test_name =="api_limit_get_top_markets")
    {
       fc::set_option( options, "api-limit-get-top-markets", (uint64_t)250 );
@@ -326,8 +321,8 @@ std::shared_ptr<boost::program_options::variables_map> database_fixture_base::in
    if(fixture.current_test_name == "elasticsearch_account_history" ||
          fixture.current_test_name == "elasticsearch_suite" ||
          fixture.current_test_name == "elasticsearch_history_api") {
-      auto esplugin = fixture.app.register_plugin<graphene::elasticsearch::elasticsearch_plugin>(true);
-      esplugin->plugin_set_app(&fixture.app);
+      fixture.app.register_plugin<graphene::elasticsearch::elasticsearch_plugin>(true);
+
       fc::set_option( options, "elasticsearch-node-url", GRAPHENE_TESTING_ES_URL );
       fc::set_option( options, "elasticsearch-bulk-replay", uint32_t(2) );
       fc::set_option( options, "elasticsearch-bulk-sync", uint32_t(2) );
@@ -337,30 +332,20 @@ std::shared_ptr<boost::program_options::variables_map> database_fixture_base::in
       fc::set_option( options, "elasticsearch-operation-string", true );
       fc::set_option( options, "elasticsearch-mode", uint16_t(2) );
 
-      fixture.es_index_prefix = string("bitshares-") + fc::to_string(uint64_t(rand())) + "-";
+      fixture.es_index_prefix = string("revpop-") + fc::to_string(uint64_t(rand())) + "-";
       BOOST_TEST_MESSAGE( string("ES index prefix is ") + fixture.es_index_prefix );
       fc::set_option( options, "elasticsearch-index-prefix", fixture.es_index_prefix );
-
-      esplugin->plugin_initialize(options);
-      esplugin->plugin_startup();
    }
    else if( fixture.current_suite_name == "content_cards_tests" ) {
-      auto ccplugin = fixture.app.register_plugin<graphene::content_cards::content_cards_plugin>(false);
-      ccplugin->plugin_set_app(&fixture.app);
-      ccplugin->plugin_initialize(options);
-      ccplugin->plugin_startup();
+      // fixture.app.register_plugin<graphene::content_cards::content_cards_plugin>(true);
    }
    else if( fixture.current_suite_name != "performance_tests" )
    {
-      auto ahplugin = fixture.app.register_plugin<graphene::account_history::account_history_plugin>(true);
-      ahplugin->plugin_set_app(&fixture.app);
-      ahplugin->plugin_initialize(options);
-      ahplugin->plugin_startup();
+      fixture.app.register_plugin<graphene::account_history::account_history_plugin>(true);
    }
 
    if(fixture.current_test_name == "elasticsearch_objects" || fixture.current_test_name == "elasticsearch_suite") {
-      auto esobjects_plugin = fixture.app.register_plugin<graphene::es_objects::es_objects_plugin>(true);
-      esobjects_plugin->plugin_set_app(&fixture.app);
+      fixture.app.register_plugin<graphene::es_objects::es_objects_plugin>(true);
 
       fc::set_option( options, "es-objects-elasticsearch-url", GRAPHENE_TESTING_ES_URL );
       fc::set_option( options, "es-objects-bulk-replay", uint32_t(2) );
@@ -375,30 +360,21 @@ std::shared_ptr<boost::program_options::variables_map> database_fixture_base::in
       fixture.es_obj_index_prefix = string("objects-") + fc::to_string(uint64_t(rand())) + "-";
       BOOST_TEST_MESSAGE( string("ES_OBJ index prefix is ") + fixture.es_obj_index_prefix );
       fc::set_option( options, "es-objects-index-prefix", fixture.es_obj_index_prefix );
-
-      esobjects_plugin->plugin_initialize(options);
-      esobjects_plugin->plugin_startup();
    }
 
    if( fixture.current_test_name == "asset_in_collateral"
             || fixture.current_test_name == "htlc_database_api"
-            || fixture.current_test_name == "liquidity_pool_apis_test"
             || fixture.current_suite_name == "database_api_tests"
-            || fixture.current_suite_name == "api_limit_tests" )
+            || fixture.current_suite_name == "api_limit_tests"
+            || fixture.current_suite_name == "revpop_14_tests" )
    {
-      auto ahplugin = fixture.app.register_plugin<graphene::api_helper_indexes::api_helper_indexes>(true);
-      ahplugin->plugin_set_app(&fixture.app);
-      ahplugin->plugin_initialize(options);
-      ahplugin->plugin_startup();
+      fixture.app.register_plugin<graphene::api_helper_indexes::api_helper_indexes>(true);
    }
 
    if(fixture.current_test_name == "custom_operations_account_storage_map_test" ||
       fixture.current_test_name == "custom_operations_account_storage_list_test") {
-      auto coplugin = fixture.app.register_plugin<graphene::custom_operations::custom_operations_plugin>(true);
-      coplugin->plugin_set_app(&fixture.app);
+      fixture.app.register_plugin<graphene::custom_operations::custom_operations_plugin>(true);
       fc::set_option( options, "custom-operations-start-block", uint32_t(1) );
-      coplugin->plugin_initialize(options);
-      coplugin->plugin_startup();
    }
 
    fc::set_option( options, "bucket-size", string("[15]") );
@@ -462,30 +438,6 @@ string database_fixture_base::generate_anon_acct_name()
    return "anon-acct-x" + std::to_string( anon_acct_count++ );
 }
 
-bool database_fixture_base::validation_current_test_name_for_setting_api_limit( const string& current_test_name ) const
-{
-   vector <string> valid_testcase {"api_limit_get_account_history_operations","api_limit_get_account_history"
-      ,"api_limit_get_grouped_limit_orders","api_limit_get_relative_account_history"
-      ,"api_limit_get_account_history_by_operations","api_limit_get_asset_holders"
-      ,"api_limit_get_key_references"
-      ,"api_limit_lookup_accounts"
-      ,"api_limit_lookup_witness_accounts","api_limit_lookup_committee_member_accounts"
-      ,"api_limit_lookup_vote_ids"
-      ,"api_limit_get_withdraw_permissions_by_giver","api_limit_get_withdraw_permissions_by_recipient"
-      ,"api_limit_get_full_accounts2"
-      ,"elasticsearch_account_history", "elasticsearch_suite"
-      ,"elasticsearch_history_api", "elasticsearch_objects"};
-   for(string i_valid_testcase: valid_testcase)
-   {
-      if(i_valid_testcase.compare(current_test_name)==0)
-      {
-         return true;
-      }
-   }
-
-   return false;
-}
-
 void database_fixture_base::verify_asset_supplies( const database& db )
 {
    //wlog("*** Begin asset supply verification ***");
@@ -495,7 +447,6 @@ void database_fixture_base::verify_asset_supplies( const database& db )
    const auto& statistics_index = db.get_index_type<account_stats_index>().indices();
    const auto& acct_balance_index = db.get_index_type<account_balance_index>().indices();
    const auto& settle_index = db.get_index_type<force_settlement_index>().indices();
-   const auto& bids = db.get_index_type<collateral_bid_index>().indices();
    map<asset_id_type,share_type> total_balances;
    map<asset_id_type,share_type> total_debts;
    share_type core_in_orders;
@@ -515,8 +466,6 @@ void database_fixture_base::verify_asset_supplies( const database& db )
       total_balances[b.asset_type] += b.balance;
    for( const force_settlement_object& s : settle_index )
       total_balances[s.balance.asset_id] += s.balance.amount;
-   for( const collateral_bid_object& b : bids )
-      total_balances[b.inv_swan_price.base.asset_id] += b.inv_swan_price.base.amount;
    for( const account_statistics_object& a : statistics_index )
    {
       reported_core_in_orders += a.total_core_in_orders;
@@ -738,113 +687,6 @@ const account_object& database_fixture_base::get_account( const string& name )co
    return *itr;
 }
 
-asset_create_operation database_fixture_base::make_bitasset(
-   const string& name,
-   account_id_type issuer /* = GRAPHENE_WITNESS_ACCOUNT */,
-   uint16_t market_fee_percent /* = 100 */ /* 1% */,
-   uint16_t flags /* = charge_market_fee */,
-   uint16_t precision /* = GRAPHENE_BLOCKCHAIN_PRECISION_DIGITS */,
-   asset_id_type backing_asset /* = CORE */,
-   share_type max_supply,  /* = GRAPHENE_MAX_SHARE_SUPPLY */
-   optional<uint16_t> initial_cr, /* = {} */
-   optional<uint16_t> margin_call_fee_ratio /* = {} */
-   )
-{
-   asset_create_operation creator;
-   creator.issuer = issuer;
-   creator.fee = asset();
-   creator.symbol = name;
-   creator.common_options.max_supply = max_supply;
-   creator.precision = precision;
-   creator.common_options.market_fee_percent = market_fee_percent;
-   if( issuer == GRAPHENE_WITNESS_ACCOUNT )
-      flags |= witness_fed_asset;
-   creator.common_options.issuer_permissions = flags;
-   creator.common_options.flags = flags & ~global_settle;
-   creator.common_options.core_exchange_rate = price(asset(1,asset_id_type(1)),asset(1));
-   creator.bitasset_opts = bitasset_options();
-   creator.bitasset_opts->short_backing_asset = backing_asset;
-   creator.bitasset_opts->extensions.value.initial_collateral_ratio = initial_cr;
-   creator.bitasset_opts->extensions.value.margin_call_fee_ratio = margin_call_fee_ratio;
-   return creator;
-}
-
-const asset_object& database_fixture_base::create_bitasset(
-   const string& name,
-   account_id_type issuer /* = GRAPHENE_WITNESS_ACCOUNT */,
-   uint16_t market_fee_percent /* = 100 */ /* 1% */,
-   uint16_t flags /* = charge_market_fee */,
-   uint16_t precision /* = GRAPHENE_BLOCKCHAIN_PRECISION_DIGITS */,
-   asset_id_type backing_asset /* = CORE */,
-   share_type max_supply,  /* = GRAPHENE_MAX_SHARE_SUPPLY */
-   optional<uint16_t> initial_cr, /* = {} */
-   optional<uint16_t> margin_call_fee_ratio /* = {} */
-   )
-{ try {
-   asset_create_operation creator = make_bitasset( name, issuer, market_fee_percent, flags,
-                                                   precision, backing_asset, max_supply, initial_cr,
-                                                   margin_call_fee_ratio );
-   trx.operations.clear();
-   trx.operations.push_back(std::move(creator));
-   trx.validate();
-   processed_transaction ptx = PUSH_TX(db, trx, ~0);
-   trx.operations.clear();
-   return db.get<asset_object>(ptx.operation_results[0].get<object_id_type>());
-} FC_CAPTURE_AND_RETHROW( (name)(flags) ) }
-
-const asset_object& database_fixture_base::create_prediction_market(
-   const string& name,
-   account_id_type issuer /* = GRAPHENE_WITNESS_ACCOUNT */,
-   uint16_t market_fee_percent /* = 100 */ /* 1% */,
-   uint16_t flags /* = charge_market_fee */,
-   uint16_t precision /* = 2, which seems arbitrary, but historically chosen */,
-   asset_id_type backing_asset /* = CORE */
-   )
-{ try {
-   asset_create_operation creator;
-   creator.issuer = issuer;
-   creator.fee = asset();
-   creator.symbol = name;
-   creator.common_options.max_supply = GRAPHENE_MAX_SHARE_SUPPLY;
-   creator.precision = precision;
-   creator.common_options.market_fee_percent = market_fee_percent;
-   creator.common_options.issuer_permissions = flags | global_settle;
-   creator.common_options.flags = flags & ~global_settle;
-   if( issuer == GRAPHENE_WITNESS_ACCOUNT )
-      creator.common_options.flags |= witness_fed_asset;
-   creator.common_options.core_exchange_rate = price(asset(1,asset_id_type(1)),asset(1));
-   creator.bitasset_opts = bitasset_options();
-   creator.bitasset_opts->short_backing_asset = backing_asset;
-   creator.is_prediction_market = true;
-   trx.operations.clear();
-   trx.operations.push_back(std::move(creator));
-   trx.validate();
-   processed_transaction ptx = PUSH_TX(db, trx, ~0);
-   trx.operations.clear();
-   return db.get<asset_object>(ptx.operation_results[0].get<object_id_type>());
-} FC_CAPTURE_AND_RETHROW( (name)(flags) ) }
-
-
-const asset_object& database_fixture_base::create_user_issued_asset( const string& name )
-{
-   asset_create_operation creator;
-   creator.issuer = account_id_type();
-   creator.fee = asset();
-   creator.symbol = name;
-   creator.common_options.max_supply = 0;
-   creator.precision = 2;
-   creator.common_options.core_exchange_rate = price(asset(1,asset_id_type(1)),asset(1));
-   creator.common_options.max_supply = GRAPHENE_MAX_SHARE_SUPPLY;
-   creator.common_options.flags = charge_market_fee;
-   creator.common_options.issuer_permissions = charge_market_fee;
-   trx.operations.clear();
-   trx.operations.push_back(std::move(creator));
-   trx.validate();
-   processed_transaction ptx = PUSH_TX(db, trx, ~0);
-   trx.operations.clear();
-   return db.get<asset_object>(ptx.operation_results[0].get<object_id_type>());
-}
-
 const asset_object& database_fixture_base::create_user_issued_asset( const string& name, const account_object& issuer,
                                                                uint16_t flags, const price& core_exchange_rate,
                                                                uint8_t precision, uint16_t market_fee_percent,
@@ -854,6 +696,7 @@ const asset_object& database_fixture_base::create_user_issued_asset( const strin
    creator.issuer = issuer.id;
    creator.fee = asset();
    creator.symbol = name;
+   creator.common_options.max_supply = 0;
    creator.precision = precision;
    creator.common_options.core_exchange_rate = core_exchange_rate;
    creator.common_options.max_supply = GRAPHENE_MAX_SHARE_SUPPLY;
@@ -1033,6 +876,22 @@ const witness_object& database_fixture_base::create_witness( const account_objec
    processed_transaction ptx = PUSH_TX(db, trx, skip_flags );
    trx.clear();
    return db.get<witness_object>(ptx.operation_results[0].get<object_id_type>());
+} FC_CAPTURE_AND_RETHROW() }
+
+const worker_object& database_fixture_base::create_worker( const account_id_type owner, const share_type daily_pay, const fc::microseconds& duration )
+{ try {
+   worker_create_operation op;
+   op.owner = owner;
+   op.daily_pay = daily_pay;
+   op.initializer = burn_worker_initializer();
+   op.work_begin_date = db.head_block_time();
+   op.work_end_date = op.work_begin_date + duration;
+   trx.operations.clear();
+   trx.operations.push_back(op);
+   trx.validate();
+   processed_transaction ptx = PUSH_TX(db, trx, ~0);
+   trx.clear();
+   return db.get<worker_object>(ptx.operation_results[0].get<object_id_type>());
 } FC_CAPTURE_AND_RETHROW() }
 
 uint64_t database_fixture_base::fund(
@@ -1444,6 +1303,96 @@ vector< operation_history_object > database_fixture_base::get_operation_history(
       node = db.find(node->next);
    }
    return result;
+}
+
+flat_map< uint64_t, graphene::chain::fee_parameters > database_fixture_base::get_htlc_fee_parameters()
+{
+   flat_map<uint64_t, graphene::chain::fee_parameters> ret_val;
+
+   htlc_create_operation::fee_parameters_type create_param;
+   create_param.fee_per_day = 2 * GRAPHENE_BLOCKCHAIN_PRECISION;
+   create_param.fee = 2 * GRAPHENE_BLOCKCHAIN_PRECISION;
+   ret_val[((operation)htlc_create_operation()).which()] = create_param;
+
+   htlc_redeem_operation::fee_parameters_type redeem_param;
+   redeem_param.fee = 2 * GRAPHENE_BLOCKCHAIN_PRECISION;
+   redeem_param.fee_per_kb = 2 * GRAPHENE_BLOCKCHAIN_PRECISION;
+   ret_val[((operation)htlc_redeem_operation()).which()] = redeem_param;
+
+   htlc_extend_operation::fee_parameters_type extend_param;
+   extend_param.fee = 2 * GRAPHENE_BLOCKCHAIN_PRECISION;
+   extend_param.fee_per_day = 2 * GRAPHENE_BLOCKCHAIN_PRECISION;
+   ret_val[((operation)htlc_extend_operation()).which()] = extend_param;
+
+   // set the transfer kb fee to something other than default, to verify we're looking
+   // at the correct fee
+   transfer_operation::fee_parameters_type transfer_param;
+   transfer_param.price_per_kbyte *= 2;
+   ret_val[ ((operation)transfer_operation()).which() ] = transfer_param;
+
+   return ret_val;
+}
+
+void database_fixture_base::set_htlc_committee_parameters()
+{
+   // Initialize committee by voting for each memeber and for desired count
+   vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
+   generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
+   set_expiration(db, trx);
+
+   // htlc fees
+   // get existing fee_schedule
+   const chain_parameters& existing_params = db.get_global_properties().parameters;
+   const fee_schedule_type& existing_fee_schedule = *(existing_params.current_fees);
+   // create a new fee_shedule
+   std::shared_ptr<fee_schedule_type> new_fee_schedule = std::make_shared<fee_schedule_type>();
+   new_fee_schedule->scale = GRAPHENE_100_PERCENT;
+   // replace the old with the new
+   flat_map<uint64_t, graphene::chain::fee_parameters> htlc_fees = get_htlc_fee_parameters();
+   for(auto param : existing_fee_schedule.parameters)
+   {
+      auto itr = htlc_fees.find(param.which());
+      if (itr == htlc_fees.end()) {
+         // Only define fees for operations which are already forked in!
+         if (hardfork_visitor(db.head_block_time()).visit(param.which()))
+            new_fee_schedule->parameters.insert(param);
+      } else {
+         new_fee_schedule->parameters.insert( (*itr).second);
+      }
+   }
+
+   // htlc parameters
+   proposal_create_operation cop = proposal_create_operation::committee_proposal(
+         db.get_global_properties().parameters, db.head_block_time());
+   cop.fee_paying_account = GRAPHENE_TEMP_ACCOUNT;
+   cop.expiration_time = db.head_block_time() + *cop.review_period_seconds + 10;
+   committee_member_update_global_parameters_operation uop;
+   graphene::chain::htlc_options new_params;
+   new_params.max_preimage_size = 19200;
+   new_params.max_timeout_secs = 60 * 60 * 24 * 28;
+   uop.new_parameters.extensions.value.updatable_htlc_options = new_params;
+   uop.new_parameters.current_fees = new_fee_schedule;
+   cop.proposed_ops.emplace_back(uop);
+
+   trx.operations.clear();
+   trx.operations.push_back(cop);
+   graphene::chain::processed_transaction proc_trx = db.push_transaction(trx);
+   trx.clear();
+   proposal_id_type good_proposal_id = proc_trx.operation_results[0].get<object_id_type>();
+
+   proposal_update_operation puo;
+   puo.proposal = good_proposal_id;
+   puo.fee_paying_account = GRAPHENE_TEMP_ACCOUNT;
+   puo.key_approvals_to_add.emplace( init_account_priv_key.get_public_key() );
+   trx.operations.push_back(puo);
+   sign( trx, init_account_priv_key );
+   db.push_transaction(trx);
+   trx.clear();
+
+   generate_blocks( good_proposal_id( db ).expiration_time + 5 );
+   generate_blocks( db.get_dynamic_global_properties().next_maintenance_time );
+   generate_block();   // get the maintenance skip slots out of the way
+
 }
 
 namespace test {

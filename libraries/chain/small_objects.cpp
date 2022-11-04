@@ -62,6 +62,8 @@ FC_REFLECT_DERIVED_NO_TYPENAME(
    (worker_budget)
    (leftover_worker_funds)
    (supply_delta)
+   (max_supply)
+   (current_supply)
 )
 
 FC_REFLECT_DERIVED_NO_TYPENAME(
@@ -185,9 +187,8 @@ FC_REFLECT_DERIVED_NO_TYPENAME( graphene::chain::worker_object, (graphene::db::o
                     (daily_pay)
                     (worker)
                     (vote_for)
-                    (vote_against)
                     (total_votes_for)
-                    (total_votes_against)
+                    (total_cm_votes_for)
                     (name)
                     (url)
                   )

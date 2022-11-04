@@ -291,11 +291,6 @@ struct database_fixture_base {
    void publish_feed( const asset_object& mia, const account_object& by, const price_feed& f,
                       const optional<uint16_t> icr = {} );
 
-   const call_order_object* borrow( account_id_type who, asset what, asset collateral,
-                                    optional<uint16_t> target_cr = {} )
-   { return borrow(who(db), what, collateral, target_cr); }
-   const call_order_object* borrow( const account_object& who, asset what, asset collateral,
-                                    optional<uint16_t> target_cr = {} );
    void cover(account_id_type who, asset what, asset collateral_freed,
                                     optional<uint16_t> target_cr = {} )
    { cover(who(db), what, collateral_freed, target_cr); }
@@ -305,31 +300,6 @@ struct database_fixture_base {
 
    const asset_object& get_asset( const string& symbol )const;
    const account_object& get_account( const string& name )const;
-   asset_create_operation make_bitasset( const string& name,
-                                       account_id_type issuer = GRAPHENE_WITNESS_ACCOUNT,
-                                       uint16_t market_fee_percent = 100 /*1%*/,
-                                       uint16_t flags = charge_market_fee,
-                                       uint16_t precision = 2,
-                                       asset_id_type backing_asset = {},
-                                       share_type max_supply = GRAPHENE_MAX_SHARE_SUPPLY,
-                                       optional<uint16_t> initial_cr = {},
-                                       optional<uint16_t> margin_call_fee_ratio = {} );
-   const asset_object& create_bitasset(const string& name,
-                                       account_id_type issuer = GRAPHENE_WITNESS_ACCOUNT,
-                                       uint16_t market_fee_percent = 100 /*1%*/,
-                                       uint16_t flags = charge_market_fee,
-                                       uint16_t precision = 2,
-                                       asset_id_type backing_asset = {},
-                                       share_type max_supply = GRAPHENE_MAX_SHARE_SUPPLY,
-                                       optional<uint16_t> initial_cr = {},
-                                       optional<uint16_t> margin_call_fee_ratio = {} );
-   const asset_object& create_prediction_market(const string& name,
-                                       account_id_type issuer = GRAPHENE_WITNESS_ACCOUNT,
-                                       uint16_t market_fee_percent = 100 /*1%*/,
-                                       uint16_t flags = charge_market_fee,
-                                       uint16_t precision = GRAPHENE_BLOCKCHAIN_PRECISION_DIGITS,
-                                       asset_id_type backing_asset = {});
-   const asset_object& create_user_issued_asset( const string& name );
    const asset_object& create_user_issued_asset( const string& name,
                                                  const account_object& issuer,
                                                  uint16_t flags,
@@ -372,7 +342,7 @@ struct database_fixture_base {
    const worker_object& create_worker(account_id_type owner, const share_type daily_pay = 1000, const fc::microseconds& duration = fc::days(2));
    template<typename T>
    proposal_create_operation make_proposal_create_op( const T& op, account_id_type proposer = GRAPHENE_TEMP_ACCOUNT,
-                                                      uint32_t timeout = 300, uint32_t review_period = 0 ) const
+                                                      uint32_t timeout = 300, optional<uint32_t> review_period = {} ) const
    {
       proposal_create_operation cop;
       cop.fee_paying_account = proposer;
@@ -411,6 +381,8 @@ struct database_fixture_base {
    void transfer( account_id_type from, account_id_type to, const asset& amount, const asset& fee = asset() );
    void transfer( const account_object& from, const account_object& to, const asset& amount, const asset& fee = asset() );
    void fund_fee_pool( const account_object& from, const asset_object& asset_to_fund, const share_type amount );
+
+   // Tickets
    ticket_create_operation make_ticket_create_op( account_id_type account, ticket_type type,
                                                   const asset& amount )const;
    const ticket_object& create_ticket( account_id_type account, ticket_type type, const asset& amount );
@@ -441,9 +413,16 @@ struct database_fixture_base {
    int64_t get_market_fee_reward( const account_object& account, const asset_object& asset )const;
 
    vector< operation_history_object > get_operation_history( account_id_type account_id )const;
-   bool validation_current_test_name_for_setting_api_limit( const string& current_test_name )const;
 
 
+   /****
+    * @brief return htlc fee parameters
+    */
+   flat_map< uint64_t, graphene::chain::fee_parameters > get_htlc_fee_parameters();
+   /****
+    * @brief push through a proposal that sets htlc parameters and fees
+    */
+   void set_htlc_committee_parameters();
    /****
     * Hash the preimage and put it in a vector
     * @param preimage the preimage
@@ -473,18 +452,11 @@ struct database_fixture_init : database_fixture_base {
       fixture.data_dir = fc::temp_directory( graphene::utilities::temp_directory_path() );
       fc::create_directories( fixture.data_dir.path() );
       F::init_genesis( fixture );
-      fixture.db.open(fixture.data_dir.path(), [&fixture]{return fixture.genesis_state;}, "test");
       fc::json::save_to_file( fixture.genesis_state, fixture.data_dir.path() / "genesis.json" );
       auto options = F::init_options( fixture );
       fc::set_option( *options, "genesis-json", boost::filesystem::path(fixture.data_dir.path() / "genesis.json") );
-      if( fixture.current_suite_name != "performance_tests" &&
-          fixture.validation_current_test_name_for_setting_api_limit(fixture.current_test_name) )
-      {
-          fixture.app.initialize( fixture.data_dir.path(), *options );
-          // fixture.app.initialize(graphene::utilities::temp_directory_path(), options);
-          // fixture.app.startup();
-          fixture.app.set_api_limit();
-      }
+      fixture.app.initialize( fixture.data_dir.path(), options );
+      fixture.app.startup();
 
       fixture.generate_block();
 

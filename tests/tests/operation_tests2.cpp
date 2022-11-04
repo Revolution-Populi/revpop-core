@@ -360,20 +360,20 @@ BOOST_AUTO_TEST_CASE( withdraw_permission_whitelist_asset_test )
       int blocks = 0;
       set_expiration( db, trx );
 
-      ACTORS( (nathan)(dan)(izzy) );
+      ACTORS( (izzy)(dan)(nathan) );
 
-      const asset_id_type uia_id = create_user_issued_asset( "ADVANCED", izzy_id(db), white_list ).id;
+      const asset_id_type uia_id = create_user_issued_asset( "ADVANCED", nathan_id(db), white_list ).id;
 
-      issue_uia( nathan_id, asset(1000, uia_id) );
+      issue_uia( izzy_id, asset(1000, uia_id) );
 
       // Make a whitelist authority
       {
          BOOST_TEST_MESSAGE( "Changing the whitelist authority" );
          asset_update_operation uop;
-         uop.issuer = izzy_id;
+         uop.issuer = nathan_id;
          uop.asset_to_update = uia_id;
          uop.new_options = uia_id(db).options;
-         uop.new_options.whitelist_authorities.insert(izzy_id);
+         uop.new_options.whitelist_authorities.insert(nathan_id);
          trx.operations.push_back(uop);
          PUSH_TX( db, trx, ~0 );
          trx.operations.clear();
@@ -381,10 +381,10 @@ BOOST_AUTO_TEST_CASE( withdraw_permission_whitelist_asset_test )
 
       // Add dan to whitelist
       {
-         upgrade_to_lifetime_member( izzy_id );
+         upgrade_to_lifetime_member( nathan_id );
 
          account_whitelist_operation wop;
-         wop.authorizing_account = izzy_id;
+         wop.authorizing_account = nathan_id;
          wop.account_to_list = dan_id;
          wop.new_listing = account_whitelist_operation::white_listed;
          trx.operations.push_back( wop );
@@ -396,7 +396,7 @@ BOOST_AUTO_TEST_CASE( withdraw_permission_whitelist_asset_test )
       {
          withdraw_permission_create_operation op;
          op.authorized_account = dan_id;
-         op.withdraw_from_account = nathan_id;
+         op.withdraw_from_account = izzy_id;
          op.withdrawal_limit = asset(5, uia_id);
          op.withdrawal_period_sec = fc::hours(1).to_seconds();
          op.periods_until_expiration = 5;
@@ -416,7 +416,7 @@ BOOST_AUTO_TEST_CASE( withdraw_permission_whitelist_asset_test )
       {
          withdraw_permission_claim_operation op;
          op.withdraw_permission = first_permit_id;
-         op.withdraw_from_account = nathan_id;
+         op.withdraw_from_account = izzy_id;
          op.withdraw_to_account = dan_id;
          op.amount_to_withdraw = asset(5, uia_id);
          trx.operations.push_back(op);
@@ -1548,12 +1548,12 @@ BOOST_AUTO_TEST_CASE( vbo_withdraw_different )
 {
    try
    {
-      ACTORS((alice)(izzy));
+      ACTORS((alice)(nathan));
       // don't pay witnesses so we have some worker budget to work with
 
       // transfer(account_id_type(), alice_id, asset(1000));
 
-      asset_id_type stuff_id = create_user_issued_asset( "STUFF", izzy_id(db), 0 ).id;
+      asset_id_type stuff_id = create_user_issued_asset( "STUFF", nathan_id(db), 0 ).id;
       issue_uia( alice_id, asset( 1000, stuff_id ) );
 
       // deposit STUFF with linear vesting policy
@@ -1621,18 +1621,18 @@ BOOST_AUTO_TEST_CASE( vbo_withdraw_different )
 
 BOOST_AUTO_TEST_CASE( top_n_special )
 {
-   ACTORS( (alice)(bob)(chloe)(dan)(izzy)(stan) );
+   ACTORS( (alice)(bob)(chloe)(dan)(nathan)(stan) );
 
    try
    {
       {
          //
-         // Izzy (issuer)
+         // Nathan (issuer)
          // Stan (special authority)
          // Alice, Bob, Chloe, Dan (ABCD)
          //
 
-         asset_id_type topn_id = create_user_issued_asset( "TOPN", izzy_id(db), 0 ).id;
+         asset_id_type topn_id = create_user_issued_asset( "TOPN", nathan_id(db), 0 ).id;
          authority stan_owner_auth = stan_id(db).owner;
          authority stan_active_auth = stan_id(db).active;
 

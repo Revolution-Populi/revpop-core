@@ -300,31 +300,6 @@ struct database_fixture_base {
 
    const asset_object& get_asset( const string& symbol )const;
    const account_object& get_account( const string& name )const;
-   asset_create_operation make_bitasset( const string& name,
-                                       account_id_type issuer = GRAPHENE_WITNESS_ACCOUNT,
-                                       uint16_t market_fee_percent = 100 /*1%*/,
-                                       uint16_t flags = charge_market_fee,
-                                       uint16_t precision = 2,
-                                       asset_id_type backing_asset = {},
-                                       share_type max_supply = GRAPHENE_MAX_SHARE_SUPPLY,
-                                       optional<uint16_t> initial_cr = {},
-                                       optional<uint16_t> margin_call_fee_ratio = {} );
-   const asset_object& create_bitasset(const string& name,
-                                       account_id_type issuer = GRAPHENE_WITNESS_ACCOUNT,
-                                       uint16_t market_fee_percent = 100 /*1%*/,
-                                       uint16_t flags = charge_market_fee,
-                                       uint16_t precision = 2,
-                                       asset_id_type backing_asset = {},
-                                       share_type max_supply = GRAPHENE_MAX_SHARE_SUPPLY,
-                                       optional<uint16_t> initial_cr = {},
-                                       optional<uint16_t> margin_call_fee_ratio = {} );
-   const asset_object& create_prediction_market(const string& name,
-                                       account_id_type issuer = GRAPHENE_WITNESS_ACCOUNT,
-                                       uint16_t market_fee_percent = 100 /*1%*/,
-                                       uint16_t flags = charge_market_fee,
-                                       uint16_t precision = GRAPHENE_BLOCKCHAIN_PRECISION_DIGITS,
-                                       asset_id_type backing_asset = {});
-   const asset_object& create_user_issued_asset( const string& name );
    const asset_object& create_user_issued_asset( const string& name,
                                                  const account_object& issuer,
                                                  uint16_t flags,

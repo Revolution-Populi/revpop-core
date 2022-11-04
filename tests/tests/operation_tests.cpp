@@ -135,154 +135,6 @@ BOOST_AUTO_TEST_CASE( asset_settle_cancel_operation_test_after_hf588 )
    }
 }
 
-/// Test case for bsip77:
-/// * the "initial_collateral_ratio" parameter can only be set after the BSIP77 hard fork
-/// * the parameter should be within a range
-// TODO removed the hard fork part after the hard fork, keep the valid range part
-BOOST_AUTO_TEST_CASE( bsip77_hardfork_time_and_param_valid_range_test )
-{
-   try {
-
-      // Proceeds to a recent hard fork
-      generate_block();
-      set_expiration( db, trx );
-
-      ACTORS((sam));
-
-      // Can create a bitasset without ICR
-      const auto& bitusd = create_bitasset( "USDBIT", sam.id, 100, charge_market_fee, 2, {},
-                                            GRAPHENE_MAX_SHARE_SUPPLY );
-      asset_id_type usd_id = bitusd.id;
-
-      // helper function for setting ICR for an asset
-      auto set_icr_for_asset = [&](asset_id_type aid, optional<uint16_t> icr) {
-         const asset_object& ao = aid(db);
-         const asset_bitasset_data_object& abo = ao.bitasset_data(db);
-         asset_update_bitasset_operation uop;
-         uop.issuer = ao.issuer;
-         uop.asset_to_update = aid;
-         uop.new_options = abo.options;
-         uop.new_options.extensions.value.initial_collateral_ratio = icr;
-         trx.operations.clear();
-         trx.operations.push_back( uop );
-         trx.validate();
-         set_expiration( db, trx );
-         PUSH_TX(db, trx, ~0);
-      };
-
-      // helper function for creating a proposal which contains an asset_create_operation with ICR
-      auto propose_create_bitasset = [&]( string name, optional<uint16_t> icr ) {
-         asset_create_operation acop = make_bitasset( name, sam_id, 100, charge_market_fee, 2, {},
-                                                      GRAPHENE_MAX_SHARE_SUPPLY, icr );
-         proposal_create_operation cop;
-         cop.fee_paying_account = GRAPHENE_TEMP_ACCOUNT;
-         cop.expiration_time = db.head_block_time() + 100;
-         cop.proposed_ops.emplace_back( acop );
-         trx.operations.clear();
-         trx.operations.push_back( cop );
-         trx.validate();
-         set_expiration( db, trx );
-         processed_transaction ptx = PUSH_TX(db, trx, ~0);
-         trx.operations.clear();
-      };
-
-      // helper function for creating a proposal which contains an asset_update_bitasset_operation with ICR
-      auto propose_set_icr_for_asset = [&](asset_id_type aid, optional<uint16_t> icr) {
-         const asset_object& ao = aid(db);
-         const asset_bitasset_data_object& abo = ao.bitasset_data(db);
-         asset_update_bitasset_operation uop;
-         uop.issuer = ao.issuer;
-         uop.asset_to_update = aid;
-         uop.new_options = abo.options;
-         uop.new_options.extensions.value.initial_collateral_ratio = icr;
-
-         proposal_create_operation cop;
-         cop.fee_paying_account = GRAPHENE_TEMP_ACCOUNT;
-         cop.expiration_time = db.head_block_time() + 100;
-         cop.proposed_ops.emplace_back( uop );
-         trx.operations.clear();
-         trx.operations.push_back( cop );
-         trx.validate();
-         set_expiration( db, trx );
-         PUSH_TX(db, trx, ~0);
-         trx.operations.clear();
-      };
-
-      // Pass the hard fork time
-      generate_block();
-      set_expiration( db, trx );
-
-      // Unable to create a bitasset with an invalid ICR
-      BOOST_CHECK_THROW( create_bitasset( "USDBITB", sam_id, 0, charge_market_fee, 2, {},
-                                          GRAPHENE_MAX_SHARE_SUPPLY, 0 ), fc::exception );
-      BOOST_CHECK_THROW( create_bitasset( "USDBITB", sam_id, 1, charge_market_fee, 2, {},
-                                          GRAPHENE_MAX_SHARE_SUPPLY, 0 ), fc::exception );
-      BOOST_CHECK_THROW( create_bitasset( "USDBITB", sam_id, 1000, charge_market_fee, 2, {},
-                                          GRAPHENE_MAX_SHARE_SUPPLY, 0 ), fc::exception );
-      BOOST_CHECK_THROW( create_bitasset( "USDBITB", sam_id, 32001, charge_market_fee, 2, {},
-                                          GRAPHENE_MAX_SHARE_SUPPLY, 0 ), fc::exception );
-      // Able to create a bitasset with a valid ICR
-      asset_id_type usdc_id = create_bitasset( "USDBITC", sam.id, 100, charge_market_fee, 2, {},
-                                               GRAPHENE_MAX_SHARE_SUPPLY, 1001 ).id;
-      asset_id_type usdd_id = create_bitasset( "USDBITD", sam.id, 100, charge_market_fee, 2, {},
-                                               GRAPHENE_MAX_SHARE_SUPPLY, 1750 ).id;
-      asset_id_type usde_id = create_bitasset( "USDBITE", sam.id, 100, charge_market_fee, 2, {},
-                                               GRAPHENE_MAX_SHARE_SUPPLY, 32000 ).id;
-      // Able to create a bitasset without ICR
-      asset_id_type usdf_id = create_bitasset( "USDBITF", sam.id, 100, charge_market_fee, 2, {},
-                                               GRAPHENE_MAX_SHARE_SUPPLY, {} ).id;
-
-      BOOST_CHECK( usdc_id(db).bitasset_data(db).options.extensions.value.initial_collateral_ratio == 1001 );
-      BOOST_CHECK( usdd_id(db).bitasset_data(db).options.extensions.value.initial_collateral_ratio == 1750 );
-      BOOST_CHECK( usde_id(db).bitasset_data(db).options.extensions.value.initial_collateral_ratio == 32000 );
-      BOOST_CHECK( !usdf_id(db).bitasset_data(db).options.extensions.value.initial_collateral_ratio.valid() );
-
-      // Unable to update a bitasset with an invalid ICR
-      BOOST_CHECK_THROW( set_icr_for_asset( usd_id, 0 ), fc::exception );
-      BOOST_CHECK_THROW( set_icr_for_asset( usd_id, 1 ), fc::exception );
-      BOOST_CHECK_THROW( set_icr_for_asset( usd_id, 1000 ), fc::exception );
-      BOOST_CHECK_THROW( set_icr_for_asset( usd_id, 32001 ), fc::exception );
-      // Able to update a bitasset with a valid ICR
-      set_icr_for_asset( usd_id, 1001 );
-      BOOST_CHECK( usd_id(db).bitasset_data(db).options.extensions.value.initial_collateral_ratio == 1001 );
-      set_icr_for_asset( usd_id, 1750 );
-      BOOST_CHECK( usd_id(db).bitasset_data(db).options.extensions.value.initial_collateral_ratio == 1750 );
-      set_icr_for_asset( usd_id, 32000 );
-      BOOST_CHECK( usd_id(db).bitasset_data(db).options.extensions.value.initial_collateral_ratio == 32000 );
-      // Able to update a bitasset, unset its ICR
-      set_icr_for_asset( usd_id, {} );
-      BOOST_CHECK( !usd_id(db).bitasset_data(db).options.extensions.value.initial_collateral_ratio.valid() );
-
-      // Unable to create a proposal with an asset_create_operation with an invalid ICR
-      BOOST_CHECK_THROW( propose_create_bitasset( "USDBITG", 0 ), fc::exception );
-      BOOST_CHECK_THROW( propose_create_bitasset( "USDBITG", 1 ), fc::exception );
-      BOOST_CHECK_THROW( propose_create_bitasset( "USDBITG", 1000 ), fc::exception );
-      BOOST_CHECK_THROW( propose_create_bitasset( "USDBITG", 32001 ), fc::exception );
-      // able to create a proposal with a valid ICR or no ICR
-      propose_create_bitasset( "USDBITG", 1001 );
-      propose_create_bitasset( "USDBITG", 1750 );
-      propose_create_bitasset( "USDBITG", 32000 );
-      propose_create_bitasset( "USDBITG", {} );
-
-      // Unable to create a proposal with an asset_update_bitasset_op with an invalid ICR
-      BOOST_CHECK_THROW( propose_set_icr_for_asset( usd_id, 0 ), fc::exception );
-      BOOST_CHECK_THROW( propose_set_icr_for_asset( usd_id, 1 ), fc::exception );
-      BOOST_CHECK_THROW( propose_set_icr_for_asset( usd_id, 1000 ), fc::exception );
-      BOOST_CHECK_THROW( propose_set_icr_for_asset( usd_id, 32001 ), fc::exception );
-      // Able to create a proposal with a valid ICR or no ICR
-      propose_set_icr_for_asset( usd_id, 1001 );
-      propose_set_icr_for_asset( usd_id, 1750 );
-      propose_set_icr_for_asset( usd_id, 32000 );
-      propose_set_icr_for_asset( usd_id, {} );
-
-      generate_block();
-
-   } catch (fc::exception& e) {
-      edump((e.to_detail_string()));
-      throw;
-   }
-}
-
 BOOST_AUTO_TEST_CASE( create_account_test )
 {
    try {
@@ -333,7 +185,7 @@ BOOST_AUTO_TEST_CASE( create_account_test )
       trx.validate();
       PUSH_TX( db, trx, ~0 );
 
-      const account_object& nathan_account = *db.get_index_type<account_index>().indices().get<by_name>().find("nathan");
+      const account_object& nathan_account = get_account("nathan");
       BOOST_CHECK(nathan_account.id.space() == protocol_ids);
       BOOST_CHECK(nathan_account.id.type() == account_object_type);
       BOOST_CHECK(nathan_account.name == "nathan");
@@ -412,7 +264,7 @@ BOOST_AUTO_TEST_CASE( transfer_core_asset )
       account_id_type committee_account;
       asset committee_balance = db.get_balance(account_id_type(), asset_id_type());
 
-      const account_object& nathan_account = *db.get_index_type<account_index>().indices().get<by_name>().find("nathan");
+      const account_object& nathan_account = get_account("nathan");
       transfer_operation top;
       top.from = committee_account;
       top.to = nathan_account.id;
@@ -475,111 +327,17 @@ BOOST_AUTO_TEST_CASE( create_committee_member )
    }
 }
 
-BOOST_AUTO_TEST_CASE( create_mia )
-{
-   try {
-      const asset_object& bitusd = create_bitasset( "USDBIT" );
-      BOOST_CHECK(bitusd.symbol == "USDBIT");
-      BOOST_CHECK(bitusd.bitasset_data(db).options.short_backing_asset == asset_id_type());
-      BOOST_CHECK(bitusd.dynamic_asset_data_id(db).current_supply == 0);
-      GRAPHENE_REQUIRE_THROW( create_bitasset("USDBIT"), fc::exception);
-   } catch ( const fc::exception& e ) {
-      elog( "${e}", ("e", e.to_detail_string() ) );
-      throw;
-   }
-}
-
-BOOST_AUTO_TEST_CASE( update_mia )
-{
-   try {
-      // Initialize committee by voting for each memeber and for desired count
-      vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
-      generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
-      set_expiration(db, trx);
-
-      INVOKE(create_mia);
-      generate_block();
-      const asset_object& bit_usd = get_asset("USDBIT");
-
-      asset_update_operation op;
-      op.issuer = bit_usd.issuer;
-      op.asset_to_update = bit_usd.id;
-      op.new_options = bit_usd.options;
-      trx.operations.emplace_back(op);
-
-      trx.operations.back() = op;
-      PUSH_TX( db, trx, ~0 );
-      std::swap(op.new_options.flags, op.new_options.issuer_permissions);
-      //op.new_issuer = account_id_type();
-      trx.operations.back() = op;
-      PUSH_TX( db, trx, ~0 );
-      {
-         asset_update_issuer_operation upd_op;
-         upd_op.asset_to_update = bit_usd.id;
-         upd_op.issuer = bit_usd.issuer;
-         upd_op.new_issuer = account_id_type();
-         trx.operations.back() = upd_op;
-         PUSH_TX( db, trx, ~0 );
-      }
-
-      {
-         asset_publish_feed_operation pop;
-         pop.asset_id = bit_usd.get_id();
-         pop.publisher = get_account("init0").get_id();
-         price_feed feed;
-         feed.settlement_price = feed.core_exchange_rate = price(bit_usd.amount(5), bit_usd.amount(5));
-         REQUIRE_THROW_WITH_VALUE(pop, feed, feed);
-         feed.settlement_price = feed.core_exchange_rate = ~price(bit_usd.amount(5), asset(5));
-         REQUIRE_THROW_WITH_VALUE(pop, feed, feed);
-         feed.settlement_price = feed.core_exchange_rate = price(bit_usd.amount(5), asset(5));
-         pop.feed = feed;
-         REQUIRE_THROW_WITH_VALUE(pop, feed.maintenance_collateral_ratio, 0);
-         trx.operations.back() = pop;
-         PUSH_TX( db, trx, ~0 );
-      }
-
-      trx.operations.clear();
-      auto nathan = create_account("nathan");
-      op.issuer = account_id_type();
-      //op.new_issuer = nathan.id;
-      trx.operations.emplace_back(op);
-      PUSH_TX( db, trx, ~0 );
-      {
-         asset_update_issuer_operation upd_op;
-         upd_op.asset_to_update = bit_usd.id;
-         upd_op.issuer = account_id_type();
-         upd_op.new_issuer = nathan.id;
-         trx.operations.back() = upd_op;
-         PUSH_TX( db, trx, ~0 );
-      }
-      BOOST_CHECK(bit_usd.issuer == nathan.id);
-
-      op.issuer = nathan.id;
-      //op.new_issuer = account_id_type();
-      trx.operations.back() = op;
-      PUSH_TX( db, trx, ~0 );
-      {
-         asset_update_issuer_operation upd_op;
-         upd_op.asset_to_update = bit_usd.id;
-         upd_op.issuer = nathan.id;
-         upd_op.new_issuer = account_id_type();
-         trx.operations.back() = upd_op;
-         PUSH_TX( db, trx, ~0 );
-      }
-      BOOST_CHECK(bit_usd.issuer == account_id_type());
-   } catch ( const fc::exception& e ) {
-      elog( "${e}", ("e", e.to_detail_string() ) );
-      throw;
-   }
-}
-
-
 BOOST_AUTO_TEST_CASE( create_uia )
 {
    try {
+      const auto& idx = db.get_index_type<account_index>().indices().get<by_name>();
+      const auto itr = idx.find("nathan");
+      const account_object& nathan_account =  itr != idx.end() ? *itr : create_account("nathan");
+
       asset_id_type test_asset_id = db.get_index<asset_object>().get_next_id();
+
       asset_create_operation creator;
-      creator.issuer = account_id_type();
+      creator.issuer = nathan_account.id;
       creator.fee = asset();
       creator.symbol = UIA_TEST_SYMBOL;
       creator.common_options.max_supply = 100000000;
@@ -631,7 +389,7 @@ BOOST_AUTO_TEST_CASE( update_uia )
    try {
       INVOKE(create_uia);
       const auto& test = get_asset(UIA_TEST_SYMBOL);
-      const auto& nathan = create_account("nathan");
+      const auto& nathan = get_account("nathan");
 
       asset_update_operation op;
       op.issuer = test.issuer;
@@ -658,17 +416,10 @@ BOOST_AUTO_TEST_CASE( update_uia )
       //op.new_issuer = nathan.id;
       trx.operations.back() = op;
       PUSH_TX( db, trx, ~0 );
-      {
-         asset_update_issuer_operation upd_op;
-         upd_op.asset_to_update = test.id;
-         upd_op.issuer = test.issuer;
-         upd_op.new_issuer = nathan.id;
-         trx.operations.back() = upd_op;
-         PUSH_TX( db, trx, ~0 );
-      }
 
       BOOST_TEST_MESSAGE( "Test setting flags" );
       op.issuer = nathan.id;
+      op.new_issuer.reset();
       op.new_options.flags = transfer_restricted | white_list;
       trx.operations.back() = op;
       PUSH_TX( db, trx, ~0 );
@@ -703,17 +454,12 @@ BOOST_AUTO_TEST_CASE( update_uia )
       REQUIRE_THROW_WITH_VALUE(op, new_options.issuer_permissions, UIA_ASSET_ISSUER_PERMISSION_MASK);
 
       BOOST_TEST_MESSAGE( "We can change issuer to account_id_type(), but can't do it again" );
-      {
-         asset_update_issuer_operation upd_op;
-         upd_op.asset_to_update = test.id;
-         upd_op.issuer = nathan.id;
-         upd_op.new_issuer = account_id_type();
-         trx.operations.back() = upd_op;
-         PUSH_TX( db, trx, ~0 );
-      };
+      op.new_issuer = account_id_type();
+      trx.operations.back() = op;
+      GRAPHENE_REQUIRE_THROW(PUSH_TX( db, trx, ~0 ), fc::exception);
       op.issuer = account_id_type();
       GRAPHENE_REQUIRE_THROW(PUSH_TX( db, trx, ~0 ), fc::exception);
-      //op.new_issuer.reset();
+      op.new_issuer.reset();
    } catch(fc::exception& e) {
       edump((e.to_detail_string()));
       throw;
@@ -805,36 +551,36 @@ BOOST_AUTO_TEST_CASE( update_uia_issuer )
 
       };
 
-      // Create alice account
-      fc::ecc::private_key alice_owner  = fc::ecc::private_key::regenerate(fc::digest("key1"));
-      fc::ecc::private_key alice_active = fc::ecc::private_key::regenerate(fc::digest("key2"));
+      // Create nathan account
+      fc::ecc::private_key nathan_owner  = fc::ecc::private_key::regenerate(fc::digest("key1"));
+      fc::ecc::private_key nathan_active = fc::ecc::private_key::regenerate(fc::digest("key2"));
       fc::ecc::private_key bob_owner    = fc::ecc::private_key::regenerate(fc::digest("key3"));
       fc::ecc::private_key bob_active   = fc::ecc::private_key::regenerate(fc::digest("key4"));
 
       // Create accounts
-      const auto& alice = create_account_2_keys("alice", alice_active, alice_owner);
+      const auto& nathan = create_account_2_keys("nathan", nathan_active, nathan_owner);
       const auto& bob = create_account_2_keys("bob", bob_active, bob_owner);
-      const account_id_type alice_id = alice.id;
+      const account_id_type nathan_id = nathan.id;
       const account_id_type bob_id = bob.id;
 
       // Create asset
-      const auto& test = create_user_issued_asset("UPDATEISSUER", alice_id(db), 0);
+      const auto& test = create_user_issued_asset("UPDATEISSUER", nathan_id(db), 0);
       const asset_id_type test_id = test.id;
 
-      update_issuer_proposal( test_id, alice_id(db), bob_id(db), alice_owner);
+      update_issuer_proposal( test_id, nathan_id(db), bob_id(db), nathan_owner);
 
       BOOST_TEST_MESSAGE( "Can't change issuer if not my asset" );
-      GRAPHENE_REQUIRE_THROW( update_issuer( test_id, bob_id(db), alice_id(db), bob_active ), fc::exception );
-      GRAPHENE_REQUIRE_THROW( update_issuer( test_id, bob_id(db), alice_id(db), bob_owner ), fc::exception );
+      GRAPHENE_REQUIRE_THROW( update_issuer( test_id, bob_id(db), nathan_id(db), bob_active ), fc::exception );
+      GRAPHENE_REQUIRE_THROW( update_issuer( test_id, bob_id(db), nathan_id(db), bob_owner ), fc::exception );
 
-      BOOST_TEST_MESSAGE( "Can't change issuer with alice's active key" );
-      GRAPHENE_REQUIRE_THROW( update_issuer( test_id, alice_id(db), bob_id(db), alice_active ), fc::exception );
+      BOOST_TEST_MESSAGE( "Can't change issuer with nathan's active key" );
+      GRAPHENE_REQUIRE_THROW( update_issuer( test_id, nathan_id(db), bob_id(db), nathan_active ), fc::exception );
 
       BOOST_TEST_MESSAGE( "Old method with asset_update needs to fail" );
       GRAPHENE_REQUIRE_THROW( update_asset_issuer( test_id(db), bob_id(db)  ), fc::exception );
 
       BOOST_TEST_MESSAGE( "Updating issuer to bob" );
-      update_issuer( test_id, alice_id(db), bob_id(db), alice_owner );
+      update_issuer( test_id, nathan_id(db), bob_id(db), nathan_owner );
 
       BOOST_CHECK(test_id(db).issuer == bob_id);
 
@@ -849,11 +595,11 @@ BOOST_AUTO_TEST_CASE( update_uia_issuer )
 BOOST_AUTO_TEST_CASE( issue_uia )
 {
    try {
-      INVOKE(create_uia);
       INVOKE(create_account_test);
+      INVOKE(create_uia);
 
-      const asset_object& test_asset = *db.get_index_type<asset_index>().indices().get<by_symbol>().find(UIA_TEST_SYMBOL);
-      const account_object& nathan_account = *db.get_index_type<account_index>().indices().get<by_name>().find("nathan");
+      const asset_object& test_asset = get_asset(UIA_TEST_SYMBOL);
+      const account_object& nathan_account = get_account("nathan");
 
       asset_issue_operation op;
       op.issuer = test_asset.issuer;
@@ -891,8 +637,8 @@ BOOST_AUTO_TEST_CASE( transfer_uia )
    try {
       INVOKE(issue_uia);
 
-      const asset_object& uia = *db.get_index_type<asset_index>().indices().get<by_symbol>().find(UIA_TEST_SYMBOL);
-      const account_object& nathan = *db.get_index_type<account_index>().indices().get<by_name>().find("nathan");
+      const asset_object& uia = get_asset(UIA_TEST_SYMBOL);
+      const account_object& nathan = get_account("nathan");
       const account_object& committee = account_id_type()(db);
 
       BOOST_CHECK_EQUAL(get_balance(nathan, uia), 10000000);
@@ -978,80 +724,6 @@ BOOST_AUTO_TEST_CASE( uia_fees )
       BOOST_CHECK(asset_dynamic.accumulated_fees == fee.amount.value * 3);
       BOOST_CHECK(asset_dynamic.fee_pool == 1000*prec - core_fee.amount.value * 3);
    } catch (fc::exception& e) {
-      edump((e.to_detail_string()));
-      throw;
-   }
-}
-
-BOOST_AUTO_TEST_CASE( witness_feeds )
-{
-   using namespace graphene::chain;
-   try {
-      // Initialize committee by voting for each memeber and for desired count
-      vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
-      generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
-      set_expiration(db, trx);
-
-      INVOKE( create_mia );
-      {
-         auto& current = get_asset( "USDBIT" );
-         asset_update_operation uop;
-         uop.issuer =  current.issuer;
-         uop.asset_to_update = current.id;
-         uop.new_options = current.options;
-         //uop.new_issuer = account_id_type();
-         trx.operations.push_back(uop);
-         PUSH_TX( db, trx, ~0 );
-         trx.clear();
-      }
-      {
-         auto& current = get_asset( "USDBIT" );
-         asset_update_issuer_operation upd_op;
-         upd_op.asset_to_update = current.id;
-         upd_op.issuer = current.issuer;
-         upd_op.new_issuer = account_id_type();
-         trx.operations.push_back(upd_op);
-         PUSH_TX( db, trx, ~0 );
-         trx.clear();
-      }
-      generate_block();
-      const asset_object& bit_usd = get_asset("USDBIT");
-      auto& global_props = db.get_global_properties();
-      vector<account_id_type> active_witnesses;
-      for( const witness_id_type& wit_id : global_props.active_witnesses )
-         active_witnesses.push_back( wit_id(db).witness_account );
-      BOOST_REQUIRE_EQUAL(active_witnesses.size(), INITIAL_WITNESS_COUNT);
-
-      asset_publish_feed_operation op;
-      op.publisher = active_witnesses[0];
-      op.asset_id = bit_usd.get_id();
-      op.feed.settlement_price = op.feed.core_exchange_rate = ~price(asset(GRAPHENE_BLOCKCHAIN_PRECISION),bit_usd.amount(30));
-      // Accept defaults for required collateral
-      trx.operations.emplace_back(op);
-      PUSH_TX( db, trx, ~0 );
-
-      const asset_bitasset_data_object& bitasset = bit_usd.bitasset_data(db);
-      BOOST_CHECK(bitasset.current_feed.settlement_price.to_real() == 30.0 / GRAPHENE_BLOCKCHAIN_PRECISION);
-      BOOST_CHECK(bitasset.current_feed.maintenance_collateral_ratio == GRAPHENE_DEFAULT_MAINTENANCE_COLLATERAL_RATIO);
-
-      op.publisher = active_witnesses[1];
-      op.feed.settlement_price = op.feed.core_exchange_rate = ~price(asset(GRAPHENE_BLOCKCHAIN_PRECISION),bit_usd.amount(25));
-      trx.operations.back() = op;
-      PUSH_TX( db, trx, ~0 );
-
-      BOOST_CHECK_EQUAL(bitasset.current_feed.settlement_price.to_real(), 30.0 / GRAPHENE_BLOCKCHAIN_PRECISION);
-      BOOST_CHECK(bitasset.current_feed.maintenance_collateral_ratio == GRAPHENE_DEFAULT_MAINTENANCE_COLLATERAL_RATIO);
-
-      op.publisher = active_witnesses[2];
-      op.feed.settlement_price = op.feed.core_exchange_rate = ~price(asset(GRAPHENE_BLOCKCHAIN_PRECISION),bit_usd.amount(40));
-      // But this witness is an idiot.
-      op.feed.maintenance_collateral_ratio = 1001;
-      trx.operations.back() = op;
-      PUSH_TX( db, trx, ~0 );
-
-      BOOST_CHECK_EQUAL(bitasset.current_feed.settlement_price.to_real(), 30.0 / GRAPHENE_BLOCKCHAIN_PRECISION);
-      BOOST_CHECK(bitasset.current_feed.maintenance_collateral_ratio == GRAPHENE_DEFAULT_MAINTENANCE_COLLATERAL_RATIO);
-   } catch (const fc::exception& e) {
       edump((e.to_detail_string()));
       throw;
    }

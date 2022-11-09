@@ -22,6 +22,8 @@
  * THE SOFTWARE.
  */
 
+#include <numeric>
+
 #include <graphene/app/database_api.hpp>
 
 #include "../common/database_fixture.hpp"
@@ -106,6 +108,14 @@ BOOST_AUTO_TEST_CASE( hardfork_time_test )
 
       cop.proposed_ops.emplace_back(cmuop);
       trx.operations.push_back(cop);
+
+      // Check the fee
+      vector< fc::variant > fees = db_api.get_required_fees(trx.operations, "RVP");
+      BOOST_CHECK_EQUAL( fees.size(), 1 );
+      std::pair< asset, fc::variants > result;
+      from_variant( fees[0], result, GRAPHENE_NET_MAX_NESTED_OBJECTS );
+      const auto& curfees = current_params.get_current_fees();
+      BOOST_CHECK_EQUAL(result.first.amount.value, curfees.get<proposal_create_operation>().fee );
 
       // Should succeed
       processed_transaction ptx = PUSH_TX(db, trx, ~0);

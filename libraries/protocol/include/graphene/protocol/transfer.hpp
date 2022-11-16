@@ -47,6 +47,7 @@ namespace graphene { namespace protocol {
       struct fee_parameters_type {
          uint64_t fee       = 20 * GRAPHENE_BLOCKCHAIN_PRECISION;
          uint32_t price_per_kbyte = 10 * GRAPHENE_BLOCKCHAIN_PRECISION; /// only required for large memos.
+         uint32_t chp_fee   = 0 * GRAPHENE_BLOCKCHAIN_PRECISION;
       };
 
       asset            fee;

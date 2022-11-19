@@ -189,6 +189,7 @@ FC_REFLECT_DERIVED_NO_TYPENAME( graphene::chain::worker_object, (graphene::db::o
                     (vote_for)
                     (total_votes_for)
                     (total_cm_votes_for)
+                    (cm_support)
                     (name)
                     (url)
                   )

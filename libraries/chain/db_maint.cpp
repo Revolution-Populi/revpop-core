@@ -141,7 +141,8 @@ void database::update_worker_votes()
       modify( *itr, [this]( worker_object& obj )
       {
          obj.total_votes_for = _vote_tally_buffer[obj.vote_for];
-         obj.total_cm_votes_for = _cm_vote_for_worker[obj.vote_for];
+         obj.total_cm_votes_for = _cm_vote_for_worker_buffer[obj.vote_for];
+         obj.cm_support.swap(_cm_support_worker_buffer[obj.vote_for]);
       });
       ++itr;
    }
@@ -153,17 +154,18 @@ void database::pay_workers( share_type& budget )
 //   ilog("Processing payroll! Available budget is ${b}", ("b", budget));
    vector<std::reference_wrapper<const worker_object>> active_workers;
    // TODO optimization: add by_expiration index to avoid iterating through all objects
-   get_index_type<worker_index>().inspect_all_objects([head_time, &active_workers](const object& o) {
+   uint64_t cm_size = get_global_properties().active_committee_members.size();
+   get_index_type<worker_index>().inspect_all_objects([head_time, &active_workers, cm_size](const object& o) {
       const worker_object& w = static_cast<const worker_object&>(o);
-      if( w.is_active(head_time) && w.approving_stake() > 0 )
+      if( w.is_active(head_time) && w.cm_support_size() * 2 >= cm_size )
          active_workers.emplace_back(w);
    });
 
    // worker with more votes is preferred
    // if two workers exactly tie for votes, worker with lower ID is preferred
    std::sort(active_workers.begin(), active_workers.end(), [](const worker_object& wa, const worker_object& wb) {
-      share_type wa_vote = wa.approving_stake();
-      share_type wb_vote = wb.approving_stake();
+      share_type wa_vote = wa.cm_support_size();
+      share_type wb_vote = wb.cm_support_size();
       if( wa_vote != wb_vote )
          return wa_vote > wb_vote;
       return wa.id < wb.id;
@@ -1024,13 +1026,16 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
       optional<detail::vote_recalc_times> worker_recalc_times;
       optional<detail::vote_recalc_times> delegator_recalc_times;
 
+      vector<account_id_type> committee_members;
+
       vote_tally_helper( database& db )
          : d(db), props( d.get_global_properties() ), dprops( d.get_dynamic_global_properties() ),
            now( d.head_block_time() ),
            pob_activated( dprops.total_pob > 0 || dprops.total_inactive > 0 )
       {
          d._vote_tally_buffer.resize( props.next_available_vote_id, 0 );
-         d._cm_vote_for_worker.resize( props.next_available_vote_id, 0 );
+         d._cm_vote_for_worker_buffer.resize( props.next_available_vote_id, 0 );
+         d._cm_support_worker_buffer.resize( props.next_available_vote_id, {} );
          d._witness_count_histogram_buffer.resize( props.parameters.maximum_witness_count / 2 + 1, 0 );
          d._committee_count_histogram_buffer.resize( props.parameters.maximum_committee_count / 2 + 1, 0 );
          d._total_voting_stake[0] = 0;
@@ -1039,6 +1044,20 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
          committee_recalc_times = detail::vote_recalc_options::committee().get_vote_recalc_times( now );
          worker_recalc_times    = detail::vote_recalc_options::worker().get_vote_recalc_times( now );
          delegator_recalc_times = detail::vote_recalc_options::delegator().get_vote_recalc_times( now );
+
+         committee_members.reserve(props.active_committee_members.size());
+         std::transform(props.active_committee_members.cbegin(), props.active_committee_members.cend(),
+                        std::back_inserter(committee_members),
+                        [&](committee_member_id_type c)
+                        { return c(d).committee_member_account; });
+         std::sort(committee_members.begin(), committee_members.end());
+         /*
+         ilog( "committee_members:");
+         for (auto c : committee_members)
+         {
+            ilog( "         - ${n}", ("n", c(d).name) );
+         }
+         */
       }
 
       void operator()( const account_object& stake_account, const account_statistics_object& stats )
@@ -1129,24 +1148,25 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
             voting_stake[2] = detail::vote_recalc_options::worker().get_recalced_voting_stake(
                                  voting_stake[2], opinion_account_stats.last_vote_time, *worker_recalc_times );
 
+            bool is_committee_members = false;
+            const account_id_type account = stake_account.id;
+            auto itr = std::lower_bound(committee_members.begin(), committee_members.end(), account);
+            if( itr != committee_members.end() && *itr == account ) is_committee_members = true;
             for( vote_id_type id : opinion_account.options.votes )
             {
                uint32_t offset = id.instance();
                uint32_t type = std::min( id.type(), vote_id_type::vote_type::worker ); // cap the data
                // if they somehow managed to specify an illegal offset, ignore it.
-               if( offset >= d._vote_tally_buffer.size() || offset >= d._cm_vote_for_worker.size() )
+               if( offset >= d._vote_tally_buffer.size()
+                  || offset >= d._cm_vote_for_worker_buffer.size()
+                  || offset >= d._cm_support_worker_buffer.size() )
                   continue;
 
-               if (type == vote_id_type::vote_type::worker)
+               if (is_committee_members && type == vote_id_type::vote_type::worker)
                {
                   // Add up only the committee members votes
-                  const auto& idx = d.get_index_type<committee_member_index>().indices().get<by_account>();
-                  const account_id_type account = stake_account.id;
-                  auto itr = idx.find(account);
-                  if( itr != idx.end() )
-                  {
-                     d._cm_vote_for_worker[offset] += voting_stake[type];
-                  }
+                  d._cm_vote_for_worker_buffer[offset] += voting_stake[type];
+                  d._cm_support_worker_buffer[offset].push_back(account);
                }
 
                d._vote_tally_buffer[offset] += voting_stake[type];
@@ -1183,7 +1203,8 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
    };
    clear_canary a(_witness_count_histogram_buffer),
                 b(_committee_count_histogram_buffer),
-                c(_vote_tally_buffer);
+                c(_vote_tally_buffer),
+                d(_cm_vote_for_worker_buffer);
 
    update_top_n_authorities(*this);
    update_active_witnesses();
@@ -1243,6 +1264,12 @@ void database::perform_chain_maintenance(const signed_block& next_block, const g
    // process_budget needs to run at the bottom because
    //   it needs to know the next_maintenance_time
    process_budget();
+
+   for (vector<account_id_type>& at: _cm_support_worker_buffer)
+   {
+      at.clear();
+   }
+   _cm_support_worker_buffer.clear();
 }
 
 void database::maintenance_prng::seed(uint64_t seed)

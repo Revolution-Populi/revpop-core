@@ -157,7 +157,7 @@ void database::pay_workers( share_type& budget )
    uint64_t cm_size = get_global_properties().active_committee_members.size();
    get_index_type<worker_index>().inspect_all_objects([head_time, &active_workers, cm_size](const object& o) {
       const worker_object& w = static_cast<const worker_object&>(o);
-      if( w.is_active(head_time) && w.cm_support_size() * 2 >= cm_size )
+      if( w.is_active(head_time) && w.cm_support_size() * 2 >= cm_size + 1 )
          active_workers.emplace_back(w);
    });
 
@@ -212,7 +212,7 @@ fc::uint128_t database::calculate_workers_budget()
    uint64_t cm_size = get_global_properties().active_committee_members.size();
    get_index_type<worker_index>().inspect_all_objects([head_time, &active_workers, cm_size, &worker_budget_u128](const object& o) {
       const worker_object& w = static_cast<const worker_object&>(o);
-      if( w.is_active(head_time) && w.cm_support_size() * 2 >= cm_size )
+      if( w.is_active(head_time) && w.cm_support_size() * 2 >= cm_size + 1 )
          worker_budget_u128 += w.daily_pay.value;
       });
 

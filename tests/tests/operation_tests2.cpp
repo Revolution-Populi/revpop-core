@@ -939,6 +939,7 @@ BOOST_AUTO_TEST_CASE( worker_pay_test )
    vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
    generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
    enable_workers_payments();
+   INVOKE(worker_create_test);
    GET_ACTOR(nathan);
    transfer(committee_account, nathan_id, asset(100000));
    generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
@@ -1035,7 +1036,7 @@ BOOST_AUTO_TEST_CASE( disable_worker_payments_test )
    transfer(committee_account, nathan_id, asset(100000));
    generate_block();
 
-   // Create long time
+   // Create long time worker
    {
       worker_create_operation op;
       op.owner = nathan_id;
@@ -1085,6 +1086,111 @@ BOOST_AUTO_TEST_CASE( disable_worker_payments_test )
    BOOST_CHECK_EQUAL(worker_id_type()(db).worker.get<vesting_balance_worker_type>().balance(db).balance.amount.value, 29);
    generate_blocks(db.head_block_time() + fc::days(7));
    BOOST_CHECK_EQUAL(worker_id_type()(db).worker.get<vesting_balance_worker_type>().balance(db).balance.amount.value, 29);
+} FC_LOG_AND_RETHROW() }
+
+BOOST_AUTO_TEST_CASE( worker_majority_test )
+{ try {
+   vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
+   generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
+   enable_workers_payments(); // all worker payments are allowed
+   set_expiration( db, trx );
+   ACTOR(nathan);
+   upgrade_to_lifetime_member(nathan_id);
+   transfer(committee_account, nathan_id, asset(100000));
+   generate_block();
+
+   worker_id_type w1, w2;
+
+   // Create workers
+   {  // the 1st Worker
+      worker_create_operation op;
+      op.owner = nathan_id;
+      op.daily_pay = 10;
+      op.initializer = vesting_balance_worker_initializer(1);
+      op.work_begin_date = db.head_block_time() + 10;
+      op.work_end_date = op.work_begin_date + fc::days(365);
+      trx.clear();
+      set_expiration( db, trx );
+      trx.operations.push_back(op);
+      sign( trx, nathan_private_key );
+      processed_transaction ptx = PUSH_TX( db, trx );
+      w1 = ptx.operation_results[0].get<object_id_type>();
+   }
+
+   {  // the 2nd Worker
+      worker_create_operation op;
+      op.owner = nathan_id;
+      op.daily_pay = 6;
+      op.initializer = vesting_balance_worker_initializer(1);
+      op.work_begin_date = db.head_block_time() + 10;
+      op.work_end_date = op.work_begin_date + fc::days(180);
+      trx.clear();
+      set_expiration( db, trx );
+      trx.operations.push_back(op);
+      sign( trx, nathan_private_key );
+      processed_transaction ptx = PUSH_TX( db, trx );
+      w2 = ptx.operation_results[0].get<object_id_type>();
+   }
+
+   // Committee vote it in
+   auto committee_members = db.get_global_properties().active_committee_members;
+   uint32_t i = 0;
+   for (const auto& cm: committee_members) {
+      account_update_operation vote_op;
+      vote_op.account = cm(db).committee_member_account;
+      vote_op.new_options = db.get(cm(db).committee_member_account).options;
+      vote_op.new_options->votes.insert(w1(db).vote_for); // the 1st Worker
+      vote_op.new_options->votes.insert(w2(db).vote_for); // the 2nd Worker
+      signed_transaction vote_tx;
+      vote_tx.operations.push_back(vote_op);
+      set_expiration( db, vote_tx );
+      PUSH_TX( db, vote_tx, ~0);
+      if (++i * 2 + 1 > committee_members.size())
+         break;
+   } // Now both proposals have a majority.
+
+   {  // init0 decides to withdraw his vote from the second proposal.
+      account_update_operation op;
+      account_id_type acc_id = get_account("init0").id;
+      op.account = acc_id;
+      op.new_options = acc_id(db).options;
+      op.new_options->votes.erase(w2(db).vote_for); // the 2nd Worker
+      trx.operations.push_back(op);
+      PUSH_TX( db, trx, ~0 );
+      trx.clear();
+   }
+
+   {
+      asset_reserve_operation op;
+      op.payer = account_id_type();
+      op.amount_to_reserve = asset(GRAPHENE_MAX_SHARE_SUPPLY/2);
+      trx.operations.push_back(op);
+      PUSH_TX( db, trx, ~0 );
+      trx.clear();
+   }
+
+   generate_block();
+
+   BOOST_CHECK_EQUAL(w1(db).worker.get<vesting_balance_worker_type>().balance(db).balance.amount.value, 0);
+   BOOST_CHECK_EQUAL(w2(db).worker.get<vesting_balance_worker_type>().balance(db).balance.amount.value, 0);
+
+   generate_blocks(db.get_dynamic_global_properties().next_maintenance_time); // The firs income
+   BOOST_CHECK_EQUAL(w1(db).cm_support_size().value, 5); // Majority (for 9) -- it is enough for accept the proposal
+   BOOST_CHECK_EQUAL(w2(db).cm_support_size().value, 4);
+
+   BOOST_CHECK_EQUAL(w1(db).worker.get<vesting_balance_worker_type>().balance(db).balance.amount.value, 10);
+   BOOST_CHECK_EQUAL(w2(db).worker.get<vesting_balance_worker_type>().balance(db).balance.amount.value, 0 );
+
+   generate_blocks(db.head_block_time() + fc::days(7));
+
+   BOOST_CHECK_EQUAL(w1(db).worker.get<vesting_balance_worker_type>().balance(db).balance.amount.value, 20);
+   BOOST_CHECK_EQUAL(w2(db).worker.get<vesting_balance_worker_type>().balance(db).balance.amount.value, 0 );
+
+   generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
+
+   BOOST_CHECK_EQUAL(w1(db).worker.get<vesting_balance_worker_type>().balance(db).balance.amount.value, 30);
+   BOOST_CHECK_EQUAL(w2(db).worker.get<vesting_balance_worker_type>().balance(db).balance.amount.value, 0 );
+
 } FC_LOG_AND_RETHROW() }
 
 BOOST_AUTO_TEST_CASE( worker_deadline_test )

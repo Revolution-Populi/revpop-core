@@ -906,7 +906,7 @@ BOOST_AUTO_TEST_CASE( worker_create_test )
       op.owner = nathan_id;
       op.daily_pay = 1000;
       op.initializer = vesting_balance_worker_initializer(1);
-      op.work_begin_date = db.head_block_time() + 10;
+      op.work_begin_date = db.get_dynamic_global_properties().next_maintenance_time + 10;
       op.work_end_date = op.work_begin_date + fc::days(2);
       trx.clear();
       trx.operations.push_back(op);
@@ -923,8 +923,8 @@ BOOST_AUTO_TEST_CASE( worker_create_test )
    const worker_object& worker = worker_id_type()(db);
    BOOST_CHECK(worker.worker_account == nathan_id);
    BOOST_CHECK(worker.daily_pay == 1000);
-   BOOST_CHECK(worker.work_begin_date == db.head_block_time() + 10);
-   BOOST_CHECK(worker.work_end_date == db.head_block_time() + 10 + fc::days(2));
+   BOOST_CHECK(worker.work_begin_date == db.get_dynamic_global_properties().next_maintenance_time + 10);
+   BOOST_CHECK(worker.work_end_date == db.get_dynamic_global_properties().next_maintenance_time + 10 + fc::days(2));
    BOOST_CHECK(worker.vote_for.type() == vote_id_type::worker);
 
    const vesting_balance_object& balance = worker.worker.get<vesting_balance_worker_type>().balance(db);
@@ -994,31 +994,22 @@ BOOST_AUTO_TEST_CASE( worker_pay_test )
 
    BOOST_CHECK_EQUAL(get_balance(nathan_id, asset_id_type()), 100500);
    BOOST_CHECK_EQUAL(worker_id_type()(db).worker.get<vesting_balance_worker_type>().balance(db).balance.amount.value, 500);
-
-   {
-      account_update_operation op;
-      op.account = nathan_id;
-      op.new_options = nathan_id(db).options;
-      op.new_options->votes.erase(worker_id_type()(db).vote_for);
-      trx.operations.push_back(op);
-      PUSH_TX( db, trx, ~0 );
-      trx.clear();
-   }
-
    generate_blocks(db.head_block_time() + fc::hours(12));
-   BOOST_CHECK_EQUAL(worker_id_type()(db).worker.get<vesting_balance_worker_type>().balance(db).balance.amount.value, 500);
+   BOOST_CHECK_EQUAL(worker_id_type()(db).worker.get<vesting_balance_worker_type>().balance(db).balance.amount.value, 1500);
 
    {
       vesting_balance_withdraw_operation op;
       op.vesting_balance = worker_id_type()(db).worker.get<vesting_balance_worker_type>().balance;
-      op.amount = asset(500);
+      op.amount = asset(1500);
       op.owner = nathan_id;
       set_expiration( db, trx );
       trx.operations.push_back(op);
-      REQUIRE_THROW_WITH_VALUE(op, amount, asset(500));
-      generate_blocks(db.head_block_time() + fc::hours(12));
+      REQUIRE_THROW_WITH_VALUE(op, amount, asset(1501));
+
+      // It is necessary to wait for the possibility of receiving payment
+      generate_blocks(db.head_block_time() + fc::hours(24));
       set_expiration( db, trx );
-      REQUIRE_THROW_WITH_VALUE(op, amount, asset(501));
+      REQUIRE_THROW_WITH_VALUE(op, amount, asset(2000));
       trx.operations.back() = op;
       sign( trx,  nathan_private_key );
       PUSH_TX( db, trx );
@@ -1026,8 +1017,65 @@ BOOST_AUTO_TEST_CASE( worker_pay_test )
       trx.clear();
    }
 
-   BOOST_CHECK_EQUAL(get_balance(nathan_id, asset_id_type()), 101000);
+   BOOST_CHECK_EQUAL(get_balance(nathan_id, asset_id_type()), 102000);
    BOOST_CHECK_EQUAL(worker_id_type()(db).worker.get<vesting_balance_worker_type>().balance(db).balance.amount.value, 0);
+} FC_LOG_AND_RETHROW() }
+
+BOOST_AUTO_TEST_CASE( worker_deadline_test )
+{ try {
+   INVOKE(worker_create_test);
+   GET_ACTOR(nathan);
+   vote_for_committee_and_witnesses(INITIAL_COMMITTEE_MEMBER_COUNT, INITIAL_WITNESS_COUNT);
+   generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
+   transfer(committee_account, nathan_id, asset(100000));
+
+   {  // Nathan can vote
+      account_update_operation op;
+      op.account = nathan_id;
+      op.new_options = nathan_id(db).options;
+      op.new_options->votes.insert(worker_id_type()(db).vote_for);
+      trx.operations.push_back(op);
+      PUSH_TX( db, trx, ~0 );
+      trx.clear();
+   }
+
+   // Committee vote it in
+   auto committee_members = db.get_global_properties().active_committee_members;
+   for (const auto& cm: committee_members) {
+      account_update_operation vote_op;
+      vote_op.account = cm(db).committee_member_account;
+      vote_op.new_options = db.get(cm(db).committee_member_account).options;
+      vote_op.new_options->votes.insert(worker_id_type()(db).vote_for);
+      signed_transaction vote_tx;
+      vote_tx.operations.push_back(vote_op);
+      set_expiration( db, vote_tx );
+      PUSH_TX( db, vote_tx, ~0);
+   }
+
+   // Deadline has come
+   generate_blocks(db.head_block_time() + fc::hours(12));
+
+   {  // ini0 can't vote
+      account_update_operation op;
+      account_id_type acc_id = get_account("init0").id;
+      op.account = acc_id;
+      op.new_options = acc_id(db).options;
+      op.new_options->votes.insert(worker_id_type()(db).vote_for);
+      trx.operations.push_back(op);
+      GRAPHENE_REQUIRE_THROW( PUSH_TX( db, trx, ~0 ), fc::exception );
+      trx.clear();
+   }
+
+   {  // Nathan can't withdraw his vote
+      account_update_operation op;
+      op.account = nathan_id;
+      op.new_options = nathan_id(db).options;
+      op.new_options->votes.erase(worker_id_type()(db).vote_for);
+      trx.operations.push_back(op);
+      GRAPHENE_REQUIRE_THROW( PUSH_TX( db, trx, ~0 ), fc::exception );
+      trx.clear();
+   }
+
 } FC_LOG_AND_RETHROW() }
 
 BOOST_AUTO_TEST_CASE( refund_worker_test )
@@ -1483,7 +1531,7 @@ BOOST_AUTO_TEST_CASE(zero_second_vbo)
       {
          worker_create_operation create_op;
          create_op.owner = alice_id;
-         create_op.work_begin_date = db.head_block_time();
+         create_op.work_begin_date = db.get_dynamic_global_properties().next_maintenance_time + 30;
          create_op.work_end_date = db.head_block_time() + fc::days(1000);
          create_op.daily_pay = share_type( 10000 );
          create_op.name = "alice";
@@ -1509,7 +1557,7 @@ BOOST_AUTO_TEST_CASE(zero_second_vbo)
 
          // vote it in, wait for one maint. for vote to take effect
          vesting_balance_id_type vbid = wid(db).worker.get<vesting_balance_worker_type>().balance;
-         // wait for another maint. for worker to be paid
+         // wait for another maint.
          generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
          BOOST_CHECK( vbid(db).get_allowed_withdraw(db.head_block_time()) == asset(0) );
          generate_block();

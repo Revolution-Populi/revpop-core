@@ -404,7 +404,11 @@ void database_fixture_base::vote_for_committee_and_witnesses(uint16_t num_commit
    std::advance(comm_end, num_committee);
    std::transform(comms.begin(), comm_end,
                   std::inserter(votes, votes.end()),
-                  [](const committee_member_object& cm) { return cm.vote_id; });
+                  [&](const committee_member_object& cm)
+                  {
+                     fund(cm.committee_member_account(db), asset(10));
+                     return cm.vote_id;
+                  });
 
    account_update_operation op;
    op.account = init0.get_id();

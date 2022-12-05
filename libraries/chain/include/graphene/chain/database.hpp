@@ -659,7 +659,8 @@ namespace graphene { namespace chain {
          uint32_t                          _current_virtual_op   = 0;
 
          vector<uint64_t>                  _vote_tally_buffer;
-         vector<uint64_t>                  _cm_vote_for_worker; // flat_map saves memory, but vector is still faster
+         vector<uint64_t>                  _cm_vote_for_worker_buffer; // flat_map saves memory, but vector is still faster
+         vector<vector<account_id_type>>   _cm_support_worker_buffer;
          vector<uint64_t>                  _witness_count_histogram_buffer;
          vector<uint64_t>                  _committee_count_histogram_buffer;
          uint64_t                          _total_voting_stake[2]; // 0=committee, 1=witness,

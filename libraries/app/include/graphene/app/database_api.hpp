@@ -42,8 +42,6 @@
 #include <graphene/chain/content_card_object.hpp>
 #include <graphene/chain/content_card_v2_object.hpp>
 #include <graphene/chain/permission_object.hpp>
-#include <graphene/chain/content_vote_object.hpp>
-#include <graphene/chain/vote_master_summary_object.hpp>
 #include <graphene/chain/commit_reveal_object.hpp>
 #include <graphene/chain/commit_reveal_v2_object.hpp>
 #include <graphene/chain/witness_schedule_object.hpp>
@@ -962,63 +960,6 @@ class database_api
        */
       vector<permission_object> get_permissions( const account_id_type operator_account,
                                                  const permission_id_type permission_id, uint32_t limit ) const;
-      /**
-       * @brief Get content vote object by id
-       * @param content_id The content vote is
-       * @return The content vote object
-       */
-      fc::optional<content_vote_object> get_content_vote( const string& content_id ) const;
-
-      /**
-       * @brief Get list of content vote objects
-       * @param subject_account The owner account of content votes
-       * @param start Lower bound of content vote id to start getting results
-       * @param limit Maximum number of permission objects to fetch
-       * @return The list of content vote objects
-       */
-      vector<content_vote_object> get_content_votes( const account_id_type subject_account,
-                                                     const string& start, uint32_t limit ) const;
-
-      /**
-       * @brief Get vote statistic by master accounts
-       * @param start Lower bound of vote master summary id to start getting results
-       * @param limit Maximum number of objects to fetch
-       * @return The list of vote master summary objects
-       */
-      vector<vote_master_summary_object> get_vote_stat( const vote_master_summary_id_type start, uint32_t limit ) const;
-
-      /**
-       * @brief Get commit-reveal object by account
-       * @param account An account to getting commit-reveal object
-       * @return The commit-reveal object
-       */
-      fc::optional<commit_reveal_object> get_account_commit_reveal( const account_id_type account ) const;
-      fc::optional<commit_reveal_v2_object> get_account_commit_reveal_v2( const account_id_type account ) const;
-
-      /**
-       * @brief Allow get all commit-reveal objects fro database
-       * @param start Lower bound of commit-reveal id to start getting results
-       * @param limit Maximum number of objects to fetch
-       * @return The list of commit-reveal objects
-       */
-      vector<commit_reveal_object> get_commit_reveals( const commit_reveal_id_type start, uint32_t limit ) const;
-      vector<commit_reveal_v2_object> get_commit_reveals_v2( const commit_reveal_v2_id_type start, uint32_t limit ) const;
-
-      /**
-       * @brief Get commit reveal seed
-       * @param accounts List of accounts which reveals will be used to calculate seed
-       * @return The seed number
-       */
-      uint64_t get_commit_reveal_seed(const vector<account_id_type>& accounts) const;
-      uint64_t get_commit_reveal_seed_v2(const vector<account_id_type>& accounts) const;
-
-      /**
-       * @brief Get list of account id which reveals are filled
-       * @param accounts The list of accounts for filtering
-       * @return The list of account ids
-       */
-      vector<account_id_type> filter_commit_reveal_participant(const vector<account_id_type>& accounts) const;
-      vector<account_id_type> filter_commit_reveal_participant_v2(const vector<account_id_type>& accounts) const;
 
       //////////
       // HTLC //
@@ -1194,17 +1135,6 @@ FC_API(graphene::app::database_api,
    (get_content_cards)
    (get_permission_by_id)
    (get_permissions)
-   (get_content_vote)
-   (get_content_votes)
-   (get_vote_stat)
-   (get_account_commit_reveal)
-   (get_commit_reveals)
-   (get_commit_reveal_seed)
-   (filter_commit_reveal_participant)
-   (get_account_commit_reveal_v2)
-   (get_commit_reveals_v2)
-   (get_commit_reveal_seed_v2)
-   (filter_commit_reveal_participant_v2)
    (get_content_card_v2_by_id)
    (get_content_cards_v2)
    (get_personal_data_v2)

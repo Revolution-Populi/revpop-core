@@ -17,7 +17,6 @@ if( GRAPHENE_DISABLE_UNITY_BUILD )
         db_witness_schedule.cpp
         db_notify.cpp
         db_commit_reveal.cpp
-        db_commit_reveal_v2.cpp
       )
    message( STATUS "Graphene database unity build disabled" )
 else( GRAPHENE_DISABLE_UNITY_BUILD )

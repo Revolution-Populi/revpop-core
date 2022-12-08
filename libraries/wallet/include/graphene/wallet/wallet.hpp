@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2017 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -1902,145 +1903,6 @@ class wallet_api
             uint64_t permission_id,
             unsigned limit = 100 ) const;
 
-      /**
-       * Create a content vote.
-       * 
-       * @param subject_account an owner of a content vote.
-       * @param master_account a master account.
-       * @param content_id content id encrypted by subject account for subject account.
-       * @param master_content_id content id encrypted by subject account for master account.
-       * @param broadcast true if you wish to broadcast the transaction.
-       * @returns the signed version of the transaction
-       */
-      signed_transaction create_content_vote(
-            const string& subject_account,            
-            const string& master_account,
-            const string& content_id,
-            uint64_t master_content_id,
-            bool broadcast = false );
-
-
-      /**
-       * Remove a content vote object.
-       * 
-       * @param subject_account an owner of a content vote.
-       * @param vote_id a content vote id.
-       * @param broadcast true if you wish to broadcast the transaction.
-       * @returns the signed version of the transaction
-       */
-      signed_transaction remove_content_vote(
-            const string& subject_account,
-            uint64_t vote_id,
-            bool broadcast = false );
-
-      /**
-       * Returns a content vote object by encrypted content id.
-       * 
-       * @param content_id an id of content card.
-       * @returns the content vote object.
-       */
-      content_vote_object get_content_vote( const string& content_id ) const;
-
-      /**
-       * Returns a list of content vote objects for choosen account
-       * 
-       * @param subject_account - a content vote owner account.
-       * @param start lower bound of content vote id to start getting results.
-       * @param limit maximum number of permission objects to fetch
-       * @returns the list of a content vote objects.
-       */
-      std::vector<content_vote_object> get_content_votes( const string& subject_account,
-            const string& start,
-            unsigned limit = 100 ) const;
-
-      /**
-       * Returns a vote statistic by master accounts
-       * 
-       * @param start lower bound of vote master summary id to start getting results.
-       * @param limit maximum number of objects to fetch
-       * @returns the list of a vote master summary objects.
-       */
-      std::vector<vote_master_summary_object> get_vote_stat( uint64_t start, unsigned limit = 100 ) const;
-
-      /**
-       * Send a commit hash.
-       * 
-       * @param account An owner account of commit-reveal object
-       * @param value A value to calculate hash
-       * @param broadcast true if you wish to broadcast the transaction.
-       * @returns the signed version of the transaction
-       */
-      signed_transaction send_commit( const string& account, uint64_t value, bool broadcast = false );
-
-      /**
-       * Send a commit hash.
-       * 
-       * @param account An owner account of commit-reveal object
-       * @param value A value to calculate hash
-       * @param witness_key A witness private key for signing the transaction
-       * @param broadcast true if you wish to broadcast the transaction.
-       * @returns the signed version of the transaction
-       */
-      signed_transaction send_commit2( const string& account, uint64_t value, const string& witness_key, bool broadcast = false );
-
-      /**
-       * Send a reveal value.
-       * 
-       * @param account An owner account of commit-reveal object
-       * @param value A value to store in commit-reveal object
-       * @param broadcast true if you wish to broadcast the transaction.
-       * @returns the signed version of the transaction
-       */
-      signed_transaction send_reveal( const string& account, uint64_t value, bool broadcast = false );
-
-      /**
-       * Send a reveal value.
-       * 
-       * @param account An owner account of commit-reveal object
-       * @param value A value to store in commit-reveal object
-       * @param witness_key A witness private key for signing the transaction
-       * @param broadcast true if you wish to broadcast the transaction.
-       * @returns the signed version of the transaction
-       */
-      signed_transaction send_reveal2( const string& account, uint64_t value, const string& witness_key, bool broadcast = false );
-
-      /**
-       * Get commit-reveal object by account
-       * 
-       * @param account An account to getting commit-reveal object
-       * @returns The commit-reveal object
-       */
-      commit_reveal_object get_account_commit_reveal( const string& account ) const;
-      commit_reveal_v2_object get_account_commit_reveal_v2( const string& account ) const;
-
-      /**
-       * Allow get all commit-reveal objects fro database
-       * 
-       * @param start Lower bound of commit-reveal id to start getting results
-       * @param limit Maximum number of objects to fetch
-       * @returns The list of commit-reveal objects
-       */
-      vector<commit_reveal_object> get_commit_reveals( uint64_t start, uint32_t limit ) const;
-      vector<commit_reveal_v2_object> get_commit_reveals_v2( uint64_t start, uint32_t limit ) const;
-
-      /**
-       * Get commit reveal seed
-       * 
-       * @param accounts List of accounts which reveals will be used to calculate seed
-       * @returns The seed number
-       */
-      uint64_t get_commit_reveal_seed(const vector<string>& accounts) const;
-      uint64_t get_commit_reveal_seed_v2(const vector<string>& accounts) const;
-
-      /**
-       * Get list of account id which reveals are filled
-       * 
-       * @param accounts The list of accounts for filtering
-       * @returns The list of account ids
-       */
-      vector<account_id_type> filter_commit_reveal_participant(const vector<string>& accounts) const;
-      vector<account_id_type> filter_commit_reveal_participant_v2(const vector<string>& accounts) const;
-
       void dbg_make_uia(string creator, string symbol);
       void dbg_make_mia(string creator, string symbol);
       void dbg_push_blocks( std::string src_filename, uint32_t count );
@@ -2252,23 +2114,6 @@ FC_API( graphene::wallet::wallet_api,
         (get_content_cards)
         (get_permission_by_id)
         (get_permissions)
-        (create_content_vote)
-        (remove_content_vote)
-        (get_content_vote)
-        (get_content_votes)
-        (get_vote_stat)
-        (send_commit)
-        (send_reveal)
-        (get_account_commit_reveal)
-        (get_commit_reveals)
-        (get_commit_reveal_seed)
-        (filter_commit_reveal_participant)
-        (get_account_commit_reveal_v2)
-        (get_commit_reveals_v2)
-        (get_commit_reveal_seed_v2)
-        (filter_commit_reveal_participant_v2)
-        (send_commit2)
-        (send_reveal2)
         (create_content_card_v2)
         (update_content_card_v2)
         (remove_content_card_v2)

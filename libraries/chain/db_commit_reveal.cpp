@@ -1,6 +1,6 @@
 /**
  * The Revolution Populi Project
- * Copyright (C) 2020 Revolution Populi Limited
+ * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,66 +18,112 @@
 
 #include <graphene/chain/database.hpp>
 
-namespace graphene { namespace chain {
-
-fc::optional<commit_reveal_object> database::get_account_commit_reveal( const account_id_type account ) const
+namespace graphene
 {
-   const auto& cr_idx = get_index_type<commit_reveal_index>();
-   const auto& by_op_idx = cr_idx.indices().get<by_account>();
-   auto itr = by_op_idx.lower_bound(account);
-
-   if( itr != by_op_idx.end() && itr->account == account )
+   namespace chain
    {
-      return fc::optional<commit_reveal_object>(*itr);
-   }
-   return fc::optional<commit_reveal_object>();
-}
 
-vector<commit_reveal_object> database::get_commit_reveals( const commit_reveal_id_type start, uint32_t limit ) const
-{
-   const auto& cr_idx = get_index_type<commit_reveal_index>();
-   const auto& by_op_idx = cr_idx.indices().get<by_id>();
-   auto itr = by_op_idx.lower_bound(start);
-
-   vector<commit_reveal_object> result;
-   while( itr != by_op_idx.end() && limit-- )
-   {
-      result.push_back(*itr);
-      ++itr;
-   }
-   return result;
-}
-
-uint64_t database::get_commit_reveal_seed(const vector<account_id_type>& accounts) const
-{
-   const auto& cr_idx = get_index_type<commit_reveal_index>();
-   const auto& by_op_idx = cr_idx.indices().get<by_account>();
-
-   uint64_t seed = 0;
-   for (const auto& acc: accounts){
-      auto itr = by_op_idx.lower_bound(acc);
-      if( itr != by_op_idx.end() && itr->account == acc )
+      uint64_t database::get_commit_reveal_seed(const vector<account_id_type> &accounts) const
       {
-         seed += itr->value;
+         const auto &cr_idx = get_index_type<commit_reveal_index>();
+         const auto &by_op_idx = cr_idx.indices().get<by_account>();
+
+         uint64_t seed = 0;
+         for (const auto &acc : accounts)
+         {
+            auto itr = by_op_idx.lower_bound(acc);
+            if (itr != by_op_idx.end() && itr->account == acc)
+            {
+               seed += itr->value;
+            }
+         }
+         return seed;
       }
-   }
-   return seed;
-}
 
-vector<account_id_type> database::filter_commit_reveal_participant(const vector<account_id_type>& accounts) const
-{
-   const auto& cr_idx = get_index_type<commit_reveal_index>();
-   const auto& by_op_idx = cr_idx.indices().get<by_account>();
-
-   vector<account_id_type> result;
-   for (const auto& acc: accounts){
-      auto itr = by_op_idx.lower_bound(acc);
-      if( itr != by_op_idx.end() && itr->account == acc && itr->value != 0 )
+      vector<account_id_type> database::filter_commit_reveal_participant(const vector<account_id_type> &accounts) const
       {
-         result.push_back(itr->account);
-      }
-   }
-   return result;
-}
+         const auto &cr_idx = get_index_type<commit_reveal_index>();
+         const auto &by_op_idx = cr_idx.indices().get<by_account>();
 
-}}
+         vector<account_id_type> result;
+         for (const auto &acc : accounts)
+         {
+            auto itr = by_op_idx.lower_bound(acc);
+            if (itr != by_op_idx.end() && itr->account == acc && itr->value != 0)
+            {
+               result.push_back(itr->account);
+            }
+         }
+         return result;
+      }
+
+      uint64_t database::get_commit_reveal_seed_v2(const vector<account_id_type> &accounts) const
+      {
+         const auto &cr_idx = get_index_type<commit_reveal_v2_index>();
+         const auto &by_op_idx = cr_idx.indices().get<by_account>();
+
+         uint64_t seed = 0;
+         uint32_t maintenance_time = get_dynamic_global_properties().next_maintenance_time.sec_since_epoch();
+         if (HARDFORK_REVPOP_13_PASSED(head_block_time()))
+         {
+            uint32_t prev_maintenance_time = maintenance_time - get_global_properties().parameters.maintenance_interval;
+            for (const auto &acc : accounts)
+            {
+               auto itr = by_op_idx.lower_bound(acc);
+               if (itr != by_op_idx.end() && itr->account == acc && prev_maintenance_time <= itr->maintenance_time && itr->maintenance_time < maintenance_time)
+               {
+                  seed += itr->value;
+               }
+            }
+         }
+         else
+         {
+            for (const auto &acc : accounts)
+            {
+               auto itr = by_op_idx.lower_bound(acc);
+               if (itr != by_op_idx.end() && itr->account == acc && itr->maintenance_time == maintenance_time)
+               {
+                  seed += itr->value;
+               }
+            }
+         }
+         return seed;
+      }
+
+      vector<account_id_type> database::filter_commit_reveal_participant_v2(const vector<account_id_type> &accounts) const
+      {
+         const auto &cr_idx = get_index_type<commit_reveal_v2_index>();
+         const auto &by_op_idx = cr_idx.indices().get<by_account>();
+
+         vector<account_id_type> result;
+         uint32_t maintenance_time = get_dynamic_global_properties().next_maintenance_time.sec_since_epoch();
+         if (HARDFORK_REVPOP_13_PASSED(head_block_time()))
+         {
+            uint32_t prev_maintenance_time = maintenance_time - get_global_properties().parameters.maintenance_interval;
+            for (const auto &acc : accounts)
+            {
+               auto itr = by_op_idx.lower_bound(acc);
+               if (itr != by_op_idx.end() && itr->account == acc && itr->value != 0 && prev_maintenance_time <= itr->maintenance_time && itr->maintenance_time < maintenance_time)
+
+               {
+                  result.push_back(itr->account);
+               }
+            }
+         }
+         else
+         {
+            for (const auto &acc : accounts)
+            {
+               auto itr = by_op_idx.lower_bound(acc);
+               if (itr != by_op_idx.end() && itr->account == acc && itr->value != 0 && itr->maintenance_time == maintenance_time)
+
+               {
+                  result.push_back(itr->account);
+               }
+            }
+         }
+         return result;
+      }
+
+   }
+}

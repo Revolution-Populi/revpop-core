@@ -153,8 +153,10 @@ void database::pay_workers( share_type& budget )
    const auto head_time = head_block_time();
 //   ilog("Processing payroll! Available budget is ${b}", ("b", budget));
    vector<std::reference_wrapper<const worker_object>> active_workers;
-   // TODO optimization: add by_expiration index to avoid iterating through all objects
    uint64_t cm_size = get_global_properties().active_committee_members.size();
+   if (cm_size == 0)
+      return;
+   // TODO optimization: add by_expiration index to avoid iterating through all objects
    get_index_type<worker_index>().inspect_all_objects([head_time, &active_workers, cm_size](const object& o) {
       const worker_object& w = static_cast<const worker_object&>(o);
       if( w.is_active(head_time) && w.cm_support_size() * 2 >= cm_size + 1 )
@@ -208,8 +210,10 @@ fc::uint128_t database::calculate_workers_budget()
 
    const auto head_time = head_block_time();
    vector<std::reference_wrapper<const worker_object>> active_workers;
-   // TODO optimization: add by_expiration index to avoid iterating through all objects
    uint64_t cm_size = get_global_properties().active_committee_members.size();
+   if (cm_size == 0)
+      return worker_budget_u128;
+   // TODO optimization: add by_expiration index to avoid iterating through all objects
    get_index_type<worker_index>().inspect_all_objects([head_time, &active_workers, cm_size, &worker_budget_u128](const object& o) {
       const worker_object& w = static_cast<const worker_object&>(o);
       if( w.is_active(head_time) && w.cm_support_size() * 2 >= cm_size + 1 )

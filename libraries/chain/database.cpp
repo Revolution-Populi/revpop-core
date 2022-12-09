@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -33,4 +34,3 @@
 #include "db_witness_schedule.cpp"
 #include "db_notify.cpp"
 #include "db_commit_reveal.cpp"
-#include "db_commit_reveal_v2.cpp"

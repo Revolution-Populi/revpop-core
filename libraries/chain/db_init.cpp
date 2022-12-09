@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2017 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -54,8 +55,6 @@
 #include <graphene/chain/content_card_object.hpp>
 #include <graphene/chain/content_card_v2_object.hpp>
 #include <graphene/chain/permission_object.hpp>
-#include <graphene/chain/content_vote_object.hpp>
-#include <graphene/chain/vote_master_summary_object.hpp>
 #include <graphene/chain/commit_reveal_object.hpp>
 #include <graphene/chain/commit_reveal_v2_object.hpp>
 
@@ -81,7 +80,6 @@
 #include <graphene/chain/content_card_evaluator.hpp>
 #include <graphene/chain/content_card_v2_evaluator.hpp>
 #include <graphene/chain/permission_evaluator.hpp>
-#include <graphene/chain/content_vote_evaluator.hpp>
 #include <graphene/chain/commit_reveal_evaluator.hpp>
 #include <graphene/chain/commit_reveal_v2_evaluator.hpp>
 #include <graphene/chain/commit_reveal_v3_evaluator.hpp>
@@ -158,8 +156,6 @@ void database::initialize_evaluators()
    register_evaluator<content_card_v2_remove_evaluator>();
    register_evaluator<permission_create_evaluator>();
    register_evaluator<permission_remove_evaluator>();
-   register_evaluator<content_vote_create_evaluator>();
-   register_evaluator<content_vote_remove_evaluator>();
    register_evaluator<vote_counter_update_evaluator>();
    register_evaluator<commit_create_evaluator>();
    register_evaluator<reveal_create_evaluator>();
@@ -217,8 +213,6 @@ void database::initialize_indexes()
    add_index< primary_index< content_card_index,                        20> >();
    add_index< primary_index< content_card_v2_index,                     20> >();
    add_index< primary_index< permission_index,                          20> >();
-   add_index< primary_index< content_vote_index,                        20> >();
-   add_index< primary_index< vote_master_summary_index,                 20> >();
    add_index< primary_index< commit_reveal_index,                       20> >();
    add_index< primary_index< commit_reveal_v2_index,                    20> >();
 }

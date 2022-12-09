@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -215,16 +216,11 @@ void witness_plugin::plugin_startup()
    }
 
    // RevPop
-   o_v = std::make_shared< operation_visitor >();
-   o_v->plugin = shared_from_this();
    check_resources();
 
    _network_broadcast_api = std::make_shared< app::network_broadcast_api >( std::ref( app() ) );
 
    database().applied_block.connect([this](const signed_block &b) {
-      if (!process_master_operations(b)) {
-         FC_THROW_EXCEPTION(plugin_exception, "Error populating ES database, we are going to keep trying.");
-      }
       commit_reveal_operations();
    });
 
@@ -245,7 +241,6 @@ void witness_plugin::check_resources() {
          _witness_account[wit_itr->witness_account] = wit_id;
       }
    }
-   o_v->set_master_accounts(masters);
    _witness_accounts.swap(masters);
 }
 
@@ -291,64 +286,6 @@ void witness_plugin::schedule_production_loop()
 
    _block_production_task = fc::schedule([this]{block_production_loop();},
                                          next_wakeup, "Witness Block Production");
-}
-
-bool witness_plugin::process_master_operations( const chain::signed_block& b ) {
-   if (o_v->no_master_accounts())
-      return true;
-
-   auto& db = database();
-   const vector<fc::optional< operation_history_object > >& hist = db.get_applied_operations();
-   for( const fc::optional< operation_history_object >& o_op : hist ) {
-      o_op->op.visit(*o_v);
-   }
-
-   const auto& gpo = db.get_global_properties();
-   const auto& dyn_props = db.get_dynamic_global_properties();
-   const auto& chain_props = db.get_chain_properties();
-
-   for (auto &vote_counter: o_v->vote_counters) {
-      if (vote_counter.second >= gpo.parameters.revpop_vote_mixture) {
-         const auto& mst_acc_id = vote_counter.first;
-         const auto& acc_idx = db.get_index_type<account_index>();
-         const auto& acc_op_idx = acc_idx.indices().get<by_id>();
-         const auto& acc_itr = acc_op_idx.lower_bound(mst_acc_id);
-         if (acc_itr->id == mst_acc_id) {
-            vote_counter_update_operation create_vote_op;
-            create_vote_op.master_account = mst_acc_id;
-            create_vote_op.vote_data = fc::flat_map<chain::content_card_id_type, int>(o_v->content_votes[mst_acc_id].begin(),
-                                                                                      o_v->content_votes[mst_acc_id].end());
-
-            protocol::signed_transaction tx;
-            tx.operations.push_back(create_vote_op);
-            tx.validate();
-
-            tx.set_reference_block(dyn_props.head_block_id);
-            tx.set_expiration(dyn_props.time + fc::seconds(30));
-            tx.clear_signatures();
-
-            const auto &pkey = get_witness_private_key(*acc_itr);
-            if (pkey.valid()) {
-               tx.sign(*pkey, chain_props.chain_id);
-               try {
-                  _network_broadcast_api->broadcast_transaction(tx);
-               }
-               catch (const fc::exception &e) {
-                  elog("Caught exception while broadcasting tx ${id}:  ${e}",
-                       ("id", tx.id().str())("e", e.to_detail_string()));
-                  throw;
-               }
-            } else {
-               return false;
-            }
-
-            o_v->content_votes[mst_acc_id].clear();
-            o_v->vote_counters[mst_acc_id] = 0;
-         }
-      }
-   }
-
-   return true;
 }
 
 void witness_plugin::commit_reveal_operations() {

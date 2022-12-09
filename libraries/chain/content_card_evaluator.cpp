@@ -1,6 +1,6 @@
 /**
  * The Revolution Populi Project
- * Copyright (C) 2020 Revolution Populi Limited
+ * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,6 @@
  */
 
 #include <graphene/chain/content_card_evaluator.hpp>
-#include <graphene/chain/vote_master_summary_object.hpp>
 #include <graphene/chain/permission_object.hpp>
 #include <graphene/chain/buyback.hpp>
 #include <graphene/chain/database.hpp>
@@ -140,41 +139,11 @@ object_id_type content_card_remove_evaluator::do_apply( const content_card_remov
 
 void_result vote_counter_update_evaluator::do_evaluate( const vote_counter_update_operation& op )
 { try {
-   database& d = db();
-   const auto& vms_idx = d.get_index_type<vote_master_summary_index>();
-   const auto& by_master_idx = vms_idx.indices().get<by_master_account>();
-   auto itr = by_master_idx.lower_bound(op.master_account);
-   FC_ASSERT(itr->master_account == op.master_account, "Master account not found.");
    return void_result();
 } FC_CAPTURE_AND_RETHROW( (op) ) }
 
 void_result vote_counter_update_evaluator::do_apply( const vote_counter_update_operation& o )
 { try {
-   database& d = db();
-   const auto& content_idx = d.get_index_type<content_card_index>();
-   const auto& content_op_idx = content_idx.indices().get<by_id>();
-
-   int vote_counter_sum = 0;
-   for (const auto& update_data: o.vote_data) {
-      auto itr = content_op_idx.lower_bound(update_data.first);
-      if(itr->id == update_data.first){
-         d.modify( *itr, [&update_data](content_card_object& obj){
-            obj.vote_counter += update_data.second;
-         });
-         vote_counter_sum += update_data.second;
-      }
-   }
-
-   // Update vote master summary with new vote created
-   const auto& vms_idx = d.get_index_type<vote_master_summary_index>();
-   const auto& by_master_idx = vms_idx.indices().get<by_master_account>();
-   auto itr = by_master_idx.lower_bound(o.master_account);
-   if (itr->master_account == o.master_account) {
-      d.modify( *itr, [vote_counter_sum](vote_master_summary_object& obj){
-         obj.updated_votes += vote_counter_sum;
-      });
-   }
-
    return void_result();
 } FC_CAPTURE_AND_RETHROW((o)) }
 

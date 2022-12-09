@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2017 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -1167,102 +1168,6 @@ std::vector<permission_object> wallet_api::get_permissions(
       unsigned limit ) const
 {
    return my->get_permissions(operator_account, permission_id, limit);
-}
-
-signed_transaction wallet_api::create_content_vote(
-      const string& subject_account,
-      const string& master_account,
-      const string& content_id,
-      uint64_t master_content_id,
-      bool broadcast ) 
-{
-   return my->create_content_vote(subject_account, master_account, content_id, master_content_id, broadcast);
-}
-
-signed_transaction wallet_api::remove_content_vote(
-      const string& subject_account,
-      uint64_t vote_id,
-      bool broadcast )
-{
-   return my->remove_content_vote(subject_account, vote_id, broadcast);
-}
-
-content_vote_object wallet_api::get_content_vote( const string& content_id ) const
-{
-   return my->get_content_vote(content_id);
-}
-
-std::vector<content_vote_object> wallet_api::get_content_votes(
-      const string& subject_account,
-      const string& start,
-      unsigned limit ) const
-{
-   return my->get_content_votes(subject_account, start, limit);
-}
-
-std::vector<vote_master_summary_object> wallet_api::get_vote_stat( uint64_t start, unsigned limit ) const
-{
-   return my->get_vote_stat(start, limit);
-}
-
-signed_transaction wallet_api::send_commit( const string& account, uint64_t value, bool broadcast )
-{
-   return my->send_commit(account, value, broadcast);
-}
-
-signed_transaction wallet_api::send_commit2( const string& account, uint64_t value, const string& witness_key, bool broadcast )
-{
-   return my->send_commit2(account, value, witness_key, broadcast);
-}
-
-signed_transaction wallet_api::send_reveal( const string& account, uint64_t value, bool broadcast )
-{
-   return my->send_reveal(account, value, broadcast);
-}
-
-signed_transaction wallet_api::send_reveal2( const string& account, uint64_t value, const string& witness_key, bool broadcast )
-{
-   return my->send_reveal2(account, value, witness_key, broadcast);
-}
-
-commit_reveal_object wallet_api::get_account_commit_reveal( const string& account ) const
-{
-   return my->get_account_commit_reveal(account);
-}
-
-commit_reveal_v2_object wallet_api::get_account_commit_reveal_v2( const string& account ) const
-{
-   return my->get_account_commit_reveal_v2(account);
-}
-
-vector<commit_reveal_object> wallet_api::get_commit_reveals( uint64_t start, uint32_t limit ) const
-{
-   return my->get_commit_reveals(start, limit);
-}
-
-vector<commit_reveal_v2_object> wallet_api::get_commit_reveals_v2( uint64_t start, uint32_t limit ) const
-{
-   return my->get_commit_reveals_v2(start, limit);
-}
-
-uint64_t wallet_api::get_commit_reveal_seed(const vector<string>& accounts) const
-{
-   return my->get_commit_reveal_seed(accounts);
-}
-
-uint64_t wallet_api::get_commit_reveal_seed_v2(const vector<string>& accounts) const
-{
-   return my->get_commit_reveal_seed_v2(accounts);
-}
-
-vector<account_id_type> wallet_api::filter_commit_reveal_participant(const vector<string>& accounts) const
-{
-   return my->filter_commit_reveal_participant(accounts);
-}
-
-vector<account_id_type> wallet_api::filter_commit_reveal_participant_v2(const vector<string>& accounts) const
-{
-   return my->filter_commit_reveal_participant_v2(accounts);
 }
 
 string wallet_api::help()const

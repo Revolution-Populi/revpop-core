@@ -247,21 +247,26 @@ processed_transaction database_api::get_transaction( uint32_t block_num, uint32_
    return my->get_transaction( block_num, trx_in_block );
 }
 
-optional<signed_transaction> database_api::get_recent_transaction_by_id( const transaction_id_type& id )const
-{
-   try {
-      return my->_db.get_recent_transaction( id );
-   } catch ( ... ) {
-      return optional<signed_transaction>();
-   }
-}
-
 processed_transaction database_api_impl::get_transaction(uint32_t block_num, uint32_t trx_num)const
 {
    auto opt_block = _db.fetch_block_by_number(block_num);
    FC_ASSERT( opt_block );
    FC_ASSERT( opt_block->transactions.size() > trx_num );
    return opt_block->transactions[trx_num];
+}
+
+optional<signed_transaction> database_api::get_recent_transaction_by_id( const transaction_id_type& id )const
+{
+   return my->get_recent_transaction_by_id( id );
+}
+
+optional<signed_transaction> database_api_impl::get_recent_transaction_by_id(const transaction_id_type& id )const
+{
+   try {
+      return _db.get_recent_transaction( id );
+   } catch ( ... ) {
+      return optional<signed_transaction>();
+   }
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -2756,149 +2761,6 @@ vector<permission_object> database_api_impl::get_permissions( const account_id_t
    }
 
    return result;
-}
-
-fc::optional<content_vote_object> database_api::get_content_vote( const string& content_id ) const
-{
-   return my->get_content_vote(content_id);
-}
-
-fc::optional<content_vote_object> database_api_impl::get_content_vote( const string& content_id ) const
-{
-   const auto& vote_idx = _db.get_index_type<content_vote_index>();
-   const auto& by_op_idx = vote_idx.indices().get<by_content_id>();
-   auto itr = by_op_idx.lower_bound(content_id);
-
-   if ( itr->content_id != content_id ){
-      return fc::optional<content_vote_object>();
-   }
-   return *itr;
-}
-
-vector<content_vote_object> database_api::get_content_votes( const account_id_type subject_account,
-                                                             const string& start, uint32_t limit ) const
-{
-   return my->get_content_votes(subject_account, start, limit);
-}
-
-vector<content_vote_object> database_api_impl::get_content_votes( const account_id_type subject_account,
-                                                                  const string& start, uint32_t limit ) const
-{
-   const auto& vote_idx = _db.get_index_type<content_vote_index>();
-   const auto& by_op_idx = vote_idx.indices().get<by_subject_account>();
-   auto itr = by_op_idx.lower_bound(boost::make_tuple(subject_account, start));
-
-   vector<content_vote_object> result;
-   while( itr->subject_account == subject_account && limit-- )
-   {
-      result.push_back(*itr);
-      ++itr;
-   }
-
-   return result;
-}
-
-vector<vote_master_summary_object> database_api::get_vote_stat( const vote_master_summary_id_type start,
-                                                                uint32_t limit ) const
-{
-   return my->get_vote_stat(start, limit);
-}
-
-vector<vote_master_summary_object> database_api_impl::get_vote_stat( const vote_master_summary_id_type start,
-                                                                     uint32_t limit ) const
-{
-   const auto& stat_idx = _db.get_index_type<vote_master_summary_index>();
-   const auto& by_op_idx = stat_idx.indices().get<by_id>();
-   auto itr = by_op_idx.lower_bound(start);
-
-   vector<vote_master_summary_object> result;
-   while( itr != by_op_idx.end() && limit-- )
-   {
-      result.push_back(*itr);
-      ++itr;
-   }
-
-   return result;
-}
-
-fc::optional<commit_reveal_object> database_api::get_account_commit_reveal( const account_id_type account ) const
-{
-   return my->get_account_commit_reveal(account);
-}
-
-fc::optional<commit_reveal_object> database_api_impl::get_account_commit_reveal( const account_id_type account ) const
-{
-   return _db.get_account_commit_reveal(account);
-}
-
-vector<commit_reveal_object> database_api::get_commit_reveals( const commit_reveal_id_type start, uint32_t limit ) const
-{
-   return my->get_commit_reveals(start, limit);
-}
-
-vector<commit_reveal_object> database_api_impl::get_commit_reveals( const commit_reveal_id_type start, uint32_t limit ) const
-{
-   return _db.get_commit_reveals(start, limit);
-}
-
-uint64_t database_api::get_commit_reveal_seed(const vector<account_id_type>& accounts) const
-{
-   return my->get_commit_reveal_seed(accounts);
-}
-
-uint64_t database_api_impl::get_commit_reveal_seed(const vector<account_id_type>& accounts) const
-{
-   return _db.get_commit_reveal_seed(accounts);
-}
-
-vector<account_id_type> database_api::filter_commit_reveal_participant(const vector<account_id_type>& accounts) const
-{
-   return my->filter_commit_reveal_participant(accounts);
-}
-
-vector<account_id_type> database_api_impl::filter_commit_reveal_participant(const vector<account_id_type>& accounts) const
-{
-   return _db.filter_commit_reveal_participant(accounts);
-}
-
-fc::optional<commit_reveal_v2_object> database_api::get_account_commit_reveal_v2( const account_id_type account ) const
-{
-   return my->get_account_commit_reveal_v2(account);
-}
-
-fc::optional<commit_reveal_v2_object> database_api_impl::get_account_commit_reveal_v2( const account_id_type account ) const
-{
-   return _db.get_account_commit_reveal_v2(account);
-}
-
-vector<commit_reveal_v2_object> database_api::get_commit_reveals_v2( const commit_reveal_v2_id_type start, uint32_t limit ) const
-{
-   return my->get_commit_reveals_v2(start, limit);
-}
-
-vector<commit_reveal_v2_object> database_api_impl::get_commit_reveals_v2( const commit_reveal_v2_id_type start, uint32_t limit ) const
-{
-   return _db.get_commit_reveals_v2(start, limit);
-}
-
-uint64_t database_api::get_commit_reveal_seed_v2(const vector<account_id_type>& accounts) const
-{
-   return my->get_commit_reveal_seed_v2(accounts);
-}
-
-uint64_t database_api_impl::get_commit_reveal_seed_v2(const vector<account_id_type>& accounts) const
-{
-   return _db.get_commit_reveal_seed_v2(accounts);
-}
-
-vector<account_id_type> database_api::filter_commit_reveal_participant_v2(const vector<account_id_type>& accounts) const
-{
-   return my->filter_commit_reveal_participant_v2(accounts);
-}
-
-vector<account_id_type> database_api_impl::filter_commit_reveal_participant_v2(const vector<account_id_type>& accounts) const
-{
-   return _db.filter_commit_reveal_participant_v2(accounts);
 }
 
 //////////////////////////////////////////////////////////////////////

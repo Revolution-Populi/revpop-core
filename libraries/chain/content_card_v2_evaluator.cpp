@@ -23,7 +23,6 @@
  */
 
 #include <graphene/chain/content_card_v2_evaluator.hpp>
-#include <graphene/chain/vote_master_summary_object.hpp>
 #include <graphene/chain/permission_object.hpp>
 #include <graphene/chain/buyback.hpp>
 #include <graphene/chain/database.hpp>

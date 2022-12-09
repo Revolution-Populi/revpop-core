@@ -55,6 +55,7 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
       map<uint32_t, optional<block_header>> get_block_header_batch(const vector<uint32_t> block_nums)const;
       optional<signed_block> get_block(uint32_t block_num)const;
       processed_transaction get_transaction( uint32_t block_num, uint32_t trx_in_block )const;
+      optional<signed_transaction> get_recent_transaction_by_id(const transaction_id_type& id )const;
 
       // Globals
       chain_property_object get_chain_properties()const;
@@ -216,20 +217,6 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
       fc::optional<permission_object> get_permission_by_id( const permission_id_type permission_id ) const;
       vector<permission_object> get_permissions( const account_id_type operator_account,
                                                  const permission_id_type permission_id, uint32_t limit ) const;
-      fc::optional<content_vote_object> get_content_vote( const string& content_id ) const;
-      vector<content_vote_object> get_content_votes( const account_id_type subject_account,
-                                                     const string& start, uint32_t limit ) const;
-      vector<vote_master_summary_object> get_vote_stat( const vote_master_summary_id_type start, uint32_t limit ) const;
-      fc::optional<commit_reveal_object> get_account_commit_reveal( const account_id_type account ) const;
-      vector<commit_reveal_object> get_commit_reveals( const commit_reveal_id_type start, uint32_t limit ) const;
-      uint64_t get_commit_reveal_seed(const vector<account_id_type>& accounts) const;
-      vector<account_id_type> filter_commit_reveal_participant(const vector<account_id_type>& accounts) const;
-      fc::optional<commit_reveal_v2_object> get_account_commit_reveal_v2( const account_id_type account ) const;
-      vector<commit_reveal_v2_object> get_commit_reveals_v2( const commit_reveal_v2_id_type start, uint32_t limit ) const;
-      uint64_t get_commit_reveal_seed_v2(const vector<account_id_type>& accounts) const;
-      vector<account_id_type> filter_commit_reveal_participant_v2(const vector<account_id_type>& accounts) const;
-
-   //private:
 
       ////////////////////////////////////////////////
       // Accounts
@@ -373,7 +360,7 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
       ////////////////////////////////////////////////
       // Member variables
       ////////////////////////////////////////////////
-
+   private:
       bool _notify_remove_create = false;
       bool _enabled_auto_subscription = true;
 

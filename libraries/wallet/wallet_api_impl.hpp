@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2017 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -448,42 +449,6 @@ public:
    std::vector<permission_object> get_permissions( const string& operator_account,
          uint64_t permission_id,
          unsigned limit = 100 ) const;
-
-   signed_transaction create_content_vote( const string& subject_account,
-         const string& master_account,
-         const string& content_id,
-         uint64_t master_content_id,
-         bool broadcast );
-
-   signed_transaction remove_content_vote( const string& subject_account,
-         uint64_t vote_id,
-         bool broadcast );
-
-   content_vote_object get_content_vote( const string& content_id ) const;
-
-   std::vector<content_vote_object> get_content_votes( const string& subject_account,
-         const string& start,
-         unsigned limit ) const;
-
-   std::vector<vote_master_summary_object> get_vote_stat( uint64_t start, unsigned limit = 100 ) const;
-
-   signed_transaction send_commit( const string& account, uint64_t value, bool broadcast );
-   signed_transaction send_commit2( const string& account, uint64_t value, const string& witness_key, bool broadcast );
-
-   signed_transaction send_reveal( const string& account, uint64_t value, bool broadcast );
-   signed_transaction send_reveal2( const string& account, uint64_t value, const string& witness_key, bool broadcast );
-
-   commit_reveal_object get_account_commit_reveal( const string& account ) const;
-   commit_reveal_v2_object get_account_commit_reveal_v2( const string& account ) const;
-
-   vector<commit_reveal_object> get_commit_reveals( uint64_t start, uint32_t limit ) const;
-   vector<commit_reveal_v2_object> get_commit_reveals_v2( uint64_t start, uint32_t limit ) const;
-
-   uint64_t get_commit_reveal_seed(const vector<string>& accounts) const;
-   uint64_t get_commit_reveal_seed_v2(const vector<string>& accounts) const;
-
-   vector<account_id_type> filter_commit_reveal_participant(const vector<string>& accounts) const;
-   vector<account_id_type> filter_commit_reveal_participant_v2(const vector<string>& accounts) const;
 
    void dbg_make_uia(string creator, string symbol);
 

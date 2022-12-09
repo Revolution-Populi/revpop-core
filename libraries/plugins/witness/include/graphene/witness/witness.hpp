@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -31,7 +32,6 @@
 #include <graphene/chain/content_card_object.hpp>
 #include <graphene/chain/account_object.hpp>
 #include <graphene/protocol/transaction.hpp>
-#include <graphene/protocol/content_vote.hpp>
 
 #include <fc/thread/future.hpp>
 #include <fc/optional.hpp>
@@ -114,15 +114,14 @@ private:
    /// RevPop
    std::mt19937 gen;
    void check_resources();
-   bool process_master_operations( const chain::signed_block& b );
    void commit_reveal_operations();
    void schedule_commit_reveal();
    void broadcast_commit(const chain::account_id_type& acc_id);
    void broadcast_reveal(const chain::account_id_type& acc_id);
-   fc::optional< fc::ecc::private_key > get_witness_private_key( const chain::account_object& acc ) const;
+   fc::optional< fc::ecc::private_key > get_witness_private_key( const chain::account_object& acc ) const; // before HF 12
+   fc::optional< fc::ecc::private_key > get_witness_private_key( const public_key_type& public_key ) const;
 
    fc::api< app::network_broadcast_api > _network_broadcast_api;
-   std::shared_ptr< operation_visitor > o_v;
    std::vector< chain::account_id_type > _witness_accounts;
    fc::flat_map< account_id_type, witness_id_type > _witness_account;
    fc::flat_map< account_id_type, uint64_t > _reveal_value;             // witness-> bid
@@ -131,127 +130,6 @@ private:
    std::vector<std::tuple<uint64_t, account_id_type, bool>> _commit_schedule;
    // block, witness, requires processing
    std::vector<std::tuple<uint64_t, account_id_type, bool>> _reveal_schedule;
-public:
-   fc::optional< fc::ecc::private_key > get_witness_private_key( const public_key_type& public_key ) const;
-};
-
-struct operation_visitor
-{
-   typedef void result_type;
-
-   void operator()( const graphene::chain::content_vote_create_operation& o )
-   {
-      if (std::find(master_accounts.begin(), master_accounts.end(), o.master_account) == master_accounts.end()){
-         return;
-      }
-
-      const auto& master_public_key = get_active_public_key( o.master_account );
-      const auto& subject_public_key = get_active_public_key( o.subject_account );
-
-      if ( master_public_key.valid() && subject_public_key.valid() ) {
-         if (auto shr_plugin = plugin.lock()) {
-            const auto &master_private_key = shr_plugin->get_witness_private_key(*master_public_key);
-            if (master_private_key.valid()) {
-               const auto &opt_content_id = try_decrypt_content_card_id(*master_private_key, *subject_public_key,
-                                                                        o.master_content_id);
-               if (opt_content_id.valid()) {
-                  const auto &content_id = *opt_content_id;
-
-                  if (content_votes.find(o.master_account) == content_votes.end()) {
-                     content_votes[o.master_account] = fc::flat_map<content_card_id_type, int>();
-                     vote_counters[o.master_account] = 0;
-                  }
-
-                  if (content_votes[o.master_account].find(content_id) == content_votes[o.master_account].end()) {
-                     content_votes[o.master_account][content_id] = 1;
-                  } else {
-                     content_votes[o.master_account][content_id] += 1;
-                  }
-                  vote_counters[o.master_account] += 1;
-               }
-            }
-         } else {
-            ilog("Plugin pointer is expired");
-         }
-      }
-   }
-
-   void operator()( const content_vote_remove_operation& o )
-   {
-   }
-
-   template<typename T>
-   void operator()( const T& o )
-   {
-   }
-
-   fc::optional< public_key_type > get_active_public_key( account_id_type acc_id ) const {
-      if (auto shr_plugin = plugin.lock()) {
-         auto& db = shr_plugin->database();
-         const auto& acc_idx = db.get_index_type<account_index>();
-         const auto& acc_op_idx = acc_idx.indices().get<by_id>();
-         const auto& acc_itr = acc_op_idx.lower_bound(acc_id);
-         if (acc_itr->id == acc_id && acc_itr->active.key_auths.size()){
-            return fc::optional< public_key_type >(acc_itr->active.key_auths.begin()->first);
-         }
-      }
-      else {
-         ilog("Plugin pointer is expired");
-      }
-      return fc::optional< public_key_type >();
-   }
-
-   void set_master_accounts( const std::vector< account_id_type >& masters ) {
-      master_accounts.clear();
-      std::copy(masters.begin(), masters.end(), std::back_inserter(master_accounts));
-   }
-
-   bool no_master_accounts() {
-      return master_accounts.empty();
-   }
-
-   fc::optional< content_card_id_type > try_decrypt_content_card_id( const fc::ecc::private_key& mst_private_key,
-           const fc::ecc::public_key& sub_public_key, const std::string& enc_msg ) {
-
-       const auto& shared_secret = mst_private_key.get_shared_secret( sub_public_key );
-
-       std::vector<std::string> parts;
-       boost::split( parts, enc_msg, boost::is_any_of(":") );
-       if (parts.size() == 3) {
-           const auto nonce = std::stoul(parts[0]);
-           const auto checksum = std::stoul(parts[1]);
-           const auto msg = fc::base64_decode(parts[2]);
-
-           fc::sha512::encoder enc;
-           fc::raw::pack(enc, nonce);
-           fc::raw::pack(enc, shared_secret);
-           auto encrypt_key = enc.result();
-
-           uint32_t check = fc::sha256::hash(encrypt_key)._hash[0].value();
-
-           if (check != checksum) {
-               ilog("Master node can't decrypt content card id.");
-               return fc::optional< content_card_id_type >();
-           }
-
-           std::vector<char> enc_content_id;
-           std::copy(msg.begin(), msg.end(), std::back_inserter(enc_content_id));
-           const auto dec_content_id = fc::aes_decrypt(encrypt_key, enc_content_id);
-
-           std::string content_id_str;
-           std::copy(dec_content_id.begin(), dec_content_id.end(), std::back_inserter(content_id_str));
-           const auto content_id = content_card_id_type(std::stoi(content_id_str));
-
-           return fc::optional< content_card_id_type >(content_id);
-       }
-       ilog("Master node can't decrypt content card id.");
-       return fc::optional< content_card_id_type >();
-   }
-
-   fc::flat_map<account_id_type, int> vote_counters;
-   fc::flat_map<account_id_type, fc::flat_map< content_card_id_type, int >> content_votes;
-   std::vector< account_id_type > master_accounts;
-   std::weak_ptr< witness_plugin > plugin;
 };
 
 } } //graphene::witness_plugin

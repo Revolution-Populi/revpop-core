@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -263,16 +264,13 @@ namespace graphene { namespace chain {
          void update_witness_schedule();
 
          //////////////////// db_commit_reveal.cpp ////////////////////
-         fc::optional<commit_reveal_object> get_account_commit_reveal( const account_id_type account ) const;
-         vector<commit_reveal_object> get_commit_reveals( const commit_reveal_id_type start, uint32_t limit ) const;
+      private:
          uint64_t get_commit_reveal_seed(const vector<account_id_type>& accounts) const;
          vector<account_id_type> filter_commit_reveal_participant(const vector<account_id_type>& accounts) const;
-
-         fc::optional<commit_reveal_v2_object> get_account_commit_reveal_v2( const account_id_type account ) const;
-         vector<commit_reveal_v2_object> get_commit_reveals_v2( const commit_reveal_v2_id_type start, uint32_t limit ) const;
          uint64_t get_commit_reveal_seed_v2(const vector<account_id_type>& accounts) const;
          vector<account_id_type> filter_commit_reveal_participant_v2(const vector<account_id_type>& accounts) const;
          //////////////////// db_getter.cpp ////////////////////
+      public:
 
          const chain_id_type&                   get_chain_id()const;
          const asset_object&                    get_core_asset()const;
@@ -618,6 +616,7 @@ namespace graphene { namespace chain {
 
          void initialize_budget_record( fc::time_point_sec now, budget_record& rec )const;
          void process_budget();
+         fc::uint128_t calculate_workers_budget();
          void pay_workers( share_type& budget );
          void perform_chain_maintenance(const signed_block& next_block, const global_property_object& global_props);
          void update_active_witnesses();
@@ -659,7 +658,8 @@ namespace graphene { namespace chain {
          uint32_t                          _current_virtual_op   = 0;
 
          vector<uint64_t>                  _vote_tally_buffer;
-         vector<uint64_t>                  _cm_vote_for_worker; // flat_map saves memory, but vector is still faster
+         vector<uint64_t>                  _cm_vote_for_worker_buffer; // flat_map saves memory, but vector is still faster
+         vector<vector<account_id_type>>   _cm_support_worker_buffer;
          vector<uint64_t>                  _witness_count_histogram_buffer;
          vector<uint64_t>                  _committee_count_histogram_buffer;
          uint64_t                          _total_voting_stake[2]; // 0=committee, 1=witness,

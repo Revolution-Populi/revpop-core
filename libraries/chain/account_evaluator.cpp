@@ -55,7 +55,7 @@ void verify_authority_accounts( const database& db, const authority& a )
    }
 }
 
-void verify_account_votes( const database& db, const account_options& options )
+void verify_account_votes( const database& db, const account_options& options, optional<account_id_type> account)
 {
    // ensure account's votes satisfy requirements
    // NB only the part of vote checking that requires chain state is here,
@@ -79,6 +79,7 @@ void verify_account_votes( const database& db, const account_options& options )
       has_worker_votes |= (id.type() == vote_id_type::worker);
    }
 
+   // Check new options
    const auto& approve_worker_idx = db.get_index_type<worker_index>().indices().get<by_vote_for>();
    const auto& committee_idx = db.get_index_type<committee_member_index>().indices().get<by_vote_id>();
    const auto& witness_idx = db.get_index_type<witness_index>().indices().get<by_vote_id>();
@@ -93,11 +94,47 @@ void verify_account_votes( const database& db, const account_options& options )
                         "Can not vote for ${id} which does not exist.", ("id",id) );
             break;
          case vote_id_type::worker:
-            FC_ASSERT( approve_worker_idx.find( id ) != approve_worker_idx.end(),
+            {
+            const auto& itr = approve_worker_idx.find( id );
+            FC_ASSERT( itr != approve_worker_idx.end(),
                         "Can not vote for ${id} which does not exist.", ("id",id) );
+            // No one can add his vote after the worker start time
+            FC_ASSERT( db.head_block_time() <= itr->work_begin_date,
+                        "Can not vote for ${id}: the worker start time has already passed. The worker start time is ${time}; Blockchain time ${btime}.",
+                        ("id", id)("time", itr->work_begin_date)("btime", db.head_block_time()) );
+            }
             break;
          default:
             FC_THROW( "Invalid Vote Type: ${id}", ("id", id) );
+            break;
+      }
+   }
+
+   // Check old options (if exist)
+   if (!account.valid()) return;
+   const account_options& old_options = (*account)(db).options;
+   for ( auto oid : old_options.votes ) {
+      switch ( oid.type() ) {
+            case vote_id_type::committee:
+               break;
+            case vote_id_type::witness:
+               break;
+            case vote_id_type::worker:
+            {
+            // Are we going to to withdraw a vote for the worker?
+            if (options.votes.find(oid) != options.votes.end()) break;
+
+            const auto& itr = approve_worker_idx.find( oid );
+            FC_ASSERT( itr != approve_worker_idx.end(),
+                        "Can not withdraw a vote for ${id} which does not exist.", ("id",oid) );
+            // No one can add his vote after the worker start time
+            FC_ASSERT( db.head_block_time() <= itr->work_begin_date,
+                        "Can not withdraw a vote for ${id}: the worker start time has already passed. The worker start time is ${time}; Blockchain time ${btime}.",
+                        ("id", oid)("time", itr->work_begin_date)("btime", db.head_block_time()) );
+            }
+            break;
+         default:
+            FC_THROW( "Invalid Vote Type: ${id}", ("id", oid) );
             break;
       }
    }
@@ -124,7 +161,7 @@ void_result account_create_evaluator::do_evaluate( const account_create_operatio
       evaluate_special_authority( d, *op.extensions.value.active_special_authority );
    if( op.extensions.value.buyback_options.valid() )
       evaluate_buyback_account_options( d, *op.extensions.value.buyback_options );
-   verify_account_votes( d, op.options );
+   verify_account_votes( d, op.options, {} );
 
    auto& acnt_indx = d.get_index_type<account_index>();
    if( op.name.size() )
@@ -238,7 +275,7 @@ void_result account_update_evaluator::do_evaluate( const account_update_operatio
    acnt = &o.account(d);
 
    if( o.new_options.valid() )
-      verify_account_votes( d, *o.new_options );
+      verify_account_votes( d, *o.new_options, o.account );
 
    return void_result();
 } FC_CAPTURE_AND_RETHROW( (o) ) }

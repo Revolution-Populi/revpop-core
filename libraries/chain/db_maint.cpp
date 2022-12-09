@@ -153,11 +153,13 @@ void database::pay_workers( share_type& budget )
    const auto head_time = head_block_time();
 //   ilog("Processing payroll! Available budget is ${b}", ("b", budget));
    vector<std::reference_wrapper<const worker_object>> active_workers;
-   // TODO optimization: add by_expiration index to avoid iterating through all objects
    uint64_t cm_size = get_global_properties().active_committee_members.size();
+   if (cm_size == 0)
+      return;
+   // TODO optimization: add by_expiration index to avoid iterating through all objects
    get_index_type<worker_index>().inspect_all_objects([head_time, &active_workers, cm_size](const object& o) {
       const worker_object& w = static_cast<const worker_object&>(o);
-      if( w.is_active(head_time) && w.cm_support_size() * 2 >= cm_size )
+      if( w.is_active(head_time) && w.cm_support_size() * 2 >= cm_size + 1 )
          active_workers.emplace_back(w);
    });
 
@@ -196,6 +198,29 @@ void database::pay_workers( share_type& budget )
 
       budget -= actual_pay;
    }
+}
+
+fc::uint128_t database::calculate_workers_budget()
+{
+   fc::uint128_t worker_budget_u128 = 0;
+
+   const global_property_object& gpo = get_global_properties();
+   if (gpo.parameters.worker_budget_per_day.value == 0)
+      return worker_budget_u128;
+
+   const auto head_time = head_block_time();
+   vector<std::reference_wrapper<const worker_object>> active_workers;
+   uint64_t cm_size = get_global_properties().active_committee_members.size();
+   if (cm_size == 0)
+      return worker_budget_u128;
+   // TODO optimization: add by_expiration index to avoid iterating through all objects
+   get_index_type<worker_index>().inspect_all_objects([head_time, &active_workers, cm_size, &worker_budget_u128](const object& o) {
+      const worker_object& w = static_cast<const worker_object&>(o);
+      if( w.is_active(head_time) && w.cm_support_size() * 2 >= cm_size + 1 )
+         worker_budget_u128 += w.daily_pay.value;
+      });
+
+   return worker_budget_u128;
 }
 
 void database::update_active_witnesses()
@@ -562,7 +587,7 @@ void database::process_budget()
       rec.witness_budget = witness_budget;
       available_funds -= witness_budget;
 
-      fc::uint128_t worker_budget_u128 = gpo.parameters.worker_budget_per_day.value;
+      fc::uint128_t worker_budget_u128 = calculate_workers_budget();
       worker_budget_u128 *= uint64_t(time_to_maint);
       worker_budget_u128 /= 60*60*24;
 

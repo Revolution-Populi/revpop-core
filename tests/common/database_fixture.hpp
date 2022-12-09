@@ -230,6 +230,7 @@ struct database_fixture_base {
    string generate_anon_acct_name();
    static void verify_asset_supplies( const database& db );
    void vote_for_committee_and_witnesses(uint16_t num_committee, uint16_t num_witness);
+   void enable_workers_payments(bool enable = true);
    signed_block generate_block(uint32_t skip = ~0,
                                const fc::ecc::private_key& key = generate_private_key("null_key"),
                                int miss_blocks = 0);

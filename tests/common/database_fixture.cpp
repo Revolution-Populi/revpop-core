@@ -427,6 +427,65 @@ void database_fixture_base::vote_for_committee_and_witnesses(uint16_t num_commit
 
 } FC_CAPTURE_AND_RETHROW() }
 
+void database_fixture_base::enable_workers_payments(bool enable)
+{ try {
+
+   // Create network params update proposal
+   const chain_parameters& current_params = db.get_global_properties().parameters;
+   chain_parameters new_params = current_params;
+   new_params.worker_budget_per_day = enable ? 1 : 0;
+
+   committee_member_update_global_parameters_operation cmuop;
+   cmuop.new_parameters = new_params;
+   proposal_create_operation cop = proposal_create_operation::committee_proposal(
+      db.get_global_properties().parameters, db.head_block_time() );
+   cop.fee_paying_account = GRAPHENE_TEMP_ACCOUNT;
+   cop.expiration_time = db.head_block_time() + *cop.review_period_seconds + 10;
+   cop.proposed_ops.emplace_back(cmuop);
+
+   signed_transaction wtx;
+   wtx.operations.push_back(cop);
+   wtx.validate();
+   set_expiration( db, wtx );
+   processed_transaction ptx = PUSH_TX(db, wtx, ~0);
+   wtx.operations.clear();
+
+   // Is it really cmuop?
+   proposal_id_type prop_id = ptx.operation_results[0].get<object_id_type>();
+   std::vector<operation> operations = prop_id(db).proposed_transaction.operations;
+   BOOST_CHECK( find_if(begin(operations), end(operations), [](const op_wrapper &op)
+               {
+                  return op.op.is_type<committee_member_update_global_parameters_operation>();
+               }) != std::end(operations) );
+
+   // Approve the proposal
+   proposal_update_operation uop;
+   uop.fee_paying_account = GRAPHENE_TEMP_ACCOUNT;
+   uop.proposal = prop_id;
+   auto committee_members = db.get_global_properties().active_committee_members;
+   for (const committee_member_id_type& cm: committee_members) { // vote in
+      uop.active_approvals_to_add.insert(cm(db).committee_member_account);
+   }
+   wtx.operations.push_back(uop);
+   wtx.validate();
+   PUSH_TX(db, wtx, ~0);
+   wtx.operations.clear();
+
+   // Apply update
+   generate_blocks( prop_id( db ).expiration_time + 1 );
+   generate_blocks( db.get_dynamic_global_properties().next_maintenance_time );
+
+   // Check
+   if (enable) {
+      BOOST_CHECK_EQUAL( db.get_global_properties().parameters.worker_budget_per_day.value, 1 );
+      ilog("Payment to workers is switched on.");
+   } else {
+      BOOST_CHECK_EQUAL( db.get_global_properties().parameters.worker_budget_per_day.value, 0 );
+      ilog("Payment to workers is switched off.");
+   }
+
+} FC_CAPTURE_AND_RETHROW() }
+
 fc::ecc::private_key database_fixture_base::generate_private_key(string seed)
 {
    static const fc::ecc::private_key committee = fc::ecc::private_key::regenerate(fc::sha256::hash(string("null_key")));

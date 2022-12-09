@@ -82,6 +82,8 @@ BOOST_AUTO_TEST_CASE( hardfork_time_test )
    {
       // The electoral threshold is still 0
       BOOST_CHECK_EQUAL( db.get_global_properties().parameters.get_electoral_threshold(), 0 );
+      const chain_parameters& current_params = db.get_global_properties().parameters;
+      chain_parameters new_params = current_params;
 
       // Try to set new electoral threshold after hardfork
       proposal_create_operation cop = proposal_create_operation::committee_proposal(
@@ -89,7 +91,8 @@ BOOST_AUTO_TEST_CASE( hardfork_time_test )
       cop.fee_paying_account = GRAPHENE_TEMP_ACCOUNT;
       cop.expiration_time = db.head_block_time() + *cop.review_period_seconds + 10;
       committee_member_update_global_parameters_operation cmuop;
-      cmuop.new_parameters.extensions.value.electoral_threshold = 25;
+      new_params.extensions.value.electoral_threshold = 25;
+      cmuop.new_parameters = new_params;
       cop.proposed_ops.emplace_back(cmuop);
       trx.operations.push_back(cop);
 
@@ -101,8 +104,6 @@ BOOST_AUTO_TEST_CASE( hardfork_time_test )
       trx.operations.clear();
       cop.proposed_ops.clear();
 
-      const chain_parameters& current_params = db.get_global_properties().parameters;
-      chain_parameters new_params = current_params;
       new_params.extensions.value.electoral_threshold = 3; // 3 from 21
       cmuop.new_parameters = new_params;
 

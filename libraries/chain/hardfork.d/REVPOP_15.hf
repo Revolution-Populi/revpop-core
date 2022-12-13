@@ -1,5 +1,0 @@
-// REVPOP 15 (Add storage_data field to the content_card) hardfork check
-#ifndef HARDFORK_REVPOP_15_TIME
-#define HARDFORK_REVPOP_15_TIME (fc::time_point_sec( 1644192000 )) // GMT: Monday, February 7, 2022 12:00:00 AM
-#define HARDFORK_REVPOP_15_PASSED(now) (now >= HARDFORK_REVPOP_15_TIME)
-#endif

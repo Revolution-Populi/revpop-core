@@ -261,33 +261,17 @@ void database::update_active_witnesses()
    }
 
    // RevPop: seed maintenance PRNG from commit-reveal scheme or chain_id + head block number
-   if (HARDFORK_REVPOP_11_PASSED(head_block_time()))
+   uint64_t prng_seed = get_commit_reveal_seed_v2(wits_acc);
+   if (prng_seed == 0)
    {
-      uint64_t prng_seed = get_commit_reveal_seed_v2(wits_acc);
-      if (prng_seed == 0)
-      {
-         // Fallback: seed PRNG from chain_id + head block num
-         prng_seed = ((*(const uint64_t *)get_chain_id().data()) + dpo.head_block_number);
-      }
-      _maintenance_prng.seed(prng_seed);
+      // Fallback: seed PRNG from chain_id + head block num
+      prng_seed = ((*(const uint64_t *)get_chain_id().data()) + dpo.head_block_number);
    }
-   else
-   {
-      uint64_t prng_seed = wits_acc.empty() ?
-               // Fallback: seed PRNG from chain_id + head block num
-               ((*(const uint64_t *)get_chain_id().data()) + dpo.head_block_number)
-               :
-               // Normal: seed PRNG from commit-reveal scheme
-               get_commit_reveal_seed(wits_acc);
-      _maintenance_prng.seed(prng_seed);
-   }
+   _maintenance_prng.seed(prng_seed);
 
    // RevPop: remove from top list witnesses without reveals
    {
-      auto wits_acc_w_reveals = HARDFORK_REVPOP_11_PASSED(head_block_time()) ?
-                     filter_commit_reveal_participant_v2(wits_acc)
-                     :
-                     filter_commit_reveal_participant(wits_acc);
+      auto wits_acc_w_reveals = filter_commit_reveal_participant_v2(wits_acc);
       decltype(wits) enabled_wits;
       enabled_wits.reserve( wits_acc_w_reveals.size() );
       std::copy_if( wits.begin(), wits.end(), std::back_inserter( enabled_wits ),

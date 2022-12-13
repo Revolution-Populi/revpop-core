@@ -101,11 +101,6 @@ namespace graphene { namespace protocol {
             /* 39 */ fba_distribute_operation,       // VIRTUAL
             /* 40 */ asset_claim_pool_operation,
             /* 41 */ asset_update_issuer_operation,
-            /* 42 */ custom_authority_create_operation,
-            /* 43 */ custom_authority_update_operation,
-            /* 44 */ custom_authority_delete_operation,
-            /* 45 */ ticket_create_operation,
-            /* 46 */ ticket_update_operation,
             /* 47 */ personal_data_create_operation,
             /* 48 */ personal_data_remove_operation,
             /* 49 */ content_card_create_operation,
@@ -136,7 +131,12 @@ namespace graphene { namespace protocol {
             /* 74 */ limit_order_create_operation,
             /* 75 */ limit_order_cancel_operation,
             /* 76 */ call_order_update_operation,
-            /* 77 */ fill_order_operation            // VIRTUAL
+            /* 77 */ fill_order_operation,            // VIRTUAL
+            /* 42 */ custom_authority_create_operation,
+            /* 43 */ custom_authority_update_operation,
+            /* 44 */ custom_authority_delete_operation,
+            /* 45 */ ticket_create_operation,
+            /* 46 */ ticket_update_operation
          > operation;
 
    /// @} // operations group

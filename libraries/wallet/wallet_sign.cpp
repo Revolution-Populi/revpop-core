@@ -662,9 +662,6 @@ namespace graphene { namespace wallet { namespace detail {
       const string content_key,
       bool broadcast )
    { try {
-      if (HARDFORK_REVPOP_15_PASSED(fc::time_point_sec(fc::time_point::now())))
-         FC_THROW( "Please use create_content_card_v2 instead" );
-
       auto subject_id = get_account(subject_account).get_id();
 
       content_card_create_operation create_content_op;
@@ -715,9 +712,6 @@ namespace graphene { namespace wallet { namespace detail {
       const string content_key,
       bool broadcast )
    { try {
-      if (HARDFORK_REVPOP_15_PASSED(fc::time_point_sec(fc::time_point::now())))
-         FC_THROW( "Please use update_content_card_v2 instead" );
-
       auto subject_id = get_account(subject_account).get_id();
 
       content_card_update_operation update_content_op;
@@ -730,7 +724,7 @@ namespace graphene { namespace wallet { namespace detail {
       update_content_op.content_key = content_key;
 
       signed_transaction tx;
-      tx.operations.push_back(update_content_op);         
+      tx.operations.push_back(update_content_op);
       tx.validate();
 
       return sign_transaction(tx, broadcast);

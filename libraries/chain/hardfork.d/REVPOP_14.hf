@@ -1,5 +1,0 @@
-// REVPOP 14 (Dynamic change of the conditions for selecting witnesses) hardfork check
-#ifndef HARDFORK_REVPOP_14_TIME
-#define HARDFORK_REVPOP_14_TIME (fc::time_point_sec( 1629763200 )) // Tuesday, August 24, 2021 12:00:00 AM
-#define HARDFORK_REVPOP_14_PASSED(now) (now >= HARDFORK_REVPOP_14_TIME)
-#endif

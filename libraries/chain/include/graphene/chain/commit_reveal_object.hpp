@@ -1,6 +1,6 @@
 /**
  * The Revolution Populi Project
- * Copyright (C) 2020 Revolution Populi Limited
+ * Copyright (C) 2020-2022 Revolution Populi Limited
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,6 +43,7 @@ namespace graphene { namespace chain {
             account_id_type account;
             string          hash;
             uint64_t        value;
+            uint32_t        maintenance_time;
         };
 
         struct by_account;

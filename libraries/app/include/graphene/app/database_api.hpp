@@ -43,7 +43,6 @@
 #include <graphene/chain/content_card_v2_object.hpp>
 #include <graphene/chain/permission_object.hpp>
 #include <graphene/chain/commit_reveal_object.hpp>
-#include <graphene/chain/commit_reveal_v2_object.hpp>
 #include <graphene/chain/witness_schedule_object.hpp>
 
 #include <fc/api.hpp>

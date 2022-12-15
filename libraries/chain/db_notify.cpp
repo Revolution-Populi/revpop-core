@@ -28,7 +28,6 @@
 #include <graphene/chain/content_vote_object.hpp>
 #include <graphene/chain/vote_master_summary_object.hpp>
 #include <graphene/chain/commit_reveal_object.hpp>
-#include <graphene/chain/commit_reveal_v2_object.hpp>
 
 using namespace fc;
 namespace graphene { namespace chain { namespace detail {
@@ -396,26 +395,6 @@ struct get_impacted_account_visitor
       _impacted.insert( op.account );
    }
    void operator()( const reveal_create_operation& op )
-   {
-      _impacted.insert( op.fee_payer() );
-      _impacted.insert( op.account );
-   }
-   void operator()( const commit_create_v2_operation& op )
-   {
-      _impacted.insert( op.fee_payer() );
-      _impacted.insert( op.account );
-   }
-   void operator()( const reveal_create_v2_operation& op )
-   {
-      _impacted.insert( op.fee_payer() );
-      _impacted.insert( op.account );
-   }
-   void operator()( const commit_create_v3_operation& op )
-   {
-      _impacted.insert( op.fee_payer() );
-      _impacted.insert( op.account );
-   }
-   void operator()( const reveal_create_v3_operation& op )
    {
       _impacted.insert( op.fee_payer() );
       _impacted.insert( op.account );

@@ -1,6 +1,6 @@
 /**
  * The Revolution Populi Project
- * Copyright (C) 2020 Revolution Populi Limited
+ * Copyright (C) 2020-2022 Revolution Populi Limited
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <graphene/protocol/commit_reveal.hpp>
+#include <graphene/protocol/commit_reveal_v3.hpp>
 
 #include <fc/io/raw.hpp>
 

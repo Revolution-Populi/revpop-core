@@ -29,7 +29,6 @@
 #include <graphene/chain/database.hpp>
 #include <graphene/chain/witness_object.hpp>
 #include <graphene/chain/commit_reveal_object.hpp>
-#include <graphene/chain/commit_reveal_v2_object.hpp>
 
 #include <graphene/utilities/key_conversion.hpp>
 
@@ -411,7 +410,7 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
 
 
    // Search for the commit operation
-   const auto &cr_idx = db.get_index_type<commit_reveal_v2_index>();
+   const auto &cr_idx = db.get_index_type<commit_reveal_index>();
    const auto &by_cr_acc = cr_idx.indices().get<by_account>();
    auto cr_itr = by_cr_acc.lower_bound(acc_id);
 
@@ -433,7 +432,7 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
    }
 
    // Create the commit operation
-   commit_create_v3_operation commit_op;
+   commit_create_operation commit_op;
    commit_op.account = acc_id;
    commit_op.maintenance_time = fc::time_point::now().sec_since_epoch();
    commit_op.witness_key = *_witness_key_cache[_witness_account[acc_id]];
@@ -491,7 +490,7 @@ void witness_plugin::broadcast_reveal(const chain::account_id_type& acc_id) {
    protocol::signed_transaction tx;
 
    // Search for the corresponding commit operation
-   const auto &cr_idx = db.get_index_type<commit_reveal_v2_index>();
+   const auto &cr_idx = db.get_index_type<commit_reveal_index>();
    const auto &by_cr_acc = cr_idx.indices().get<by_account>();
    auto cr_itr = by_cr_acc.lower_bound(acc_id);
 
@@ -519,7 +518,7 @@ void witness_plugin::broadcast_reveal(const chain::account_id_type& acc_id) {
    }
 
    // Create the reveal operation
-   reveal_create_v3_operation reveal_op;
+   reveal_create_operation reveal_op;
    reveal_op.account = acc_id;
    reveal_op.value = _reveal_value[acc_id];
    reveal_op.maintenance_time = fc::time_point::now().sec_since_epoch();

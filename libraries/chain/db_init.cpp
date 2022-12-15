@@ -56,7 +56,6 @@
 #include <graphene/chain/content_card_v2_object.hpp>
 #include <graphene/chain/permission_object.hpp>
 #include <graphene/chain/commit_reveal_object.hpp>
-#include <graphene/chain/commit_reveal_v2_object.hpp>
 
 #include <graphene/chain/account_evaluator.hpp>
 #include <graphene/chain/asset_evaluator.hpp>
@@ -81,8 +80,6 @@
 #include <graphene/chain/content_card_v2_evaluator.hpp>
 #include <graphene/chain/permission_evaluator.hpp>
 #include <graphene/chain/commit_reveal_evaluator.hpp>
-#include <graphene/chain/commit_reveal_v2_evaluator.hpp>
-#include <graphene/chain/commit_reveal_v3_evaluator.hpp>
 
 #include <fc/crypto/digest.hpp>
 
@@ -159,10 +156,6 @@ void database::initialize_evaluators()
    register_evaluator<vote_counter_update_evaluator>();
    register_evaluator<commit_create_evaluator>();
    register_evaluator<reveal_create_evaluator>();
-   register_evaluator<commit_create_v2_evaluator>();
-   register_evaluator<reveal_create_v2_evaluator>();
-   register_evaluator<commit_create_v3_evaluator>();
-   register_evaluator<reveal_create_v3_evaluator>();
 }
 
 void database::initialize_indexes()

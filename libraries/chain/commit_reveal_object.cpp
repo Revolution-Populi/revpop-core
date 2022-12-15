@@ -1,6 +1,6 @@
 /**
  * The Revolution Populi Project
- * Copyright (C) 2020 Revolution Populi Limited
+ * Copyright (C) 2020-2022 Revolution Populi Limited
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ namespace graphene { namespace chain {
 
 FC_REFLECT_DERIVED_NO_TYPENAME( graphene::chain::commit_reveal_object,
                     (graphene::db::object),
-                    (account)(hash)(value)
+                    (account)(hash)(value)(maintenance_time)
                     )
 
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::commit_reveal_object )

@@ -83,11 +83,7 @@ add_library( graphene_chain
              content_vote_evaluator.cpp
              vote_master_summary_object.cpp
              commit_reveal_object.cpp
-             commit_reveal_v2_object.cpp
              commit_reveal_evaluator.cpp
-             commit_reveal_v2_evaluator.cpp
-             commit_reveal_v3_evaluator.cpp
-
              ${HEADERS}
              "${CMAKE_CURRENT_BINARY_DIR}/include/graphene/chain/hardfork.hpp"
            )

@@ -59,7 +59,7 @@ namespace graphene
 
       uint64_t database::get_commit_reveal_seed_v2(const vector<account_id_type> &accounts) const
       {
-         const auto &cr_idx = get_index_type<commit_reveal_v2_index>();
+         const auto &cr_idx = get_index_type<commit_reveal_index>();
          const auto &by_op_idx = cr_idx.indices().get<by_account>();
 
          uint64_t seed = 0;
@@ -78,7 +78,7 @@ namespace graphene
 
       vector<account_id_type> database::filter_commit_reveal_participant_v2(const vector<account_id_type> &accounts) const
       {
-         const auto &cr_idx = get_index_type<commit_reveal_v2_index>();
+         const auto &cr_idx = get_index_type<commit_reveal_index>();
          const auto &by_op_idx = cr_idx.indices().get<by_account>();
 
          vector<account_id_type> result;

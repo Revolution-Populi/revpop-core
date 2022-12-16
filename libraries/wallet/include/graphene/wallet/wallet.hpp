@@ -764,123 +764,12 @@ class wallet_api
        */
       bool verify_encapsulated_message( string message );
 
-      /** These methods are used for stealth transfers */
-      ///@{
-      /**
-       * This method can be used to set a label for a public key
-       *
-       * @note No two keys can have the same label.
-       * @param key a public key
-       * @param label a user-defined string as label
-       * @return true if the label was set, otherwise false
-       */
-      bool                        set_key_label( public_key_type key, string label );
-
-      /**
-       * Get label of a public key.
-       * @param key a public key
-       * @return the label if already set by \c set_key_label(), or an empty string if not set
-       */
-      string                      get_key_label( public_key_type key )const;
-
-      /**
-       * Generates a new blind account for the given brain key and assigns it the given label.
-       * @param label a label
-       * @param brain_key the brain key to be used to generate a new blind account
-       * @return the public key of the new account
-       */
-      public_key_type             create_blind_account( string label, string brain_key  );
-
-      /**
-       * Return the total balances of all blinded commitments that can be claimed by the
-       * given account key or label.
-       * @param key_or_label a public key in Base58 format or a label
-       * @return the total balances of all blinded commitments that can be claimed by the
-       * given account key or label
-       */
-      vector<asset>                get_blind_balances( string key_or_label );
-      /**
-       * Get all blind accounts.
-       * @return all blind accounts
-       */
-      map<string,public_key_type> get_blind_accounts()const;
-      /**
-       * Get all blind accounts for which this wallet has the private key.
-       * @return all blind accounts for which this wallet has the private key
-       */
-      map<string,public_key_type> get_my_blind_accounts()const;
       /**
        * Get the public key associated with a given label.
        * @param label a label
        * @return the public key associated with the given label
        */
       public_key_type             get_public_key( string label )const;
-      ///@}
-
-      /**
-       * Get all blind receipts to/form a particular account
-       * @param key_or_account a public key in Base58 format or an account
-       * @return all blind receipts to/form the account
-       */
-      vector<blind_receipt> blind_history( string key_or_account );
-
-      /**
-       * Given a confirmation receipt, this method will parse it for a blinded balance and confirm
-       * that it exists in the blockchain.  If it exists then it will report the amount received and
-       * who sent it.
-       *
-       * @param confirmation_receipt a base58 encoded stealth confirmation
-       * @param opt_from if not empty and the sender is a unknown public key,
-       *                 then the unknown public key will be given the label \c opt_from
-       * @param opt_memo a self-defined label for this transfer to be saved in local wallet file
-       * @return a blind receipt
-       */
-      blind_receipt receive_blind_transfer( string confirmation_receipt, string opt_from, string opt_memo );
-
-      /**
-       * Transfers a public balance from \c from_account_name_or_id to one or more blinded balances using a
-       * stealth transfer.
-       * @param from_account_name_or_id name or ID of an account to transfer from
-       * @param asset_symbol_or_id symbol or ID of the asset to be transferred
-       * @param to_amounts map from key or label to amount
-       * @param broadcast true to broadcast the transaction on the network
-       * @return a blind confirmation
-       */
-      blind_confirmation transfer_to_blind( string from_account_name_or_id,
-                                            string asset_symbol_or_id,
-                                            vector<pair<string, string>> to_amounts,
-                                            bool broadcast = false );
-
-      /**
-       * Transfers funds from a set of blinded balances to a public account balance.
-       * @param from_blind_account_key_or_label a public key in Base58 format or a label to transfer from
-       * @param to_account_name_or_id name or ID of an account to transfer to
-       * @param amount the amount to be transferred
-       * @param asset_symbol_or_id symbol or ID of the asset to be transferred
-       * @param broadcast true to broadcast the transaction on the network
-       * @return a blind confirmation
-       */
-      blind_confirmation transfer_from_blind(
-                                            string from_blind_account_key_or_label,
-                                            string to_account_name_or_id,
-                                            string amount,
-                                            string asset_symbol_or_id,
-                                            bool broadcast = false );
-
-      /**
-       * Transfer from one set of blinded balances to another.
-       * @param from_key_or_label a public key in Base58 format or a label to transfer from
-       * @param to_key_or_label a public key in Base58 format or a label to transfer to
-       * @param amount the amount to be transferred
-       * @param symbol_or_id symbol or ID of the asset to be transferred
-       * @param broadcast true to broadcast the transaction on the network
-       * @return a blind confirmation
-       */
-      blind_confirmation blind_transfer( string from_key_or_label,
-                                         string to_key_or_label,
-                                         string amount,
-                                         string symbol_or_id,
-                                         bool broadcast = false );
 
       /** Place a limit order attempting to sell one asset for another.
        *
@@ -1915,16 +1804,6 @@ class wallet_api
       void network_add_nodes( const vector<string>& nodes );
       vector< variant > network_get_connected_peers();
 
-      /**
-       *  Used to transfer from one set of blinded balances to another
-       */
-      blind_confirmation blind_transfer_help( string from_key_or_label,
-                                         string to_key_or_label,
-                                         string amount,
-                                         string symbol,
-                                         bool broadcast = false,
-                                         bool to_temp = false );
-
 
       std::map<string,std::function<string(fc::variant,const fc::variants&)>> get_result_formatters() const;
 
@@ -2085,18 +1964,7 @@ FC_API( graphene::wallet::wallet_api,
         (verify_message)
         (verify_signed_message)
         (verify_encapsulated_message)
-        (set_key_label)
-        (get_key_label)
         (get_public_key)
-        (get_blind_accounts)
-        (get_my_blind_accounts)
-        (get_blind_balances)
-        (create_blind_account)
-        (transfer_to_blind)
-        (transfer_from_blind)
-        (blind_transfer)
-        (blind_history)
-        (receive_blind_transfer)
         (get_order_book)
         (account_store_map)
         (get_account_storage)

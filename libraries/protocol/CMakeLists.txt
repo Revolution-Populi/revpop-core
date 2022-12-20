@@ -34,14 +34,10 @@ list(APPEND SOURCES account.cpp
                     withdraw_permission.cpp
                     worker.cpp
                     personal_data.cpp
-                    personal_data_v2.cpp
                     content_card.cpp
-                    content_card_v2.cpp
                     permission.cpp
                     content_vote.cpp
                     commit_reveal.cpp
-                    commit_reveal_v2.cpp
-                    commit_reveal_v3.cpp
                     htlc.cpp)
 
 

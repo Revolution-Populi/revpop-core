@@ -42,14 +42,9 @@
 #include <graphene/protocol/worker.hpp>
 #include <graphene/protocol/htlc.hpp>
 #include <graphene/protocol/personal_data.hpp>
-#include <graphene/protocol/personal_data_v2.hpp>
 #include <graphene/protocol/content_card.hpp>
-#include <graphene/protocol/content_card_v2.hpp>
 #include <graphene/protocol/permission.hpp>
-#include <graphene/protocol/content_vote.hpp>
 #include <graphene/protocol/commit_reveal.hpp>
-#include <graphene/protocol/commit_reveal_v2.hpp>
-#include <graphene/protocol/commit_reveal_v3.hpp>
 
 namespace graphene { namespace protocol {
 
@@ -108,16 +103,8 @@ namespace graphene { namespace protocol {
             /* 51 */ content_card_remove_operation,
             /* 52 */ permission_create_operation,
             /* 53 */ permission_remove_operation,
-            /* 54 */ content_vote_create_operation,
-            /* 55 */ content_vote_remove_operation,
-            /* 56 */ vote_counter_update_operation,
             /* 57 */ commit_create_operation,
             /* 58 */ reveal_create_operation,
-            /* 63 */ content_card_v2_create_operation,
-            /* 64 */ content_card_v2_update_operation,
-            /* 65 */ content_card_v2_remove_operation,
-            /* 66 */ personal_data_v2_create_operation,
-            /* 67 */ personal_data_v2_remove_operation,
             /* 68 */ worker_create_operation,
             /* 69 */ htlc_create_operation,
             /* 70 */ htlc_redeem_operation,

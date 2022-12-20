@@ -266,8 +266,6 @@ namespace graphene { namespace chain {
       private:
          uint64_t get_commit_reveal_seed(const vector<account_id_type>& accounts) const;
          vector<account_id_type> filter_commit_reveal_participant(const vector<account_id_type>& accounts) const;
-         uint64_t get_commit_reveal_seed_v2(const vector<account_id_type>& accounts) const;
-         vector<account_id_type> filter_commit_reveal_participant_v2(const vector<account_id_type>& accounts) const;
          //////////////////// db_getter.cpp ////////////////////
       public:
 

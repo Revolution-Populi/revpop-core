@@ -38,9 +38,7 @@
 #include <graphene/chain/worker_object.hpp>
 #include <graphene/chain/witness_object.hpp>
 #include <graphene/chain/personal_data_object.hpp>
-#include <graphene/chain/personal_data_v2_object.hpp>
 #include <graphene/chain/content_card_object.hpp>
-#include <graphene/chain/content_card_v2_object.hpp>
 #include <graphene/chain/permission_object.hpp>
 #include <graphene/chain/commit_reveal_object.hpp>
 #include <graphene/chain/witness_schedule_object.hpp>
@@ -893,23 +891,6 @@ class database_api
                                                                  const account_id_type operator_account ) const;
 
       /**
-       * @brief Get personal data v2
-       * @param owner_account The owner of personal data.
-       * @param permission_account An account who is permitted to use personal data.
-       * @return The personal data object list
-      */
-      vector<personal_data_v2_object> get_personal_data_v2( const account_id_type subject_account,
-                                                      const account_id_type operator_account ) const;
-      /**
-       * @brief Get personal data v2 with maximum id
-       * @param owner_account The owner of personal data.
-       * @param permission_account An account who is permitted to use personal data.
-       * @return The personal data object
-       */
-      fc::optional<personal_data_v2_object> get_last_personal_data_v2( const account_id_type subject_account,
-                                                                 const account_id_type operator_account ) const;
-
-      /**
        * @brief Get content card by id
        * @param content_id The id of content card
        * @return The content card object
@@ -925,23 +906,6 @@ class database_api
        */
       vector<content_card_object> get_content_cards( const account_id_type subject_account,
                                                      const content_card_id_type content_id, uint32_t limit ) const;
-
-      /**
-       * @brief Get content card by id
-       * @param content_id The id of content card
-       * @return The content card object
-       */
-      fc::optional<content_card_v2_object> get_content_card_v2_by_id( const content_card_v2_id_type content_id ) const;
-
-      /**
-       * @brief Get list of content cards
-       * @param subject_account The owner account of the content
-       * @param content_id Lower bound of content id to start getting results
-       * @param limit Maximum number of content card objects to fetch
-       * @return The content card object list
-       */
-      vector<content_card_v2_object> get_content_cards_v2( const account_id_type subject_account,
-                                                     const content_card_v2_id_type content_id, uint32_t limit ) const;
 
       /**
        * @brief Get permission object by id
@@ -1134,10 +1098,6 @@ FC_API(graphene::app::database_api,
    (get_content_cards)
    (get_permission_by_id)
    (get_permissions)
-   (get_content_card_v2_by_id)
-   (get_content_cards_v2)
-   (get_personal_data_v2)
-   (get_last_personal_data_v2)
 
    // HTLC
    (get_htlc)

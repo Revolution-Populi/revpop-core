@@ -346,12 +346,7 @@ GRAPHENE_DEFINE_IDS(protocol, protocol_ids, /*protocol objects are not prefixed*
                     /* 1.19.x */ (personal_data)
                     /* 1.20.x */ (content_card)
                     /* 1.21.x */ (permission)
-                    /* 1.22.x */ (content_vote)
-                    /* 1.23.x */ (vote_master_summary)
-                    /* 1.24.x */ (commit_reveal)
-                    /* 1.25.x */ (commit_reveal_v2)
-                    /* 1.26.x */ (content_card_v2)
-                    /* 1.26.x */ (personal_data_v2)
+                    /* 1.22.x */ (commit_reveal)
                    )
 
 FC_REFLECT(graphene::protocol::public_key_type, (key_data))

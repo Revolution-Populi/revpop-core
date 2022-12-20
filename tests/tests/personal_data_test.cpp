@@ -37,7 +37,7 @@ using namespace graphene::app;
 
 BOOST_FIXTURE_TEST_SUITE( personal_data_tests, database_fixture )
 
-BOOST_AUTO_TEST_CASE( get_personal_data_v2 )
+BOOST_AUTO_TEST_CASE( get_personal_data )
 { try {
    const auto owner_private_key = generate_private_key("owner of the data");
    const auto owner_account = create_account("owner", owner_private_key.get_public_key());
@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE( get_personal_data_v2 )
 
    // Same owner and operator.
    try {
-      personal_data_v2_create_operation op;
+      personal_data_create_operation op;
       op.subject_account = owner_account.get_id();
       op.operator_account = owner_account.get_id();
       op.url = "url";
@@ -63,7 +63,7 @@ BOOST_AUTO_TEST_CASE( get_personal_data_v2 )
       trx.validate();
       PUSH_TX(db, trx);
 
-      const auto data = db_api.get_last_personal_data_v2(owner_account.get_id(), owner_account.get_id());
+      const auto data = db_api.get_last_personal_data(owner_account.get_id(), owner_account.get_id());
       BOOST_CHECK(data);
       BOOST_CHECK(data->subject_account == owner_account.get_id());
       BOOST_CHECK(data->operator_account == owner_account.get_id());
@@ -71,12 +71,12 @@ BOOST_AUTO_TEST_CASE( get_personal_data_v2 )
       BOOST_CHECK(data->hash == op.hash);
       BOOST_CHECK(data->storage_data == op.storage_data);
 
-      BOOST_CHECK(!db_api.get_last_personal_data_v2(owner_account.get_id(), op_account.get_id()));
+      BOOST_CHECK(!db_api.get_last_personal_data(owner_account.get_id(), op_account.get_id()));
    } FC_LOG_AND_RETHROW()
 
    // Operator has access to the data.
    try {
-      personal_data_v2_create_operation op;
+      personal_data_create_operation op;
       op.subject_account = owner_account.get_id();
       op.operator_account = op_account.get_id();
       op.url = "new_url";
@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE( get_personal_data_v2 )
       trx.validate();
       PUSH_TX(db, trx);
 
-      const auto data = db_api.get_last_personal_data_v2(owner_account.get_id(), op_account.get_id());
+      const auto data = db_api.get_last_personal_data(owner_account.get_id(), op_account.get_id());
       BOOST_REQUIRE(data);
       BOOST_CHECK(data->subject_account == owner_account.get_id());
       BOOST_CHECK(data->operator_account == op_account.get_id());
@@ -99,12 +99,12 @@ BOOST_AUTO_TEST_CASE( get_personal_data_v2 )
       BOOST_CHECK(data->storage_data == op.storage_data);
 
       // Operator has access only to new personal data and nothing more.
-      BOOST_CHECK(db_api.get_personal_data_v2(owner_account.get_id(), op_account.get_id()).size() == 1);
+      BOOST_CHECK(db_api.get_personal_data(owner_account.get_id(), op_account.get_id()).size() == 1);
    } FC_LOG_AND_RETHROW()
 
    // Operator can remove personal data and its not available anymore.
    try {
-      personal_data_v2_remove_operation op;
+      personal_data_remove_operation op;
       op.subject_account = owner_account.get_id();
       op.operator_account = op_account.get_id();
       op.hash = fc::sha256::hash("new_data");
@@ -116,12 +116,12 @@ BOOST_AUTO_TEST_CASE( get_personal_data_v2 )
       trx.validate();
       PUSH_TX(db, trx);
 
-      BOOST_CHECK(!db_api.get_last_personal_data_v2(owner_account.get_id(), op_account.get_id()));
-      BOOST_CHECK(db_api.get_personal_data_v2(owner_account.get_id(), op_account.get_id()).empty());
+      BOOST_CHECK(!db_api.get_last_personal_data(owner_account.get_id(), op_account.get_id()));
+      BOOST_CHECK(db_api.get_personal_data(owner_account.get_id(), op_account.get_id()).empty());
 
       // Other data is not affected.
-      BOOST_CHECK(db_api.get_last_personal_data_v2(owner_account.get_id(), owner_account.get_id()));
-      BOOST_CHECK(!db_api.get_personal_data_v2(owner_account.get_id(), owner_account.get_id()).empty());
+      BOOST_CHECK(db_api.get_last_personal_data(owner_account.get_id(), owner_account.get_id()));
+      BOOST_CHECK(!db_api.get_personal_data(owner_account.get_id(), owner_account.get_id()).empty());
    } FC_LOG_AND_RETHROW()
 } FC_LOG_AND_RETHROW() }
 

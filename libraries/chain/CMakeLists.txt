@@ -75,9 +75,6 @@ add_library( graphene_chain
              content_card_evaluator.cpp
              permission_object.cpp
              permission_evaluator.cpp
-             content_vote_object.cpp
-             content_vote_evaluator.cpp
-             vote_master_summary_object.cpp
              commit_reveal_object.cpp
              commit_reveal_evaluator.cpp
              ${HEADERS}

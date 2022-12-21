@@ -23,8 +23,6 @@
 #include <graphene/chain/personal_data_object.hpp>
 #include <graphene/chain/content_card_object.hpp>
 #include <graphene/chain/permission_object.hpp>
-#include <graphene/chain/content_vote_object.hpp>
-#include <graphene/chain/vote_master_summary_object.hpp>
 #include <graphene/chain/commit_reveal_object.hpp>
 
 using namespace fc;
@@ -483,16 +481,6 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
            FC_ASSERT( perm_obj != nullptr );
            accounts.insert( perm_obj->subject_account );
            accounts.insert( perm_obj->operator_account );
-           break;
-        } case content_vote_object_type:{
-           const auto& vote_obj = dynamic_cast<const content_vote_object*>(obj);
-           FC_ASSERT( vote_obj != nullptr );
-           accounts.insert( vote_obj->subject_account );
-           break;
-        } case vote_master_summary_object_type:{
-           const auto& vms_obj = dynamic_cast<const vote_master_summary_object*>(obj);
-           FC_ASSERT( vms_obj != nullptr );
-           accounts.insert( vms_obj->master_account );
            break;
         } case commit_reveal_object_type:{
            const auto& cr_obj = dynamic_cast<const commit_reveal_object*>(obj);

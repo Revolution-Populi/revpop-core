@@ -36,7 +36,6 @@ list(APPEND SOURCES account.cpp
                     personal_data.cpp
                     content_card.cpp
                     permission.cpp
-                    content_vote.cpp
                     commit_reveal.cpp
                     htlc.cpp)
 

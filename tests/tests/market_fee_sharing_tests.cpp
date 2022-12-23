@@ -380,6 +380,74 @@ BOOST_AUTO_TEST_CASE( create_vesting_balance_with_instant_vesting_policy_via_pro
    }
 } FC_LOG_AND_RETHROW() }
 
+BOOST_AUTO_TEST_CASE(white_list_asset_rewards_test)
+{
+   try
+   {
+      ACTORS((elonregistrar)(robregistrar)(elonreferrer)(robreferrer)(nathan));
+
+      // Nathan issues white_list asset to Elon
+      // Nathan issues white_list asset to Rob
+      // Robreferrer added to blacklist for nathancoin asset
+      // Elonregistrar added to blacklist for nathancoin2 asset
+      // Elon and Rob trade in the market and pay fees
+      // Check registrar/referrer rewards
+      upgrade_to_lifetime_member(elonregistrar);
+      upgrade_to_lifetime_member(elonreferrer);
+      upgrade_to_lifetime_member(robregistrar);
+      upgrade_to_lifetime_member(robreferrer);
+      upgrade_to_lifetime_member(nathan);
+
+      const account_object elon = create_account("elon", elonregistrar, elonreferrer, 20*GRAPHENE_1_PERCENT);
+      const account_object rob   = create_account("rob", robregistrar, robreferrer, 20*GRAPHENE_1_PERCENT);
+
+      fund( elon, core_asset(1000000) );
+      fund( rob, core_asset(1000000) );
+      fund( nathan, core_asset(2000000) );
+
+      price price(asset(1, asset_id_type(1)), asset(1));
+      constexpr auto nathancoin_market_percent = 10*GRAPHENE_1_PERCENT;
+      constexpr auto nathancoin_market_percent2 = 20*GRAPHENE_1_PERCENT;
+      const asset_id_type nathancoin_id = create_user_issued_asset( "NATHANCOIN", nathan, charge_market_fee|white_list, price, 0, nathancoin_market_percent ).id;
+      const asset_id_type nathancoin_id2 = create_user_issued_asset( "NATHANCOIN2", nathan, charge_market_fee|white_list, price, 0, nathancoin_market_percent2 ).id;
+
+      // Elon and Rob create some coins
+      issue_uia( elon, nathancoin_id(db).amount( 200000 ) );
+      issue_uia( rob, nathancoin_id2(db).amount( 200000 ) );
+
+      constexpr auto nathancoin_reward_percent = 50*GRAPHENE_1_PERCENT;
+      constexpr auto nathancoin_reward_percent2 = 50*GRAPHENE_1_PERCENT;
+
+      update_asset(nathan_id, nathan_private_key, nathancoin_id, nathancoin_reward_percent);
+      update_asset(nathan_id, nathan_private_key, nathancoin_id2, nathancoin_reward_percent2);
+
+      BOOST_TEST_MESSAGE( "Attempting to blacklist robreferrer for nathancoin asset" );
+      asset_update_blacklist_authority(nathan_id, nathancoin_id, nathan_id, nathan_private_key);
+      add_account_to_blacklist(nathan_id, robreferrer_id, nathan_private_key);
+      BOOST_CHECK( !(is_authorized_asset( db, robreferrer_id(db), nathancoin_id(db) )) );
+
+      BOOST_TEST_MESSAGE( "Attempting to blacklist elonregistrar for nathancoin2 asset" );
+      asset_update_blacklist_authority(nathan_id, nathancoin_id2, nathan_id, nathan_private_key);
+      add_account_to_blacklist(nathan_id, elonregistrar_id, nathan_private_key);
+      BOOST_CHECK( !(is_authorized_asset( db, elonregistrar_id(db), nathancoin_id2(db) )) );
+
+      // Elon and Rob place orders which match
+      create_sell_order( elon.id, nathancoin_id(db).amount(1000), nathancoin_id2(db).amount(1500) ); // Elon is willing to sell hes 1000 Nathan's for 1.5 Nathan
+      create_sell_order(   rob.id, nathancoin_id2(db).amount(1500), nathancoin_id(db).amount(1000) );   // Rob is buying up to 1500 Nathan's for up to 0.6 Nathan
+
+      // 1000 Nathans and 1500 Nathans are matched, so the fees should be
+      //   100 Nathan (10%) and 300 Nathan (20%).
+
+      // Only Rob's registrar should get rewards
+      share_type rob_registrar_reward = get_market_fee_reward( rob.registrar, nathancoin_id );
+      BOOST_CHECK_GT( rob_registrar_reward, 0 );
+      BOOST_CHECK_EQUAL( get_market_fee_reward( rob.referrer, nathancoin_id ), 0 );
+      BOOST_CHECK_EQUAL( get_market_fee_reward( elon.registrar, nathancoin_id2 ), 0 );
+      BOOST_CHECK_EQUAL( get_market_fee_reward( elon.referrer, nathancoin_id2 ), 0 );
+   }
+   FC_LOG_AND_RETHROW()
+}
+
 BOOST_AUTO_TEST_CASE( create_vesting_balance_object_test )
 {
    /**

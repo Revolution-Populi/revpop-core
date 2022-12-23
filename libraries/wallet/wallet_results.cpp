@@ -99,53 +99,6 @@ std::map<string,std::function<string(fc::variant,const fc::variants&)>> wallet_a
       };
 
       m["list_account_balances"] = format_balances;
-      m["get_blind_balances"] = format_balances;
-
-      auto format_blind_transfers  = [this](variant result, const fc::variants&)
-      {
-         auto r = result.as<blind_confirmation>( GRAPHENE_MAX_NESTED_OBJECTS );
-         std::stringstream ss;
-         r.trx.operations[0].visit( operation_printer( ss, *this, operation_history_object() ) );
-         ss << "\n";
-         for( const auto& out : r.outputs )
-         {
-            auto a = get_asset( out.decrypted_memo.amount.asset_id );
-            ss << a.amount_to_pretty_string( out.decrypted_memo.amount ) << " to  " << out.label
-               << "\n\t  receipt: " << out.confirmation_receipt << "\n\n";
-         }
-         return ss.str();
-      };
-
-      m["transfer_to_blind"] = format_blind_transfers;
-      m["blind_transfer"] = format_blind_transfers;
-
-      m["receive_blind_transfer"] = [this](variant result, const fc::variants&)
-      {
-         auto r = result.as<blind_receipt>( GRAPHENE_MAX_NESTED_OBJECTS );
-         std::stringstream ss;
-         auto as = get_asset( r.amount.asset_id );
-         ss << as.amount_to_pretty_string( r.amount ) << "  " << r.from_label << "  =>  "
-            << r.to_label  << "  " << r.memo <<"\n";
-         return ss.str();
-      };
-
-      m["blind_history"] = [this](variant result, const fc::variants&)
-      {
-         auto records = result.as<vector<blind_receipt>>( GRAPHENE_MAX_NESTED_OBJECTS );
-         std::stringstream ss;
-         ss << "WHEN         "
-            << "  " << "AMOUNT"  << "  " << "FROM" << "  =>  " << "TO" << "  " << "MEMO" <<"\n";
-         ss << "====================================================================================\n";
-         for( auto& r : records )
-         {
-            auto as = get_asset( r.amount.asset_id );
-            ss << fc::get_approximate_relative_time_string( r.date )
-               << "  " << as.amount_to_pretty_string( r.amount ) << "  " << r.from_label << "  =>  " << r.to_label
-               << "  " << r.memo <<"\n";
-         }
-         return ss.str();
-      };
-
       m["get_order_book"] = [](variant result, const fc::variants&)
       {
          auto orders = result.as<order_book>( GRAPHENE_MAX_NESTED_OBJECTS );

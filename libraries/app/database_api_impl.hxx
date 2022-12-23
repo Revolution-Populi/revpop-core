@@ -180,9 +180,6 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
       vector<proposal_object> get_proposed_transactions( const std::string account_id_or_name )const;
       vector<proposal_object> get_proposed_global_parameters()const;
 
-      // Blinded balances
-      vector<blinded_balance_object> get_blinded_balances( const flat_set<commitment_type>& commitments )const;
-
       // Withdrawals
       vector<withdraw_permission_object> get_withdraw_permissions_by_giver( const std::string account_id_or_name,
                                                                             withdraw_permission_id_type start,

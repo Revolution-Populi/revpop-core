@@ -93,8 +93,6 @@ public:
 
    std::string operator()(const graphene::protocol::transfer_operation& op)const;
    std::string operator()(const graphene::protocol::override_transfer_operation& op)const;
-   std::string operator()(const graphene::protocol::transfer_from_blind_operation& op)const;
-   std::string operator()(const graphene::protocol::transfer_to_blind_operation& op)const;
    std::string operator()(const graphene::protocol::account_create_operation& op)const;
    std::string operator()(const graphene::protocol::account_update_operation& op)const;
    std::string operator()(const graphene::protocol::asset_create_operation& op)const;

@@ -830,17 +830,6 @@ class database_api
        */
       vector<proposal_object> get_proposed_global_parameters()const;
 
-      //////////////////////
-      // Blinded balances //
-      //////////////////////
-
-      /**
-       * @brief return the set of blinded balance objects by commitment ID
-       * @param commitments a set of commitments to query for
-       * @return the set of blinded balance objects by commitment ID
-       */
-      vector<blinded_balance_object> get_blinded_balances( const flat_set<commitment_type>& commitments )const;
-
       /////////////////
       // Withdrawals //
       /////////////////
@@ -1083,9 +1072,6 @@ FC_API(graphene::app::database_api,
    // Proposed transactions
    (get_proposed_transactions)
    (get_proposed_global_parameters)
-
-   // Blinded balances
-   (get_blinded_balances)
 
    // Withdrawals
    (get_withdraw_permissions_by_giver)

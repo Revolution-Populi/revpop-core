@@ -235,27 +235,6 @@ struct get_impacted_account_visitor
       _impacted.insert( op.from );
       _impacted.insert( op.fee_payer() ); // issuer
    }
-   void operator()( const transfer_to_blind_operation& op )
-   {
-      _impacted.insert( op.fee_payer() ); // from
-      for( const auto& out : op.outputs )
-         add_authority_accounts( _impacted, out.owner );
-   }
-   void operator()( const blind_transfer_operation& op )
-   {
-      _impacted.insert( op.fee_payer() ); // GRAPHENE_TEMP_ACCOUNT
-      for( const auto& in : op.inputs )
-         add_authority_accounts( _impacted, in.owner );
-      for( const auto& out : op.outputs )
-         add_authority_accounts( _impacted, out.owner );
-   }
-   void operator()( const transfer_from_blind_operation& op )
-   {
-      _impacted.insert( op.fee_payer() ); // GRAPHENE_TEMP_ACCOUNT
-      _impacted.insert( op.to );
-      for( const auto& in : op.inputs )
-         add_authority_accounts( _impacted, in.owner );
-   }
    void operator()( const asset_settle_cancel_operation& op )
    {
       _impacted.insert( op.fee_payer() ); // account
@@ -519,12 +498,6 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
               FC_ASSERT( aobj != nullptr );
               transaction_get_impacted_accounts( aobj->trx, accounts,
                                                  ignore_custom_operation_required_auths );
-              break;
-           } case impl_blinded_balance_object_type:{
-              const auto& aobj = dynamic_cast<const blinded_balance_object*>(obj);
-              FC_ASSERT( aobj != nullptr );
-              for( const auto& a : aobj->owner.account_auths )
-                accounts.insert( a.first );
               break;
            } case impl_block_summary_object_type:
               break;

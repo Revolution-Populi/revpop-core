@@ -131,25 +131,6 @@ void operation_printer::print_redeem(const graphene::protocol::htlc_id_type& id,
    print_fee(op_fee);
 }
 
-std::string operation_printer::operator()(const transfer_from_blind_operation& op)const
-{
-   auto receiver = wallet.get_account( op.to );
-
-   out <<  receiver.name
-       << " received " << format_asset( op.amount ) << " from blinded balance";
-   return "";
-}
-std::string operation_printer::operator()(const transfer_to_blind_operation& op)const
-{
-   auto sender = wallet.get_account( op.from );
-
-   out <<  sender.name
-       << " sent " << format_asset( op.amount ) << " to " << op.outputs.size()
-       << " blinded balance" << (op.outputs.size()>1?"s":"");
-   print_fee( op.fee );
-   return "";
-}
-
 string operation_printer::operator()(const transfer_operation& op) const
 {
    out << "Transfer " << format_asset(op.amount)

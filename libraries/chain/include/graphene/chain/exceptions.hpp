@@ -201,8 +201,8 @@ namespace graphene { namespace chain {
    GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( override_transfer );
    GRAPHENE_DECLARE_OP_EVALUATE_EXCEPTION( not_permitted, override_transfer, 1 )
 
-   GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( blind_transfer );
-   GRAPHENE_DECLARE_OP_EVALUATE_EXCEPTION( unknown_commitment, blind_transfer, 1 )
+   //GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( blind_transfer );
+   //GRAPHENE_DECLARE_OP_EVALUATE_EXCEPTION( unknown_commitment, blind_transfer, 1 )
 
    //GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( transfer_from_blind_operation )
    //GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( asset_claim_fees_operation )

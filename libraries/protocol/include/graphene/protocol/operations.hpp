@@ -88,9 +88,6 @@ namespace graphene { namespace protocol {
             /* 31 */ assert_operation,
             /* 32 */ balance_claim_operation,
             /* 33 */ override_transfer_operation,
-            /* 34 */ transfer_to_blind_operation,
-            /* 35 */ blind_transfer_operation,
-            /* 36 */ transfer_from_blind_operation,
             /* 37 */ asset_settle_cancel_operation,  // VIRTUAL
             /* 38 */ asset_claim_fees_operation,
             /* 39 */ fba_distribute_operation,       // VIRTUAL

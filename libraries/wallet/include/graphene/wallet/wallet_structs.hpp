@@ -55,97 +55,6 @@ struct brain_key_info
  *  the meta data about the receipt that helps the sender identify which receipt is
  *  for the receiver and which is for the change address.
  */
-struct blind_confirmation
-{
-   struct output
-   {
-      string                          label;
-      public_key_type                 pub_key;
-      stealth_confirmation::memo_data decrypted_memo;
-      stealth_confirmation            confirmation;
-      authority                       auth;
-      string                          confirmation_receipt;
-   };
-
-   signed_transaction     trx;
-   vector<output>         outputs;
-};
-
-struct blind_balance
-{
-   asset                     amount;
-   public_key_type           from; ///< the account this balance came from
-   public_key_type           to; ///< the account this balance is logically associated with
-   public_key_type           one_time_key; ///< used to derive the authority key and blinding factor
-   fc::sha256                blinding_factor;
-   fc::ecc::commitment_type  commitment;
-   bool                      used = false;
-};
-
-struct blind_receipt
-{
-   std::pair<public_key_type,fc::time_point>        from_date()const { return std::make_pair(from_key,date); }
-   std::pair<public_key_type,fc::time_point>        to_date()const   { return std::make_pair(to_key,date);   }
-   std::tuple<public_key_type,asset_id_type,bool>   to_asset_used()const
-   { return std::make_tuple(to_key,amount.asset_id,used);   }
-
-   const commitment_type& commitment()const        { return data.commitment; }
-
-   fc::time_point                  date;
-   public_key_type                 from_key;
-   string                          from_label;
-   public_key_type                 to_key;
-   string                          to_label;
-   asset                           amount;
-   string                          memo;
-   authority                       control_authority;
-   stealth_confirmation::memo_data data;
-   bool                            used = false;
-   stealth_confirmation            conf;
-};
-
-struct by_from;
-struct by_to;
-struct by_to_asset_used;
-struct by_commitment;
-
-typedef multi_index_container< blind_receipt,
-   indexed_by<
-      ordered_unique< tag<by_commitment>,
-                      const_mem_fun< blind_receipt, const commitment_type&, &blind_receipt::commitment > >,
-      ordered_unique< tag<by_to>,
-                      const_mem_fun< blind_receipt,
-                                     std::pair<public_key_type,fc::time_point>,
-                                     &blind_receipt::to_date > >,
-      ordered_non_unique< tag<by_to_asset_used>,
-                          const_mem_fun< blind_receipt,
-                                         std::tuple<public_key_type,asset_id_type,bool>,
-                                         &blind_receipt::to_asset_used > >,
-      ordered_unique< tag<by_from>,
-                      const_mem_fun< blind_receipt,
-                                     std::pair<public_key_type,fc::time_point>,
-                                     &blind_receipt::from_date > >
-   >
-> blind_receipt_index_type;
-
-
-struct key_label
-{
-   string          label;
-   public_key_type key;
-};
-
-
-struct by_label;
-struct by_key;
-typedef multi_index_container<
-   key_label,
-   indexed_by<
-      ordered_unique< tag<by_label>, member< key_label, string, &key_label::label > >,
-      ordered_unique< tag<by_key>, member< key_label, public_key_type, &key_label::key > >
-   >
-> key_label_index_type;
-
 
 struct wallet_data
 {
@@ -187,9 +96,6 @@ struct wallet_data
    //    incomplete account regs
    map<string, vector<string> > pending_account_registrations;
    map<string, string> pending_witness_registrations;
-
-   key_label_index_type                                              labeled_keys;
-   blind_receipt_index_type                                          blind_receipts;
 
    string                    ws_server = "ws://localhost:8090";
    string                    ws_user;
@@ -322,11 +228,6 @@ struct account_history_operation_detail {
 
 }} // namespace graphene::wallet
 
-FC_REFLECT( graphene::wallet::key_label, (label)(key) )
-FC_REFLECT( graphene::wallet::blind_balance, (amount)(from)(to)(one_time_key)(blinding_factor)(commitment)(used) )
-FC_REFLECT( graphene::wallet::blind_confirmation::output,
-            (label)(pub_key)(decrypted_memo)(confirmation)(auth)(confirmation_receipt) )
-FC_REFLECT( graphene::wallet::blind_confirmation, (trx)(outputs) )
 
 FC_REFLECT( graphene::wallet::plain_keys, (keys)(checksum) )
 
@@ -336,8 +237,6 @@ FC_REFLECT( graphene::wallet::wallet_data,
             (cipher_keys)
             (extra_keys)
             (pending_account_registrations)(pending_witness_registrations)
-            (labeled_keys)
-            (blind_receipts)
             (ws_server)
             (ws_user)
             (ws_password)
@@ -352,9 +251,6 @@ FC_REFLECT( graphene::wallet::brain_key_info,
 FC_REFLECT( graphene::wallet::exported_account_keys, (account_name)(encrypted_private_keys)(public_keys) )
 
 FC_REFLECT( graphene::wallet::exported_keys, (password_checksum)(account_keys) )
-
-FC_REFLECT( graphene::wallet::blind_receipt,
-            (date)(from_key)(from_label)(to_key)(to_label)(amount)(memo)(control_authority)(data)(used)(conf) )
 
 FC_REFLECT( graphene::wallet::approval_delta,
    (active_approvals_to_add)

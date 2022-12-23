@@ -754,46 +754,6 @@ BOOST_AUTO_TEST_CASE( stealth_fba_test )
       // Wait until the next maintenance interval for top_n to take effect
       generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
 
-      // Do a blind op to add some fees to the pool.
-      fund( chloe_id(db), asset( 100000, asset_id_type() ) );
-
-      auto create_transfer_to_blind = [&]( account_id_type account, asset amount, const std::string& key ) -> transfer_to_blind_operation
-      {
-         fc::ecc::private_key blind_key = fc::ecc::private_key::regenerate( fc::sha256::hash( key+"-privkey" ) );
-         public_key_type blind_pub = blind_key.get_public_key();
-
-         fc::sha256 secret = fc::sha256::hash( key+"-secret" );
-         fc::sha256 nonce = fc::sha256::hash( key+"-nonce" );
-
-         transfer_to_blind_operation op;
-         blind_output blind_out;
-         blind_out.owner = authority( 1, blind_pub, 1 );
-         blind_out.commitment = fc::ecc::blind( secret, amount.amount.value );
-         blind_out.range_proof = fc::ecc::range_proof_sign( 0, blind_out.commitment, secret, nonce, 0, 0, amount.amount.value );
-
-         op.amount = amount;
-         op.from = account;
-         op.blinding_factor = fc::ecc::blind_sum( {secret}, 1 );
-         op.outputs = {blind_out};
-
-         return op;
-      };
-
-      {
-         transfer_to_blind_operation op = create_transfer_to_blind( chloe_id, asset( 5000, asset_id_type() ), "chloe-key" );
-         op.fee = asset( 1000, asset_id_type() );
-
-         signed_transaction tx;
-         tx.operations.push_back( op );
-         set_expiration( db, tx );
-         sign( tx, chloe_private_key );
-
-         PUSH_TX( db, tx );
-      }
-
-      // wait until next maint interval
-      generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
-
       idump( ( get_operation_history( chloe_id ) ) );
       idump( ( get_operation_history( rex_id ) ) );
       idump( ( get_operation_history( tom_id ) ) );

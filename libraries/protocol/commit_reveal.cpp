@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-#include <graphene/protocol/commit_reveal_v3.hpp>
+#include <graphene/protocol/commit_reveal.hpp>
 
 #include <fc/io/raw.hpp>
 

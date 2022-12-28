@@ -461,10 +461,6 @@ void witness_plugin::broadcast_commit(const chain::account_id_type& acc_id) {
       tx.set_expiration(dgpo.time + fc::seconds(30));
       tx.clear_signatures();
 
-      const auto& acc_idx = db.get_index_type<account_index>();
-      const auto& by_id_idx = acc_idx.indices().get<by_id>();
-      auto acc_itr = by_id_idx.lower_bound(acc_id);
-
       const auto &pkey = get_witness_private_key(*_witness_key_cache[_witness_account[acc_id]]);
 
       if (pkey.valid()) {
@@ -535,10 +531,6 @@ void witness_plugin::broadcast_reveal(const chain::account_id_type& acc_id) {
       tx.set_reference_block(dgpo.head_block_id);
       tx.set_expiration(dgpo.time + fc::seconds(30));
       tx.clear_signatures();
-
-      const auto& acc_idx = db.get_index_type<account_index>();
-      const auto& by_id_idx = acc_idx.indices().get<by_id>();
-      auto acc_itr = by_id_idx.lower_bound(acc_id);
 
       const auto &pkey = get_witness_private_key(*_witness_key_cache[_witness_account[acc_id]]);
 

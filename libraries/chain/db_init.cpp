@@ -34,7 +34,6 @@
 #include <graphene/chain/buyback_object.hpp>
 #include <graphene/chain/chain_property_object.hpp>
 #include <graphene/chain/committee_member_object.hpp>
-#include <graphene/chain/confidential_object.hpp>
 #include <graphene/chain/fba_object.hpp>
 #include <graphene/chain/global_property_object.hpp>
 #include <graphene/chain/market_object.hpp>
@@ -60,7 +59,6 @@
 #include <graphene/chain/assert_evaluator.hpp>
 #include <graphene/chain/balance_evaluator.hpp>
 #include <graphene/chain/committee_member_evaluator.hpp>
-#include <graphene/chain/confidential_evaluator.hpp>
 #include <graphene/chain/custom_evaluator.hpp>
 #include <graphene/chain/market_evaluator.hpp>
 #include <graphene/chain/proposal_evaluator.hpp>

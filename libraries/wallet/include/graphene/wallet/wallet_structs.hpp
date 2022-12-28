@@ -55,6 +55,22 @@ struct brain_key_info
  *  the meta data about the receipt that helps the sender identify which receipt is
  *  for the receiver and which is for the change address.
  */
+struct key_label
+{
+   string          label;
+   public_key_type key;
+};
+
+
+struct by_label;
+struct by_key;
+typedef multi_index_container<
+   key_label,
+   indexed_by<
+      ordered_unique< tag<by_label>, member< key_label, string, &key_label::label > >,
+      ordered_unique< tag<by_key>, member< key_label, public_key_type, &key_label::key > >
+   >
+> key_label_index_type;
 
 struct wallet_data
 {
@@ -96,6 +112,8 @@ struct wallet_data
    //    incomplete account regs
    map<string, vector<string> > pending_account_registrations;
    map<string, string> pending_witness_registrations;
+
+   key_label_index_type                                              labeled_keys;
 
    string                    ws_server = "ws://localhost:8090";
    string                    ws_user;

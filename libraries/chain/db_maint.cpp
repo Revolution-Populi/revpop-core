@@ -291,78 +291,60 @@ void database::update_active_witnesses()
       }
    }
 
-   if (HARDFORK_REVPOP_14_PASSED(head_block_time()))
+   const uint16_t electoral_threshold = gpo.parameters.get_electoral_threshold();
+   uint32_t wits_size = std::min(                                   //21 or less
+                        // as much as we want
+                        (uint32_t)gpo.parameters.revpop_witnesses_active_max,
+                        // as much as we can
+                        (uint32_t)wits.size());
+
+   decltype(wits) enabled_wits;
+   enabled_wits.reserve( wits_size );
+   
+   // Sort all
+   std::sort(wits.begin(), wits.end(),
+         [&](const witness_object& a, const witness_object& b){
+            return _vote_tally_buffer[a.vote_id] > _vote_tally_buffer[b.vote_id];
+         });
+
+   // the first round
+   for( uint32_t i = 0; i < wits_size; ++i )
    {
-      const uint16_t electoral_threshold = gpo.parameters.get_electoral_threshold();
-      uint32_t wits_size = std::min(                                   //21 or less
-                           // as much as we want
-                           (uint32_t)gpo.parameters.revpop_witnesses_active_max,
-                           // as much as we can
-                           (uint32_t)wits.size());
-
-      decltype(wits) enabled_wits;
-      enabled_wits.reserve( wits_size );
-      
-      // Sort all
-      std::sort(wits.begin(), wits.end(),
-            [&](const witness_object& a, const witness_object& b){
-               return _vote_tally_buffer[a.vote_id] > _vote_tally_buffer[b.vote_id];
-            });
-
-      // the first round
-      for( uint32_t i = 0; i < wits_size; ++i )
-      {
-         uint32_t jmax = wits_size - i;
-         uint32_t j = i + _maintenance_prng.rand() % jmax;
-         std::swap( wits[i], wits[j] );
-      }
-      uint32_t from_r1 = std::min(
-                           // as much as we want
-                           (uint32_t)gpo.parameters.revpop_witnesses_active_max - electoral_threshold,
-                           // as much as we can
-                           wits_size);
-      std::copy(wits.begin(), wits.begin() + from_r1, back_inserter(enabled_wits));
-
-      // the second round
-      for( uint32_t i = from_r1; i < wits.size(); ++i )
-      {
-         uint32_t jmax = wits.size() - i;
-         uint32_t j = i + _maintenance_prng.rand() % jmax;
-         std::swap( wits[i], wits[j] );
-      }
-      uint32_t from_r2 = std::min(
-                           // as much as we want
-                           (uint32_t)electoral_threshold,
-                           // as much as we can
-                           wits_size - from_r1);
-      std::copy(wits.begin() + from_r1, wits.begin() + from_r1 + from_r2, back_inserter(enabled_wits));
-
-      // swap
-      if( !enabled_wits.empty() )
-      {
-         wits.swap(enabled_wits);
-      }
-      else
-      {
-         wlog("The rdPoS algorithm missed, we use dPoS instead");
-      }
+      uint32_t jmax = wits_size - i;
+      uint32_t j = i + _maintenance_prng.rand() % jmax;
+      std::swap( wits[i], wits[j] );
    }
-   else
-   {
-   // RevPop: shuffle witnesses top list
-   for( uint32_t i = 0; i < wits.size(); ++i )
+   uint32_t from_r1 = std::min(
+                        // as much as we want
+                        (uint32_t)gpo.parameters.revpop_witnesses_active_max - electoral_threshold,
+                        // as much as we can
+                        wits_size);
+   std::copy(wits.begin(), wits.begin() + from_r1, back_inserter(enabled_wits));
+
+   // the second round
+   for( uint32_t i = from_r1; i < wits.size(); ++i )
    {
       uint32_t jmax = wits.size() - i;
       uint32_t j = i + _maintenance_prng.rand() % jmax;
       std::swap( wits[i], wits[j] );
    }
+   uint32_t from_r2 = std::min(
+                        // as much as we want
+                        (uint32_t)electoral_threshold,
+                        // as much as we can
+                        wits_size - from_r1);
+   std::copy(wits.begin() + from_r1, wits.begin() + from_r1 + from_r2, back_inserter(enabled_wits));
 
-   // RevPop: leave max 21 active witnesses in witnesses top list
-   if( wits.size() > gpo.parameters.revpop_witnesses_active_max)
+   // swap
+   if( !enabled_wits.empty() )
    {
-      wits.erase( wits.begin() + gpo.parameters.revpop_witnesses_active_max, wits.end() );
+      wits.swap(enabled_wits);
    }
+   else
+   {
+      wlog("The rdPoS algorithm missed, we use dPoS instead");
    }
+
    std::sort(wits.begin(), wits.end(),
              [&](const witness_object& a, const witness_object& b){
                 return _vote_tally_buffer[a.vote_id] > _vote_tally_buffer[b.vote_id];

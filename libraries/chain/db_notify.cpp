@@ -513,6 +513,9 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
         } case balance_object_type:{
            /** these are free from any accounts */
            break;
+        } case ico_balance_object_type:{
+           /** these are free from any accounts */
+           break;
         } case htlc_object_type:{
               const auto& htlc_obj = dynamic_cast<const htlc_object*>(obj);
               FC_ASSERT( htlc_obj != nullptr );

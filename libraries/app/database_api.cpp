@@ -824,6 +824,34 @@ vector<balance_object> database_api_impl::get_balance_objects( const vector<addr
    FC_CAPTURE_AND_RETHROW( (addrs) )
 }
 
+vector<ico_balance_object> database_api::get_ico_balance_objects( const vector<string>& addrs )const
+{
+   return my->get_ico_balance_objects( addrs );
+}
+
+vector<ico_balance_object> database_api_impl::get_ico_balance_objects( const vector<string>& addrs )const
+{
+   try
+   {
+      const auto& ico_bal_idx = _db.get_index_type<ico_balance_index>();
+      const auto& by_eth_addr_idx = ico_bal_idx.indices().get<by_eth_address>();
+
+      vector<ico_balance_object> result;
+
+      for( const auto& addr : addrs )
+      {
+         auto itr = by_eth_addr_idx.lower_bound( boost::make_tuple( addr, asset_id_type(0) ) );
+         while( itr != by_eth_addr_idx.end() && itr->eth_address == addr )
+         {
+            result.push_back( *itr );
+            ++itr;
+         }
+      }
+      return result;
+   }
+   FC_CAPTURE_AND_RETHROW( (addrs) )
+}
+
 vector<asset> database_api::get_vested_balances( const vector<balance_id_type>& objs )const
 {
    return my->get_vested_balances( objs );

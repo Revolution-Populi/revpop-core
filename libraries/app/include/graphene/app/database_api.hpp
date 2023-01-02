@@ -31,6 +31,7 @@
 #include <graphene/chain/database.hpp>
 
 #include <graphene/chain/balance_object.hpp>
+#include <graphene/chain/ico_balance_object.hpp>
 #include <graphene/chain/chain_property_object.hpp>
 #include <graphene/chain/committee_member_object.hpp>
 #include <graphene/chain/confidential_object.hpp>
@@ -354,6 +355,13 @@ class database_api
        * @return all unclaimed balance objects for the addresses
        */
       vector<balance_object> get_balance_objects( const vector<address>& addrs )const;
+
+      /**
+       * @brief Return all unclaimed ico balance objects for a list of eth addresses
+       * @param addrs a list of eth addresses
+       * @return all unclaimed balance objects for the eth addresses
+       */
+      vector<ico_balance_object> get_ico_balance_objects( const vector<std::string>& addrs )const;
 
       /**
        * @brief Calculate how much assets in the given balance objects are able to be claimed at current head

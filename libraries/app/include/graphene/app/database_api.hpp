@@ -1054,6 +1054,7 @@ FC_API(graphene::app::database_api,
    (get_account_balances)
    (get_named_account_balances)
    (get_balance_objects)
+   (get_ico_balance_objects)
    (get_vested_balances)
    (get_vesting_balances)
 

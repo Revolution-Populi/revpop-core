@@ -423,6 +423,47 @@ namespace graphene { namespace wallet { namespace detail {
       return result;
    } FC_CAPTURE_AND_RETHROW( (name_or_id) ) }
 
+
+   std:: string get_addr_from_pkey(std::string eth_pukey)  // TODO
+   {
+      return eth_pukey;
+   }
+
+   vector< signed_transaction > wallet_api_impl::ico_import_balance( string name_or_id,
+         string eth_pukey, string phrase, bool broadcast )
+   { try {
+      FC_ASSERT(!is_locked());
+      const dynamic_global_property_object& dpo = _remote_db->get_dynamic_global_properties();
+      account_object claimer = get_account( name_or_id );
+
+      vector< string > addrs;
+      addrs.push_back(get_addr_from_pkey(eth_pukey));
+      vector< ico_balance_object > balances = _remote_db->get_ico_balance_objects( addrs );
+
+      vector< ico_balance_claim_operation > claim_txs;
+      ico_balance_claim_operation op;
+      op.deposit_to_account = claimer.id;
+      for( const ico_balance_object& b : balances )
+      {
+         op.balance_to_claim = b.id;
+         op.eth_pukey = eth_pukey;
+         op.phrase = phrase;
+         claim_txs.push_back(op);
+      }
+
+      vector< signed_transaction > result;
+      signed_transaction tx;
+      tx.operations.reserve( claim_txs.size() );
+      for( const ico_balance_claim_operation& op : claim_txs )
+         tx.operations.emplace_back( op );
+      set_operation_fees( tx, _remote_db->get_global_properties().parameters.get_current_fees() );
+      tx.validate();
+      signed_transaction signed_tx = sign_transaction( tx, broadcast);
+      result.push_back( signed_tx );
+
+      return result;
+   } FC_CAPTURE_AND_RETHROW( (name_or_id) ) }
+
    vector<flat_set<account_id_type>> wallet_api_impl::get_key_references(const vector<public_key_type> &keys) const
    {
        return _remote_db->get_key_references(keys);

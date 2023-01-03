@@ -234,6 +234,10 @@ struct get_impacted_account_visitor
    {
       _impacted.insert( op.fee_payer() ); // deposit_to_account
    }
+   void operator()( const ico_balance_claim_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // deposit_to_account
+   }
    void operator()( const override_transfer_operation& op )
    {
       _impacted.insert( op.to );

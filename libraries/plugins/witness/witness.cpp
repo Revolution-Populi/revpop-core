@@ -548,17 +548,6 @@ void witness_plugin::broadcast_reveal(const chain::account_id_type& acc_id) {
    }
 }
 
-fc::optional<fc::ecc::private_key> witness_plugin::get_witness_private_key(const chain::account_object& acc) const {
-   for (const auto& acc_key: acc.active.key_auths) {
-      for (const auto &wit_key: _private_keys) {
-         if (acc_key.first == wit_key.first) {
-            return wit_key.second;
-         }
-      }
-   }
-   return fc::optional<fc::ecc::private_key>();
-}
-
 fc::optional< fc::ecc::private_key > witness_plugin::get_witness_private_key( const public_key_type& public_key ) const {
    for (const auto &key_pair: _private_keys) {
       if (key_pair.first == public_key) {

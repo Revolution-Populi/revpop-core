@@ -118,7 +118,6 @@ private:
    void schedule_commit_reveal();
    void broadcast_commit(const chain::account_id_type& acc_id);
    void broadcast_reveal(const chain::account_id_type& acc_id);
-   fc::optional< fc::ecc::private_key > get_witness_private_key( const chain::account_object& acc ) const; // before HF 12
    fc::optional< fc::ecc::private_key > get_witness_private_key( const public_key_type& public_key ) const;
 
    fc::api< app::network_broadcast_api > _network_broadcast_api;

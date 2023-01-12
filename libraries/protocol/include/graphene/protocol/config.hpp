@@ -155,5 +155,3 @@ constexpr size_t MAX_FEE_STABILIZATION_ITERATION  = 4;
 #define REVPOP_WITNESSES_TOP_MAX 63
 // Randomly choose max 21 active witnesses (consensus algorithm)
 #define REVPOP_WITNESSES_ACTIVE_MAX 21
-// Number of votes in one mix operation
-#define REVPOP_VOTE_MIXTURE 3

@@ -80,7 +80,6 @@ namespace graphene { namespace protocol {
       uint8_t                 max_authority_depth                 = GRAPHENE_MAX_SIG_CHECK_DEPTH;
       uint8_t                 revpop_witnesses_top_max            = REVPOP_WITNESSES_TOP_MAX; ///< limit witnesses top list to max 63 (consensus algorithm)
       uint8_t                 revpop_witnesses_active_max         = REVPOP_WITNESSES_ACTIVE_MAX; ///< randomly choose max 21 active witnesses (consensus algorithm)
-      uint8_t                 revpop_vote_mixture                 = REVPOP_VOTE_MIXTURE; ///< define a number of votes in one mix operation
 
       struct ext
       {
@@ -167,7 +166,6 @@ FC_REFLECT( graphene::protocol::chain_parameters,
             (max_authority_depth)
             (revpop_witnesses_top_max)
             (revpop_witnesses_active_max)
-            (revpop_vote_mixture)
             (extensions)
           )
 

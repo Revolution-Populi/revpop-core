@@ -1424,6 +1424,23 @@ class wallet_api
        */
       operation get_prototype_operation(string operation_type);
 
+      /** Creates a transaction to propose a parameter extension change.
+       *
+       * Multiple parameters can be specified if an atomic change is
+       * desired.
+       *
+       * @param proposing_account The account paying the fee to propose the tx
+       * @param expiration_time Timestamp specifying when the proposal will either take effect or expire.
+       * @param changed_extensions The values to change; all other chain parameters are filled in with default values
+       * @param broadcast true if you wish to broadcast the transaction
+       * @return the signed version of the transaction
+       */
+      signed_transaction propose_parameter_extension_change(
+         const string& proposing_account,
+         fc::time_point_sec expiration_time,
+         const variant_object& changed_extensions,
+         bool broadcast = false);
+
       /** Creates a transaction to propose a parameter change.
        *
        * Multiple parameters can be specified if an atomic change is
@@ -1946,6 +1963,7 @@ FC_API( graphene::wallet::wallet_api,
         (get_transaction_signers)
         (get_key_references)
         (get_prototype_operation)
+        (propose_parameter_extension_change)
         (propose_parameter_change)
         (propose_fee_change)
         (approve_proposal)

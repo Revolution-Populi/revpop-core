@@ -356,6 +356,9 @@ public:
 
    std::map<string,std::function<string(fc::variant,const fc::variants&)>> get_result_formatters() const;
 
+   signed_transaction propose_parameter_extension_change( const string& proposing_account, fc::time_point_sec expiration_time,
+         const variant_object& changed_extensions, bool broadcast = false);
+
    signed_transaction propose_parameter_change( const string& proposing_account, fc::time_point_sec expiration_time,
          const variant_object& changed_values, bool broadcast = false);
 

@@ -382,6 +382,40 @@ namespace graphene { namespace wallet { namespace detail {
    } FC_CAPTURE_AND_RETHROW( (account_to_modify)(desired_number_of_witnesses)
                              (desired_number_of_committee_members)(broadcast) ) }
 
+   signed_transaction wallet_api_impl::propose_parameter_extension_change( const string& proposing_account,
+         fc::time_point_sec expiration_time, const variant_object& changed_extensions, bool broadcast )
+   {
+      FC_ASSERT( !changed_extensions.contains("current_fees") );
+
+      const chain_parameters& current_params = get_global_properties().parameters;
+      chain_parameters new_params = current_params;
+      const chain_parameters::ext& current_extensions = current_params.extensions.value;
+      chain_parameters::ext new_extensions = current_extensions;
+      fc::reflector<chain_parameters::ext>::visit(
+         fc::from_variant_visitor<chain_parameters::ext>( changed_extensions, new_extensions, GRAPHENE_MAX_NESTED_OBJECTS )
+         );
+
+      committee_member_update_global_parameters_operation update_op;
+      update_op.new_parameters = new_params;
+      update_op.new_parameters.extensions.value = new_extensions;
+
+      proposal_create_operation prop_op;
+
+      prop_op.expiration_time = expiration_time;
+      prop_op.review_period_seconds = current_params.committee_proposal_review_period;
+      prop_op.fee_paying_account = get_account(proposing_account).id;
+
+      prop_op.proposed_ops.emplace_back( update_op );
+      current_params.get_current_fees().set_fee( prop_op.proposed_ops.back().op );
+
+      signed_transaction tx;
+      tx.operations.push_back(prop_op);
+      set_operation_fees(tx, current_params.get_current_fees());
+      tx.validate();
+
+      return sign_transaction(tx, broadcast);
+   }
+
    signed_transaction wallet_api_impl::propose_parameter_change( const string& proposing_account,
          fc::time_point_sec expiration_time, const variant_object& changed_values, bool broadcast )
    {

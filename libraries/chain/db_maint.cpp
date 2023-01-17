@@ -205,7 +205,7 @@ fc::uint128_t database::calculate_workers_budget()
    fc::uint128_t worker_budget_u128 = 0;
 
    const global_property_object& gpo = get_global_properties();
-   if (gpo.parameters.worker_budget_per_day.value == 0)
+   if (false == gpo.parameters.worker_budget)
       return worker_budget_u128;
 
    const auto head_time = head_block_time();

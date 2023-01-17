@@ -433,7 +433,7 @@ void database_fixture_base::enable_workers_payments(bool enable)
    // Create network params update proposal
    const chain_parameters& current_params = db.get_global_properties().parameters;
    chain_parameters new_params = current_params;
-   new_params.worker_budget_per_day = enable ? 1 : 0;
+   new_params.worker_budget = enable;
 
    committee_member_update_global_parameters_operation cmuop;
    cmuop.new_parameters = new_params;
@@ -477,10 +477,10 @@ void database_fixture_base::enable_workers_payments(bool enable)
 
    // Check
    if (enable) {
-      BOOST_CHECK_EQUAL( db.get_global_properties().parameters.worker_budget_per_day.value, 1 );
+      BOOST_CHECK_EQUAL( db.get_global_properties().parameters.worker_budget, true );
       ilog("Payment to workers is switched on.");
    } else {
-      BOOST_CHECK_EQUAL( db.get_global_properties().parameters.worker_budget_per_day.value, 0 );
+      BOOST_CHECK_EQUAL( db.get_global_properties().parameters.worker_budget, false );
       ilog("Payment to workers is switched off.");
    }
 

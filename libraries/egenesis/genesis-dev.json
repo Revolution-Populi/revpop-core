@@ -332,7 +332,7 @@
     "count_non_member_votes": true,
     "allow_non_member_whitelists": false,
     "witness_pay_per_block": 1000000,
-    "worker_budget_per_day": 0,
+    "worker_budget": true,
     "max_predicate_opcode": 1,
     "fee_liquidation_threshold": 10000000,
     "accounts_per_fee_scale": 1000,

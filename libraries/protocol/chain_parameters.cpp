@@ -51,7 +51,7 @@ namespace graphene { namespace protocol {
       to.allow_non_member_whitelists = from.allow_non_member_whitelists;
       to.witness_pay_per_block = from.witness_pay_per_block;
       to.witness_pay_vesting_seconds = from.witness_pay_vesting_seconds;
-      to.worker_budget_per_day = from.worker_budget_per_day;
+      to.worker_budget = from.worker_budget;
       to.max_predicate_opcode = from.max_predicate_opcode;
       to.fee_liquidation_threshold = from.fee_liquidation_threshold;
       to.accounts_per_fee_scale = from.accounts_per_fee_scale;

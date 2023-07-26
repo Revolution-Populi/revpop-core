@@ -100,7 +100,6 @@ std::map<string,std::function<string(fc::variant,const fc::variants&)>> wallet_a
       };
 
       m["list_account_balances"] = format_balances;
-
       m["get_order_book"] = [](variant result, const fc::variants&)
       {
          auto orders = result.as<order_book>( GRAPHENE_MAX_NESTED_OBJECTS );

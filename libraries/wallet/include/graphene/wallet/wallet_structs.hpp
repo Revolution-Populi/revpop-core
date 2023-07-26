@@ -50,12 +50,6 @@ struct brain_key_info
    public_key_type pub_key;
 };
 
-
-/**
- *  Contains the confirmation receipt the sender must give the receiver and
- *  the meta data about the receipt that helps the sender identify which receipt is
- *  for the receiver and which is for the change address.
- */
 struct key_label
 {
    string          label;
@@ -247,7 +241,7 @@ struct account_history_operation_detail {
 
 }} // namespace graphene::wallet
 
-
+FC_REFLECT( graphene::wallet::key_label, (label)(key) )
 FC_REFLECT( graphene::wallet::plain_keys, (keys)(checksum) )
 
 FC_REFLECT( graphene::wallet::wallet_data,
@@ -256,6 +250,7 @@ FC_REFLECT( graphene::wallet::wallet_data,
             (cipher_keys)
             (extra_keys)
             (pending_account_registrations)(pending_witness_registrations)
+            (labeled_keys)
             (ws_server)
             (ws_user)
             (ws_password)

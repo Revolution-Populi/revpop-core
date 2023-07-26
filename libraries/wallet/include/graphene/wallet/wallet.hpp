@@ -764,15 +764,12 @@ class wallet_api
        */
       bool verify_encapsulated_message( string message );
 
-      /** These methods are used for stealth transfers */
-      ///@{
       /**
        * Get the public key associated with a given label.
        * @param label a label
        * @return the public key associated with the given label
        */
       public_key_type             get_public_key( string label )const;
-      ///@}
 
       /** Place a limit order attempting to sell one asset for another.
        *

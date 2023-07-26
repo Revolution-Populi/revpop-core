@@ -627,10 +627,6 @@ BOOST_AUTO_TEST_CASE( stealth_fba_test )
             fba.designated_asset = asset_id;
          } );
       };
-
-      set_fba_asset( fba_accumulator_id_transfer_to_blind  , stealth_id );
-      set_fba_asset( fba_accumulator_id_blind_transfer     , stealth_id );
-      set_fba_asset( fba_accumulator_id_transfer_from_blind, stealth_id );
       */
 
       // Nathan kills some permission bits (this somehow happened to the real STEALTH in production)

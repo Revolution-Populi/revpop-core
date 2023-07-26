@@ -358,97 +358,6 @@ namespace graphene { namespace app {
    };
 
    /**
-    * @brief The crypto_api class allows computations related to blinded transfers.
-    */
-   class crypto_api
-   {
-      public:
-         crypto_api();
-
-         /**
-          * @brief Generates a pedersen commitment: *commit = blind * G + value * G2.
-          * The commitment is 33 bytes, the blinding factor is 32 bytes.
-          * For more information about pederson commitment check url https://en.wikipedia.org/wiki/Commitment_scheme
-          * @param blind Sha-256 blind factor type
-          * @param value Positive 64-bit integer value
-          * @return A 33-byte pedersen commitment: *commit = blind * G + value * G2
-          */
-         fc::ecc::commitment_type blind( const fc::ecc::blind_factor_type& blind, uint64_t value );
-
-         /**
-          * @brief Get sha-256 blind factor type
-          * @param blinds_in List of sha-256 blind factor types
-          * @param non_neg 32-bit integer value
-          * @return A blind factor type
-          */
-         fc::ecc::blind_factor_type blind_sum( const std::vector<blind_factor_type>& blinds_in, uint32_t non_neg );
-
-         /**
-          * @brief Verifies that commits + neg_commits + excess == 0
-          * @param commits_in List of 33-byte pedersen commitments
-          * @param neg_commits_in List of 33-byte pedersen commitments
-          * @param excess Sum of two list of 33-byte pedersen commitments
-          *               where sums the first set and subtracts the second
-          * @return Boolean - true in event of commits + neg_commits + excess == 0, otherwise false
-          */
-         bool verify_sum(
-            const std::vector<commitment_type>& commits_in,
-            const std::vector<commitment_type>& neg_commits_in,
-            int64_t excess
-         );
-
-         /**
-          * @brief Verifies range proof for 33-byte pedersen commitment
-          * @param commit 33-byte pedersen commitment
-          * @param proof List of characters
-          * @return A structure with success, min and max values
-          */
-         verify_range_result verify_range( const fc::ecc::commitment_type& commit, const std::vector<char>& proof );
-
-         /**
-          * @brief Proves with respect to min_value the range for pedersen
-          * commitment which has the provided blinding factor and value
-          * @param min_value Positive 64-bit integer value
-          * @param commit 33-byte pedersen commitment
-          * @param commit_blind Sha-256 blind factor type for the correct digits
-          * @param nonce Sha-256 blind factor type for our non-forged signatures
-          * @param base10_exp Exponents base 10 in range [-1 ; 18] inclusively
-          * @param min_bits 8-bit positive integer, must be in range [0 ; 64] inclusively
-          * @param actual_value 64-bit positive integer, must be greater or equal min_value
-          * @return A list of characters as proof in proof
-          */
-         std::vector<char> range_proof_sign( uint64_t min_value,
-                                             const commitment_type& commit,
-                                             const blind_factor_type& commit_blind,
-                                             const blind_factor_type& nonce,
-                                             int8_t base10_exp,
-                                             uint8_t min_bits,
-                                             uint64_t actual_value );
-
-         /**
-          * @brief Verifies range proof rewind for 33-byte pedersen commitment
-          * @param nonce Sha-256 blind refactor type
-          * @param commit 33-byte pedersen commitment
-          * @param proof List of characters
-          * @return A structure with success, min, max, value_out, blind_out and message_out values
-          */
-         verify_range_proof_rewind_result verify_range_proof_rewind( const blind_factor_type& nonce,
-                                                                     const fc::ecc::commitment_type& commit,
-                                                                     const std::vector<char>& proof );
-
-         /**
-          * @brief Gets "range proof" info. The cli_wallet includes functionality for sending blind transfers
-          * in which the values of the input and outputs amounts are “blinded.”
-          * In the case where a transaction produces two or more outputs, (e.g. an amount to the intended
-          * recipient plus “change” back to the sender),
-          * a "range proof" must be supplied to prove that none of the outputs commit to a negative value.
-          * @param proof List of proof's characters
-          * @return A range proof info structure with exponent, mantissa, min and max values
-          */
-         range_proof_info range_get_info( const std::vector<char>& proof );
-   };
-
-   /**
     * @brief The asset_api class allows query of info about asset holders.
     */
    class asset_api
@@ -552,7 +461,6 @@ extern template class fc::api<graphene::app::block_api>;
 extern template class fc::api<graphene::app::network_broadcast_api>;
 extern template class fc::api<graphene::app::network_node_api>;
 extern template class fc::api<graphene::app::history_api>;
-extern template class fc::api<graphene::app::crypto_api>;
 extern template class fc::api<graphene::app::asset_api>;
 extern template class fc::api<graphene::app::orders_api>;
 extern template class fc::api<graphene::debug_witness::debug_api>;
@@ -590,8 +498,6 @@ namespace graphene { namespace app {
          fc::api<history_api> history()const;
          /// @brief Retrieve the network node API
          fc::api<network_node_api> network_node()const;
-         /// @brief Retrieve the cryptography API
-         fc::api<crypto_api> crypto()const;
          /// @brief Retrieve the asset API
          fc::api<asset_api> asset()const;
          /// @brief Retrieve the orders API
@@ -611,7 +517,6 @@ namespace graphene { namespace app {
          optional< fc::api<network_broadcast_api> > _network_broadcast_api;
          optional< fc::api<network_node_api> > _network_node_api;
          optional< fc::api<history_api> >  _history_api;
-         optional< fc::api<crypto_api> > _crypto_api;
          optional< fc::api<asset_api> > _asset_api;
          optional< fc::api<orders_api> > _orders_api;
          optional< fc::api<graphene::debug_witness::debug_api> > _debug_api;
@@ -664,15 +569,6 @@ FC_API(graphene::app::network_node_api,
        (get_advanced_node_parameters)
        (set_advanced_node_parameters)
      )
-FC_API(graphene::app::crypto_api,
-       (blind)
-       (blind_sum)
-       (verify_sum)
-       (verify_range)
-       (range_proof_sign)
-       (verify_range_proof_rewind)
-       (range_get_info)
-     )
 FC_API(graphene::app::asset_api,
        (get_asset_holders)
 	   (get_asset_holders_count)
@@ -692,7 +588,6 @@ FC_API(graphene::app::login_api,
        (database)
        (history)
        (network_node)
-       (crypto)
        (asset)
        (orders)
        (debug)

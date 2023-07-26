@@ -1321,7 +1321,6 @@ bool wallet_api::verify_encapsulated_message( string message )
    return my->verify_encapsulated_message( message );
 }
 
-
 string wallet_api::get_private_key( public_key_type pubkey )const
 {
    return key_to_wif( my->get_private_key( pubkey ) );
@@ -1336,7 +1335,6 @@ public_key_type  wallet_api::get_public_key( string label )const
       return key_itr->key;
    return public_key_type();
 }
-
 order_book wallet_api::get_order_book( const string& base, const string& quote, unsigned limit )
 {
    return( my->_remote_db->get_order_book( base, quote, limit ) );

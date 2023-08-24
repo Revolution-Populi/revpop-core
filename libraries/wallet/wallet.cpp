@@ -936,6 +936,16 @@ void wallet_api::flood_network(string prefix, uint32_t number_of_transactions)
    my->flood_network(prefix, number_of_transactions);
 }
 
+signed_transaction wallet_api::propose_parameter_extension_change(
+   const string& proposing_account,
+   fc::time_point_sec expiration_time,
+   const variant_object& changed_extensions,
+   bool broadcast /* = false */
+   )
+{
+   return my->propose_parameter_extension_change( proposing_account, expiration_time, changed_extensions, broadcast );
+}
+
 signed_transaction wallet_api::propose_parameter_change(
    const string& proposing_account,
    fc::time_point_sec expiration_time,

@@ -54,7 +54,6 @@ namespace graphene { namespace chain {
             string   type;
             string   description;
             string   content_key;
-            uint64_t vote_counter;
             string   storage_data;
         };
 

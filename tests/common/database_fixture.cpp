@@ -367,7 +367,7 @@ std::shared_ptr<boost::program_options::variables_map> database_fixture_base::in
             || fixture.current_test_name == "htlc_database_api"
             || fixture.current_suite_name == "database_api_tests"
             || fixture.current_suite_name == "api_limit_tests"
-            || fixture.current_suite_name == "revpop_14_tests" )
+            || fixture.current_suite_name == "electoral_threshold_tests" )
    {
       fixture.app.register_plugin<graphene::api_helper_indexes::api_helper_indexes>(true);
    }
@@ -566,7 +566,6 @@ void database_fixture_base::verify_asset_supplies( const database& db )
          total_balances[bad.options.short_backing_asset] += bad.settlement_fund;
          total_balances[bad.options.short_backing_asset] += dasset_obj.accumulated_collateral_fees;
       }
-      total_balances[asset_obj.id] += dasset_obj.confidential_supply.value;
    }
    for( const vesting_balance_object& vbo : db.get_index_type< vesting_balance_index >().indices() )
       total_balances[ vbo.balance.asset_id ] += vbo.balance.amount;

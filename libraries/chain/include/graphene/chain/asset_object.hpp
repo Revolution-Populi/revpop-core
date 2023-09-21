@@ -63,7 +63,6 @@ namespace graphene { namespace chain {
 
          /// The number of shares currently in existence
          share_type current_supply;
-         share_type confidential_supply; ///< total asset held in confidential balances
          share_type accumulated_fees; ///< fees accumulate to be paid out over time
          share_type accumulated_collateral_fees; ///< accumulated collateral-denominated fees (for bitassets)
          share_type fee_pool;         ///< in core asset

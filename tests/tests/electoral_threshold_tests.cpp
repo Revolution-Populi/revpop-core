@@ -39,7 +39,7 @@ using namespace graphene::chain;
 using namespace graphene::chain::test;
 using namespace graphene::app;
 
-BOOST_FIXTURE_TEST_SUITE( revpop_14_tests, database_fixture )
+BOOST_FIXTURE_TEST_SUITE( electoral_threshold_tests, database_fixture )
 
 BOOST_AUTO_TEST_CASE( hardfork_time_test )
 { try {

@@ -53,6 +53,7 @@ namespace graphene { namespace protocol {
       string          type;
       string          description;
       string          content_key;
+      string          storage_data;
 
       account_id_type fee_payer()const { return subject_account; }
       void            validate()const;
@@ -85,6 +86,7 @@ namespace graphene { namespace protocol {
       string          type;
       string          description;
       string          content_key;
+      string          storage_data;
 
       account_id_type fee_payer()const { return subject_account; }
       void            validate()const;
@@ -122,57 +124,25 @@ namespace graphene { namespace protocol {
       }
    };
 
-   /**
-    * @brief Update vote counter in content card object
-    *
-    * This operation is used to update the vote_counter fiels in content_card_object.
-    */
-   struct vote_counter_update_operation : public base_operation
-   {
-      struct fee_parameters_type { share_type fee = 300000; };
-
-      asset           fee;
-
-      account_id_type master_account;
-      fc::flat_map< content_card_id_type, int > vote_data;
-
-      account_id_type fee_payer()const { return master_account; }
-      void            validate()const;
-      share_type      calculate_fee(const fee_parameters_type& )const;
-
-      void get_required_active_authorities( flat_set<account_id_type>& a )const
-      {
-         // owner_account should be required anyway as it is the fee_payer(), but we insert it here just to be sure
-         a.insert( master_account );
-      }
-   };
-
-
 
 } } // graphene::protocol
 
 FC_REFLECT( graphene::protocol::content_card_create_operation::fee_parameters_type, (fee)(price_per_kbyte) )
 FC_REFLECT( graphene::protocol::content_card_create_operation,
             (fee)
-            (subject_account)(hash)(url)(type)(description)(content_key)
+            (subject_account)(hash)(url)(type)(description)(content_key)(storage_data)
           )
 FC_REFLECT( graphene::protocol::content_card_update_operation::fee_parameters_type, (fee)(price_per_kbyte) )
 FC_REFLECT( graphene::protocol::content_card_update_operation,
             (fee)
-            (subject_account)(hash)(url)(type)(description)(content_key)
+            (subject_account)(hash)(url)(type)(description)(content_key)(storage_data)
           )
 FC_REFLECT( graphene::protocol::content_card_remove_operation::fee_parameters_type, (fee) )
 FC_REFLECT( graphene::protocol::content_card_remove_operation,
             (fee)
             (subject_account)(content_id)
           )
-FC_REFLECT( graphene::protocol::vote_counter_update_operation::fee_parameters_type, (fee) )
-FC_REFLECT( graphene::protocol::vote_counter_update_operation,
-            (fee)
-            (master_account)(vote_data)
-          )
 
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::content_card_create_operation )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::content_card_update_operation )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::content_card_remove_operation )
-GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::vote_counter_update_operation )

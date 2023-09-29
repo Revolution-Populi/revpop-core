@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -26,7 +27,6 @@
 #include <graphene/app/database_api.hpp>
 
 #include <graphene/protocol/types.hpp>
-#include <graphene/protocol/confidential.hpp>
 
 #include <graphene/market_history/market_history_plugin.hpp>
 #include <graphene/grouped_orders/grouped_orders_plugin.hpp>

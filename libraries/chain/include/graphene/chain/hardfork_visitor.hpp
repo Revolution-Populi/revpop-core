@@ -1,6 +1,7 @@
 #pragma once
 /*
- * Copyright (c) 2019 Contributors
+ * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -48,28 +49,7 @@ struct hardfork_visitor {
    using first_unforked_op = custom_authority_create_operation;
    using BSIP_40_ops = TL::list<custom_authority_create_operation, custom_authority_update_operation,
                                 custom_authority_delete_operation>;
-   using hf2103_ops = TL::list<ticket_create_operation, ticket_update_operation>;
-   using RevPop_40_ops = TL::list<personal_data_create_operation, personal_data_remove_operation,
-                                  content_card_create_operation, content_card_update_operation,
-                                  content_card_remove_operation, permission_create_operation,
-                                  permission_remove_operation, content_vote_create_operation,
-                                  content_vote_remove_operation, vote_counter_update_operation,
-                                  commit_create_operation, reveal_create_operation>;
-   using RevPop_11_ops = TL::list<commit_create_v2_operation, reveal_create_v2_operation>;
-   using RevPop_12_ops = TL::list<commit_create_v3_operation, reveal_create_v3_operation>;
-   using RevPop_15_ops = TL::list<content_card_v2_create_operation, content_card_v2_update_operation,
-                                  content_card_v2_remove_operation, personal_data_v2_create_operation,
-                                  personal_data_v2_remove_operation>;
-   using RevPop_workers_ops = TL::list<worker_create_operation>;
-   using htlc_ops = TL::list< htlc_create_operation,
-                                  htlc_redeem_operation,
-                                  htlc_redeemed_operation,
-                                  htlc_extend_operation,
-                                  htlc_refund_operation>;
-   using market_ops = TL::list< limit_order_create_operation,
-                                  limit_order_cancel_operation,
-                                  call_order_update_operation,
-                                  fill_order_operation>;
+   using ticket_ops = TL::list<ticket_create_operation, ticket_update_operation>;
 
    fc::time_point_sec now;
 
@@ -84,28 +64,7 @@ struct hardfork_visitor {
    std::enable_if_t<TL::contains<BSIP_40_ops, Op>(), bool>
    visit() { return HARDFORK_BSIP_40_PASSED(now); }
    template<typename Op>
-   std::enable_if_t<TL::contains<hf2103_ops, Op>(), bool>
-   visit() { return true; }
-   template<typename Op>
-   std::enable_if_t<TL::contains<RevPop_40_ops, Op>(), bool>
-   visit() { return HARDFORK_REVPOP_40_PASSED(now); }
-   template<typename Op>
-   std::enable_if_t<TL::contains<RevPop_11_ops, Op>(), bool>
-   visit() { return HARDFORK_REVPOP_11_PASSED(now); }
-   template<typename Op>
-   std::enable_if_t<TL::contains<RevPop_12_ops, Op>(), bool>
-   visit() { return HARDFORK_REVPOP_12_PASSED(now); }
-   template<typename Op>
-   std::enable_if_t<TL::contains<RevPop_15_ops, Op>(), bool>
-   visit() { return HARDFORK_REVPOP_15_PASSED(now); }
-   template<typename Op>
-   std::enable_if_t<TL::contains<RevPop_workers_ops, Op>(), bool>
-   visit() { return HARDFORK_REVPOP_15_PASSED(now); }
-   template<typename Op>
-   std::enable_if_t<TL::contains<htlc_ops, Op>(), bool>
-   visit() { return true; }
-   template<typename Op>
-   std::enable_if_t<TL::contains<market_ops, Op>(), bool>
+   std::enable_if_t<TL::contains<ticket_ops, Op>(), bool>
    visit() { return true; }
    /// @}
 

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -29,7 +30,6 @@
 #include <graphene/protocol/balance.hpp>
 #include <graphene/protocol/custom.hpp>
 #include <graphene/protocol/committee_member.hpp>
-#include <graphene/protocol/confidential.hpp>
 #include <graphene/protocol/custom_authority.hpp>
 #include <graphene/protocol/fba.hpp>
 #include <graphene/protocol/market.hpp>
@@ -42,14 +42,9 @@
 #include <graphene/protocol/worker.hpp>
 #include <graphene/protocol/htlc.hpp>
 #include <graphene/protocol/personal_data.hpp>
-#include <graphene/protocol/personal_data_v2.hpp>
 #include <graphene/protocol/content_card.hpp>
-#include <graphene/protocol/content_card_v2.hpp>
 #include <graphene/protocol/permission.hpp>
-#include <graphene/protocol/content_vote.hpp>
 #include <graphene/protocol/commit_reveal.hpp>
-#include <graphene/protocol/commit_reveal_v2.hpp>
-#include <graphene/protocol/commit_reveal_v3.hpp>
 
 namespace graphene { namespace protocol {
 
@@ -93,50 +88,35 @@ namespace graphene { namespace protocol {
             /* 31 */ assert_operation,
             /* 32 */ balance_claim_operation,
             /* 33 */ override_transfer_operation,
-            /* 34 */ transfer_to_blind_operation,
-            /* 35 */ blind_transfer_operation,
-            /* 36 */ transfer_from_blind_operation,
-            /* 37 */ asset_settle_cancel_operation,  // VIRTUAL
-            /* 38 */ asset_claim_fees_operation,
-            /* 39 */ fba_distribute_operation,       // VIRTUAL
-            /* 40 */ asset_claim_pool_operation,
-            /* 41 */ asset_update_issuer_operation,
-            /* 42 */ custom_authority_create_operation,
-            /* 43 */ custom_authority_update_operation,
-            /* 44 */ custom_authority_delete_operation,
-            /* 45 */ ticket_create_operation,
-            /* 46 */ ticket_update_operation,
-            /* 47 */ personal_data_create_operation,
-            /* 48 */ personal_data_remove_operation,
-            /* 49 */ content_card_create_operation,
-            /* 50 */ content_card_update_operation,
-            /* 51 */ content_card_remove_operation,
-            /* 52 */ permission_create_operation,
-            /* 53 */ permission_remove_operation,
-            /* 54 */ content_vote_create_operation,
-            /* 55 */ content_vote_remove_operation,
-            /* 56 */ vote_counter_update_operation,
-            /* 57 */ commit_create_operation,
-            /* 58 */ reveal_create_operation,
-            /* 59 */ commit_create_v2_operation,
-            /* 60 */ reveal_create_v2_operation,
-            /* 61 */ commit_create_v3_operation,
-            /* 62 */ reveal_create_v3_operation,
-            /* 63 */ content_card_v2_create_operation,
-            /* 64 */ content_card_v2_update_operation,
-            /* 65 */ content_card_v2_remove_operation,
-            /* 66 */ personal_data_v2_create_operation,
-            /* 67 */ personal_data_v2_remove_operation,
-            /* 68 */ worker_create_operation,
-            /* 69 */ htlc_create_operation,
-            /* 70 */ htlc_redeem_operation,
-            /* 71 */ htlc_redeemed_operation,         // VIRTUAL
-            /* 72 */ htlc_extend_operation,
-            /* 73 */ htlc_refund_operation,           // VIRTUAL
-            /* 74 */ limit_order_create_operation,
-            /* 75 */ limit_order_cancel_operation,
-            /* 76 */ call_order_update_operation,
-            /* 77 */ fill_order_operation            // VIRTUAL
+            /* 34 */ asset_settle_cancel_operation,  // VIRTUAL
+            /* 35 */ asset_claim_fees_operation,
+            /* 36 */ fba_distribute_operation,       // VIRTUAL
+            /* 37 */ asset_claim_pool_operation,
+            /* 38 */ asset_update_issuer_operation,
+            /* 39 */ personal_data_create_operation,
+            /* 40 */ personal_data_remove_operation,
+            /* 41 */ content_card_create_operation,
+            /* 42 */ content_card_update_operation,
+            /* 43 */ content_card_remove_operation,
+            /* 44 */ permission_create_operation,
+            /* 45 */ permission_remove_operation,
+            /* 46 */ commit_create_operation,
+            /* 47 */ reveal_create_operation,
+            /* 48 */ worker_create_operation,
+            /* 49 */ htlc_create_operation,
+            /* 50 */ htlc_redeem_operation,
+            /* 51 */ htlc_redeemed_operation,         // VIRTUAL
+            /* 52 */ htlc_extend_operation,
+            /* 53 */ htlc_refund_operation,           // VIRTUAL
+            /* 54 */ limit_order_create_operation,
+            /* 55 */ limit_order_cancel_operation,
+            /* 56 */ call_order_update_operation,
+            /* 57 */ fill_order_operation,            // VIRTUAL
+            /* 58 */ custom_authority_create_operation,
+            /* 59 */ custom_authority_update_operation,
+            /* 60 */ custom_authority_delete_operation,
+            /* 61 */ ticket_create_operation,
+            /* 62 */ ticket_update_operation
          > operation;
 
    /// @} // operations group

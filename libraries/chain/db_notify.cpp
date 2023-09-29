@@ -7,7 +7,6 @@
 #include <graphene/chain/withdraw_permission_object.hpp>
 #include <graphene/chain/database.hpp>
 #include <graphene/chain/worker_object.hpp>
-#include <graphene/chain/confidential_object.hpp>
 #include <graphene/chain/htlc_object.hpp>
 #include <graphene/chain/market_object.hpp>
 #include <graphene/chain/committee_member_object.hpp>
@@ -21,14 +20,9 @@
 #include <graphene/chain/impacted.hpp>
 #include <graphene/chain/hardfork.hpp>
 #include <graphene/chain/personal_data_object.hpp>
-#include <graphene/chain/personal_data_v2_object.hpp>
 #include <graphene/chain/content_card_object.hpp>
-#include <graphene/chain/content_card_v2_object.hpp>
 #include <graphene/chain/permission_object.hpp>
-#include <graphene/chain/content_vote_object.hpp>
-#include <graphene/chain/vote_master_summary_object.hpp>
 #include <graphene/chain/commit_reveal_object.hpp>
-#include <graphene/chain/commit_reveal_v2_object.hpp>
 
 using namespace fc;
 namespace graphene { namespace chain { namespace detail {
@@ -240,27 +234,6 @@ struct get_impacted_account_visitor
       _impacted.insert( op.from );
       _impacted.insert( op.fee_payer() ); // issuer
    }
-   void operator()( const transfer_to_blind_operation& op )
-   {
-      _impacted.insert( op.fee_payer() ); // from
-      for( const auto& out : op.outputs )
-         add_authority_accounts( _impacted, out.owner );
-   }
-   void operator()( const blind_transfer_operation& op )
-   {
-      _impacted.insert( op.fee_payer() ); // GRAPHENE_TEMP_ACCOUNT
-      for( const auto& in : op.inputs )
-         add_authority_accounts( _impacted, in.owner );
-      for( const auto& out : op.outputs )
-         add_authority_accounts( _impacted, out.owner );
-   }
-   void operator()( const transfer_from_blind_operation& op )
-   {
-      _impacted.insert( op.fee_payer() ); // GRAPHENE_TEMP_ACCOUNT
-      _impacted.insert( op.to );
-      for( const auto& in : op.inputs )
-         add_authority_accounts( _impacted, in.owner );
-   }
    void operator()( const asset_settle_cancel_operation& op )
    {
       _impacted.insert( op.fee_payer() ); // account
@@ -325,16 +298,6 @@ struct get_impacted_account_visitor
       _impacted.insert( op.fee_payer() );
       _impacted.insert( op.subject_account );
    }
-   void operator()( const personal_data_v2_create_operation& op )
-   {
-       _impacted.insert( op.fee_payer() );
-       _impacted.insert( op.subject_account );
-   }
-   void operator()( const personal_data_v2_remove_operation& op )
-   {
-      _impacted.insert( op.fee_payer() );
-      _impacted.insert( op.subject_account );
-   }
    void operator()( const content_card_create_operation& op )
    {
       _impacted.insert( op.fee_payer() );
@@ -350,21 +313,6 @@ struct get_impacted_account_visitor
       _impacted.insert( op.fee_payer() );
       _impacted.insert( op.subject_account );
    }
-   void operator()( const content_card_v2_create_operation& op )
-   {
-      _impacted.insert( op.fee_payer() );
-      _impacted.insert( op.subject_account );
-   }
-   void operator()( const content_card_v2_update_operation& op )
-   {
-      _impacted.insert( op.fee_payer() );
-      _impacted.insert( op.subject_account );
-   }
-   void operator()( const content_card_v2_remove_operation& op )
-   {
-      _impacted.insert( op.fee_payer() );
-      _impacted.insert( op.subject_account );
-   }
    void operator()( const permission_create_operation& op )
    {
       _impacted.insert( op.fee_payer() );
@@ -375,47 +323,12 @@ struct get_impacted_account_visitor
       _impacted.insert( op.fee_payer() );
       _impacted.insert( op.subject_account );
    }
-   void operator()( const content_vote_create_operation& op )
-   {
-      _impacted.insert( op.fee_payer() );
-      _impacted.insert( op.subject_account );
-   }
-   void operator()( const content_vote_remove_operation& op )
-   {
-      _impacted.insert( op.fee_payer() );
-      _impacted.insert( op.subject_account );
-   }
-   void operator()( const vote_counter_update_operation& op )
-   {
-      _impacted.insert( op.fee_payer() );
-      _impacted.insert( op.master_account );
-   }
    void operator()( const commit_create_operation& op )
    {
       _impacted.insert( op.fee_payer() );
       _impacted.insert( op.account );
    }
    void operator()( const reveal_create_operation& op )
-   {
-      _impacted.insert( op.fee_payer() );
-      _impacted.insert( op.account );
-   }
-   void operator()( const commit_create_v2_operation& op )
-   {
-      _impacted.insert( op.fee_payer() );
-      _impacted.insert( op.account );
-   }
-   void operator()( const reveal_create_v2_operation& op )
-   {
-      _impacted.insert( op.fee_payer() );
-      _impacted.insert( op.account );
-   }
-   void operator()( const commit_create_v3_operation& op )
-   {
-      _impacted.insert( op.fee_payer() );
-      _impacted.insert( op.account );
-   }
-   void operator()( const reveal_create_v3_operation& op )
    {
       _impacted.insert( op.fee_payer() );
       _impacted.insert( op.account );
@@ -536,19 +449,8 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
            accounts.insert( pd_obj->subject_account );
            accounts.insert( pd_obj->operator_account );
            break;
-        } case personal_data_v2_object_type:{
-           const auto& pd_obj = dynamic_cast<const personal_data_v2_object*>(obj);
-           FC_ASSERT( pd_obj != nullptr );
-           accounts.insert( pd_obj->subject_account );
-           accounts.insert( pd_obj->operator_account );
-           break;
         } case content_card_object_type: {
            const auto& cc_obj = dynamic_cast<const content_card_object*>(obj);
-           FC_ASSERT( cc_obj != nullptr );
-           accounts.insert( cc_obj->subject_account );
-           break;
-        } case content_card_v2_object_type: {
-           const auto& cc_obj = dynamic_cast<const content_card_v2_object*>(obj);
            FC_ASSERT( cc_obj != nullptr );
            accounts.insert( cc_obj->subject_account );
            break;
@@ -558,23 +460,8 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
            accounts.insert( perm_obj->subject_account );
            accounts.insert( perm_obj->operator_account );
            break;
-        } case content_vote_object_type:{
-           const auto& vote_obj = dynamic_cast<const content_vote_object*>(obj);
-           FC_ASSERT( vote_obj != nullptr );
-           accounts.insert( vote_obj->subject_account );
-           break;
-        } case vote_master_summary_object_type:{
-           const auto& vms_obj = dynamic_cast<const vote_master_summary_object*>(obj);
-           FC_ASSERT( vms_obj != nullptr );
-           accounts.insert( vms_obj->master_account );
-           break;
         } case commit_reveal_object_type:{
            const auto& cr_obj = dynamic_cast<const commit_reveal_object*>(obj);
-           FC_ASSERT( cr_obj != nullptr );
-           accounts.insert( cr_obj->account );
-           break;
-        } case commit_reveal_v2_object_type:{
-           const auto& cr_obj = dynamic_cast<const commit_reveal_v2_object*>(obj);
            FC_ASSERT( cr_obj != nullptr );
            accounts.insert( cr_obj->account );
            break;
@@ -610,12 +497,6 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
               FC_ASSERT( aobj != nullptr );
               transaction_get_impacted_accounts( aobj->trx, accounts,
                                                  ignore_custom_operation_required_auths );
-              break;
-           } case impl_blinded_balance_object_type:{
-              const auto& aobj = dynamic_cast<const blinded_balance_object*>(obj);
-              FC_ASSERT( aobj != nullptr );
-              for( const auto& a : aobj->owner.account_auths )
-                accounts.insert( a.first );
               break;
            } case impl_block_summary_object_type:
               break;

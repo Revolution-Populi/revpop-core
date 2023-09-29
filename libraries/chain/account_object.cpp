@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -66,13 +67,6 @@ void account_statistics_object::process_fees(const account_object& a, database& 
          share_type network_cut = cut_fee(core_fee_total, account.network_fee_percentage);
          assert( network_cut <= core_fee_total );
 
-#ifndef NDEBUG
-         const auto& props = d.get_global_properties();
-
-         share_type reserveed = cut_fee(network_cut, props.parameters.reserve_percent_of_fee);
-         share_type accumulated = network_cut - reserveed;
-         assert( accumulated + reserveed == network_cut );
-#endif
          share_type lifetime_cut = cut_fee(core_fee_total, account.lifetime_referrer_fee_percentage);
          share_type referral = core_fee_total - network_cut - lifetime_cut;
 
@@ -90,7 +84,7 @@ void account_statistics_object::process_fees(const account_object& a, database& 
          d.deposit_cashback(d.get(account.referrer), referrer_cut, require_vesting);
          d.deposit_cashback(d.get(account.registrar), registrar_cut, require_vesting);
 
-         assert( referrer_cut + registrar_cut + accumulated + reserveed + lifetime_cut == core_fee_total );
+         assert( referrer_cut + registrar_cut + network_cut + lifetime_cut == core_fee_total );
       };
 
       pay_out_fees(a, pending_fees, true);

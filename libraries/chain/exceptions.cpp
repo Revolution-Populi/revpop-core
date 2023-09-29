@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2019 BitShares Blockchain Foundation, and contributors.
+ * Copyright (c) 2019-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -150,10 +151,6 @@ namespace graphene { namespace chain {
 
    GRAPHENE_IMPLEMENT_OP_BASE_EXCEPTIONS( override_transfer );
    GRAPHENE_IMPLEMENT_OP_EVALUATE_EXCEPTION( not_permitted, override_transfer, 1, "not permitted" )
-
-   GRAPHENE_IMPLEMENT_OP_BASE_EXCEPTIONS( blind_transfer );
-   GRAPHENE_IMPLEMENT_OP_EVALUATE_EXCEPTION( unknown_commitment, blind_transfer, 1,
-         "Attempting to claim an unknown prior commitment" );
 
    //GRAPHENE_IMPLEMENT_OP_BASE_EXCEPTIONS( transfer_from_blind_operation )
    //GRAPHENE_IMPLEMENT_OP_BASE_EXCEPTIONS( asset_claim_fees_operation )

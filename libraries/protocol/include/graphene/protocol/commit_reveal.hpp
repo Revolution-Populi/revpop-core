@@ -44,15 +44,16 @@ namespace graphene { namespace protocol {
 
       account_id_type account;
       string          hash;
+      uint32_t        maintenance_time;
+      public_key_type witness_key;
 
-      account_id_type fee_payer()const { return account; }
+      account_id_type fee_payer()const { return GRAPHENE_TEMP_ACCOUNT; }
       void            validate()const;
       share_type      calculate_fee(const fee_parameters_type& )const;
 
-      void get_required_active_authorities( flat_set<account_id_type>& a )const
+      void get_required_authorities(vector<authority> &a) const
       {
-         // owner_account should be required anyway as it is the fee_payer(), but we insert it here just to be sure
-         a.insert( account );
+         a.push_back(authority(1, witness_key, 1));
       }
    };
 
@@ -69,15 +70,16 @@ namespace graphene { namespace protocol {
 
       account_id_type account;
       uint64_t        value;
+      uint32_t        maintenance_time;
+      public_key_type witness_key;
 
-      account_id_type fee_payer()const { return account; }
+      account_id_type fee_payer()const { return GRAPHENE_TEMP_ACCOUNT; }
       void            validate()const;
       share_type      calculate_fee(const fee_parameters_type& )const;
 
-      void get_required_active_authorities( flat_set<account_id_type>& a )const
+      void get_required_authorities(vector<authority> &a) const
       {
-         // owner_account should be required anyway as it is the fee_payer(), but we insert it here just to be sure
-         a.insert( account );
+         a.push_back(authority(1, witness_key, 1));
       }
    };
 
@@ -86,12 +88,12 @@ namespace graphene { namespace protocol {
 FC_REFLECT( graphene::protocol::commit_create_operation::fee_parameters_type,  )
 FC_REFLECT( graphene::protocol::commit_create_operation,
             (fee)
-            (account)(hash)
+            (account)(hash)(maintenance_time)(witness_key)
           )
 FC_REFLECT( graphene::protocol::reveal_create_operation::fee_parameters_type,  )
 FC_REFLECT( graphene::protocol::reveal_create_operation,
             (fee)
-            (account)(value)
+            (account)(value)(maintenance_time)(witness_key)
           )
 
 

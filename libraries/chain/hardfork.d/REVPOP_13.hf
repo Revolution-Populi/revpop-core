@@ -1,5 +1,0 @@
-// REVPOP 13 (Improve the commit/reveal hashing scheme) hardfork check
-#ifndef HARDFORK_REVPOP_13_TIME
-#define HARDFORK_REVPOP_13_TIME (fc::time_point_sec( 1629763200 )) // Tuesday, August 24, 2021 12:00:00 AM
-#define HARDFORK_REVPOP_13_PASSED(now) (now >= HARDFORK_REVPOP_13_TIME)
-#endif

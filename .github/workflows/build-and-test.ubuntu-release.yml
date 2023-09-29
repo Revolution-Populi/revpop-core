@@ -1,5 +1,5 @@
 name: Ubuntu Release
-on: [ push, pull_request ]
+on: [ push, pull_request, workflow_dispatch ]
 env:
   CCACHE_COMPRESS: exists means true
   CCACHE_SLOPPINESS: include_file_ctime,include_file_mtime,time_macros
@@ -8,7 +8,7 @@ jobs:
     name: Build and test in Release mode
     strategy:
       matrix:
-        os: [ ubuntu-18.04, ubuntu-20.04 ]
+        os: [ ubuntu-20.04 ]
     runs-on: ${{ matrix.os }}
     services:
       elasticsearch:
@@ -40,7 +40,7 @@ jobs:
         sudo apt-get auto-remove -y
         sudo apt-get clean -y
         df -h
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: recursive
     - name: Configure
@@ -57,7 +57,7 @@ jobs:
               ..
         popd
     - name: Load Cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ccache
         key: ccache-release-${{ matrix.os }}-${{ github.ref }}-${{ github.sha }}

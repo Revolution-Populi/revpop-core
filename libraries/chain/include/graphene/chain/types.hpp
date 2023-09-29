@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -39,11 +40,10 @@ GRAPHENE_DEFINE_IDS(chain, implementation_ids, impl_,
                     /* 2.7.x  */ (transaction_history)
                     /* 2.8.x  */ (block_summary)
                     /* 2.9.x  */ (account_transaction_history)
-                    /* 2.10.x */ (blinded_balance)
-                    /* 2.11.x */ (chain_property)
-                    /* 2.12.x */ (witness_schedule)
-                    /* 2.13.x */ (budget_record)
-                    /* 2.14.x */ (special_authority)
-                    /* 2.15.x */ (buyback)
-                    /* 2.16.x */ (fba_accumulator)
+                    /* 2.10.x */ (chain_property)
+                    /* 2.11.x */ (witness_schedule)
+                    /* 2.12.x */ (budget_record)
+                    /* 2.13.x */ (special_authority)
+                    /* 2.14.x */ (buyback)
+                    /* 2.15.x */ (fba_accumulator)
                    )

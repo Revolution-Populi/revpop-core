@@ -55,13 +55,4 @@ public:
    object_id_type do_apply( const content_card_remove_operation& o );
 };
 
-class vote_counter_update_evaluator : public evaluator<vote_counter_update_evaluator>
-{
-public:
-   typedef vote_counter_update_operation operation_type;
-
-   void_result do_evaluate( const vote_counter_update_operation& o );
-   void_result do_apply( const vote_counter_update_operation& o );
-};
-
 } } // graphene::chain

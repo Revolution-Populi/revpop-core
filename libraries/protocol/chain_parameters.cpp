@@ -42,7 +42,6 @@ namespace graphene { namespace protocol {
       to.maximum_witness_count = from.maximum_witness_count;
       to.maximum_committee_count = from.maximum_committee_count;
       to.maximum_authority_membership = from.maximum_authority_membership;
-      to.reserve_percent_of_fee = from.reserve_percent_of_fee;
       to.network_percent_of_fee = from.network_percent_of_fee;
       to.lifetime_referrer_percent_of_fee = from.lifetime_referrer_percent_of_fee;
       to.cashback_vesting_period_seconds = from.cashback_vesting_period_seconds;
@@ -51,15 +50,13 @@ namespace graphene { namespace protocol {
       to.allow_non_member_whitelists = from.allow_non_member_whitelists;
       to.witness_pay_per_block = from.witness_pay_per_block;
       to.witness_pay_vesting_seconds = from.witness_pay_vesting_seconds;
-      to.worker_budget_per_day = from.worker_budget_per_day;
+      to.worker_budget = from.worker_budget;
       to.max_predicate_opcode = from.max_predicate_opcode;
-      to.fee_liquidation_threshold = from.fee_liquidation_threshold;
       to.accounts_per_fee_scale = from.accounts_per_fee_scale;
       to.account_fee_scale_bitshifts = from.account_fee_scale_bitshifts;
       to.max_authority_depth = from.max_authority_depth;
       to.revpop_witnesses_top_max = from.revpop_witnesses_top_max;
       to.revpop_witnesses_active_max = from.revpop_witnesses_active_max;
-      to.revpop_vote_mixture = from.revpop_vote_mixture;
       to.extensions = from.extensions;
    }
 
@@ -84,7 +81,6 @@ namespace graphene { namespace protocol {
    void chain_parameters::validate()const
    {
       get_current_fees().validate();
-      FC_ASSERT( reserve_percent_of_fee <= GRAPHENE_100_PERCENT );
       FC_ASSERT( network_percent_of_fee <= GRAPHENE_100_PERCENT );
       FC_ASSERT( lifetime_referrer_percent_of_fee <= GRAPHENE_100_PERCENT );
       FC_ASSERT( network_percent_of_fee + lifetime_referrer_percent_of_fee <= GRAPHENE_100_PERCENT );

@@ -49,6 +49,7 @@ namespace graphene { namespace chain {
             account_id_type account;
             string          hash;
             uint64_t        value;
+            uint32_t        maintenance_time;
         };
 
         struct by_account;

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -84,9 +85,7 @@ constexpr int64_t GRAPHENE_MAX_SHARE_SUPPLY (1000000000000000LL); // 10 ^ 15
 #define GRAPHENE_DEFAULT_LIFETIME_REFERRER_PERCENT_OF_FEE     (30*GRAPHENE_1_PERCENT)
 #define GRAPHENE_DEFAULT_CASHBACK_VESTING_PERIOD_SEC          (60*60*24*365) ///< 1 year
 #define GRAPHENE_DEFAULT_CASHBACK_VESTING_THRESHOLD           (GRAPHENE_BLOCKCHAIN_PRECISION*int64_t(100))
-#define GRAPHENE_DEFAULT_BURN_PERCENT_OF_FEE                  (20*GRAPHENE_1_PERCENT)
 #define GRAPHENE_DEFAULT_MAX_ASSERT_OPCODE                    1
-#define GRAPHENE_DEFAULT_FEE_LIQUIDATION_THRESHOLD            GRAPHENE_BLOCKCHAIN_PRECISION * 100;
 #define GRAPHENE_DEFAULT_ACCOUNTS_PER_FEE_SCALE               1000
 #define GRAPHENE_DEFAULT_ACCOUNT_FEE_SCALE_BITSHIFTS          4
 #define GRAPHENE_DEFAULT_MAX_BUYBACK_MARKETS                  4
@@ -155,5 +154,3 @@ constexpr size_t MAX_FEE_STABILIZATION_ITERATION  = 4;
 #define REVPOP_WITNESSES_TOP_MAX 63
 // Randomly choose max 21 active witnesses (consensus algorithm)
 #define REVPOP_WITNESSES_ACTIVE_MAX 21
-// Number of votes in one mix operation
-#define REVPOP_VOTE_MIXTURE 3

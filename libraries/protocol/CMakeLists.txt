@@ -4,7 +4,6 @@ list(APPEND SOURCES account.cpp
                     assert.cpp
                     asset_ops.cpp
                     block.cpp
-                    confidential.cpp
                     chain_parameters.cpp
                     fee_schedule.cpp
                     fee_schedule_calc.cpp
@@ -34,14 +33,9 @@ list(APPEND SOURCES account.cpp
                     withdraw_permission.cpp
                     worker.cpp
                     personal_data.cpp
-                    personal_data_v2.cpp
                     content_card.cpp
-                    content_card_v2.cpp
                     permission.cpp
-                    content_vote.cpp
                     commit_reveal.cpp
-                    commit_reveal_v2.cpp
-                    commit_reveal_v3.cpp
                     htlc.cpp)
 
 
@@ -59,10 +53,7 @@ list(APPEND CUSTOM_AUTHS_FILES
      custom_authorities/list_7.cpp
      custom_authorities/list_8.cpp
      custom_authorities/list_9.cpp
-     custom_authorities/list_10.cpp
-     custom_authorities/list_11.cpp
-     custom_authorities/list_12.cpp
-     custom_authorities/list_13.cpp)
+     )
 
 file(GLOB CUSTOM_AUTHS_HEADERS "custom_authorities/*.hxx")
 

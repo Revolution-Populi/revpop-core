@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2018 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -74,10 +75,6 @@ struct proposal_operation_hardfork_visitor
                    "Unable to define fees for custom authority operations prior to hardfork BSIP 40");
          FC_ASSERT(!op.new_parameters.current_fees->exists<custom_authority_delete_operation>(),
                    "Unable to define fees for custom authority operations prior to hardfork BSIP 40");*/
-      }
-      if (!HARDFORK_REVPOP_14_PASSED(block_time)) {
-         FC_ASSERT(!op.new_parameters.extensions.value.electoral_threshold.valid(),
-                   "Unable to set electoral_threshold before hardfork REVPOP 14");
       }
    }
    void operator()(const graphene::chain::custom_authority_create_operation&) const {

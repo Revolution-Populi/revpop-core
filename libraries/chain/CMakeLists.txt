@@ -52,7 +52,6 @@ add_library( graphene_chain
              withdraw_permission_evaluator.cpp
              worker_evaluator.cpp
              htlc_evaluator.cpp
-             confidential_evaluator.cpp
              special_authority_evaluation.cpp
              custom_authority_evaluator.cpp
              buyback.cpp
@@ -72,29 +71,18 @@ add_library( graphene_chain
 
              personal_data_object.cpp
              personal_data_evaluator.cpp
-             personal_data_v2_object.cpp
-             personal_data_v2_evaluator.cpp
              content_card_object.cpp
              content_card_evaluator.cpp
-             content_card_v2_object.cpp
-             content_card_v2_evaluator.cpp
              permission_object.cpp
              permission_evaluator.cpp
-             content_vote_object.cpp
-             content_vote_evaluator.cpp
-             vote_master_summary_object.cpp
              commit_reveal_object.cpp
-             commit_reveal_v2_object.cpp
              commit_reveal_evaluator.cpp
-             commit_reveal_v2_evaluator.cpp
-             commit_reveal_v3_evaluator.cpp
-
              ${HEADERS}
              "${CMAKE_CURRENT_BINARY_DIR}/include/graphene/chain/hardfork.hpp"
            )
 
 add_dependencies( graphene_chain build_hardfork_hpp )
-target_link_libraries( graphene_chain fc graphene_db graphene_protocol )
+target_link_libraries( graphene_chain fc tokendistribution graphene_db graphene_protocol )
 target_include_directories( graphene_chain
                             PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_BINARY_DIR}/include" )
 

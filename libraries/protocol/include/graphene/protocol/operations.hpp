@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -30,7 +31,6 @@
 #include <graphene/protocol/ico_balance.hpp>
 #include <graphene/protocol/custom.hpp>
 #include <graphene/protocol/committee_member.hpp>
-#include <graphene/protocol/confidential.hpp>
 #include <graphene/protocol/custom_authority.hpp>
 #include <graphene/protocol/fba.hpp>
 #include <graphene/protocol/market.hpp>
@@ -43,14 +43,9 @@
 #include <graphene/protocol/worker.hpp>
 #include <graphene/protocol/htlc.hpp>
 #include <graphene/protocol/personal_data.hpp>
-#include <graphene/protocol/personal_data_v2.hpp>
 #include <graphene/protocol/content_card.hpp>
-#include <graphene/protocol/content_card_v2.hpp>
 #include <graphene/protocol/permission.hpp>
-#include <graphene/protocol/content_vote.hpp>
 #include <graphene/protocol/commit_reveal.hpp>
-#include <graphene/protocol/commit_reveal_v2.hpp>
-#include <graphene/protocol/commit_reveal_v3.hpp>
 
 namespace graphene { namespace protocol {
 

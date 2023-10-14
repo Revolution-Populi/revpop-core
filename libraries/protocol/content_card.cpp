@@ -60,16 +60,6 @@ void content_card_remove_operation::validate()const
    FC_ASSERT( fee.amount >= 0 );
 }
 
-share_type vote_counter_update_operation::calculate_fee( const fee_parameters_type& k )const
-{
-   return 0;
-}
-
-void vote_counter_update_operation::validate()const
-{
-   FC_ASSERT( fee.amount >= 0 );
-}
-
 } } // graphene::protocol
 
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::protocol::content_card_create_operation::fee_parameters_type )
@@ -78,5 +68,3 @@ GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::protocol::content_card_upda
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::protocol::content_card_update_operation )
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::protocol::content_card_remove_operation::fee_parameters_type )
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::protocol::content_card_remove_operation )
-GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::protocol::vote_counter_update_operation::fee_parameters_type )
-GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::protocol::vote_counter_update_operation )

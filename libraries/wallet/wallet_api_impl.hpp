@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2017 Cryptonomex, Inc., and contributors.
- * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
+ * Copyright (c) 2018-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -186,7 +186,7 @@ public:
 
    vector< signed_transaction > import_balance( string name_or_id, const vector<string>& wif_keys, bool broadcast );
 
-   vector< signed_transaction > ico_import_balance( string account_name_or_id, string eth_pukey, string phrase,
+   vector< signed_transaction > ico_import_balance( string account_name_or_id, string eth_pub_key, string eth_sign,
                                                    bool broadcast );
 
    bool load_wallet_file(string wallet_filename = "");
@@ -359,6 +359,9 @@ public:
 
    std::map<string,std::function<string(fc::variant,const fc::variants&)>> get_result_formatters() const;
 
+   signed_transaction propose_parameter_extension_change( const string& proposing_account, fc::time_point_sec expiration_time,
+         const variant_object& changed_extensions, bool broadcast = false);
+
    signed_transaction propose_parameter_change( const string& proposing_account, fc::time_point_sec expiration_time,
          const variant_object& changed_values, bool broadcast = false);
 
@@ -372,12 +375,6 @@ public:
          const string& operator_account,
          const string& url,
          const string& hash,
-         bool broadcast = false );
-
-   signed_transaction create_personal_data_v2( const string& subject_account,
-         const string& operator_account,
-         const string& url,
-         const string& hash,
          const string& storage_data,
          bool broadcast = false );
 
@@ -386,23 +383,11 @@ public:
          const string hash,
          bool broadcast = false );
 
-   signed_transaction remove_personal_data_v2( const string subject_account, 
-         const string operator_account,
-         const string hash,
-         bool broadcast = false );
-
    std::vector<personal_data_object> get_personal_data( const string subject_account, const string operator_account) const;
-   std::vector<personal_data_v2_object> get_personal_data_v2( const string subject_account, const string operator_account) const;
 
    personal_data_object get_last_personal_data( const string subject_account, const string operator_account) const;
-   personal_data_v2_object get_last_personal_data_v2( const string subject_account, const string operator_account) const;
 
    signed_transaction create_content_card( const string subject_account,
-         const string hash, const string url,
-         const string type, const string description,
-         const string content_key,
-         bool broadcast = false );
-   signed_transaction create_content_card_v2( const string subject_account,
          const string hash, const string url,
          const string type, const string description,
          const string content_key, const string& storage_data,
@@ -411,18 +396,10 @@ public:
    signed_transaction update_content_card( const string subject_account,
          const string hash, const string url,
          const string type, const string description,
-         const string content_key,
-         bool broadcast = false );
-   signed_transaction update_content_card_v2( const string subject_account,
-         const string hash, const string url,
-         const string type, const string description,
          const string content_key, const string& storage_data,
          bool broadcast = false );
 
    signed_transaction remove_content_card( const string subject_account,
-         uint64_t content_id,
-         bool broadcast = false );
-   signed_transaction remove_content_card_v2( const string subject_account,
          uint64_t content_id,
          bool broadcast = false );
 
@@ -438,12 +415,8 @@ public:
          bool broadcast = false );
 
    content_card_object get_content_card_by_id( uint64_t content_id ) const;
-   content_card_v2_object get_content_card_v2_by_id( uint64_t content_id ) const;
 
    std::vector<content_card_object> get_content_cards( const string subject_account,
-         uint64_t content_id,
-         unsigned limit = 100 ) const;
-   std::vector<content_card_v2_object> get_content_cards_v2( const string subject_account,
          uint64_t content_id,
          unsigned limit = 100 ) const;
 

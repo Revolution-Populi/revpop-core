@@ -42,8 +42,8 @@ namespace graphene { namespace protocol {
       asset               fee;
       account_id_type     deposit_to_account;
       ico_balance_id_type balance_to_claim;
-      string              eth_pukey;
-      string              phrase;
+      string              eth_pub_key;
+      string              eth_sign;
 
       account_id_type fee_payer()const { return deposit_to_account; }
       share_type      calculate_fee(const fee_parameters_type& )const { return 0; }
@@ -54,6 +54,6 @@ namespace graphene { namespace protocol {
 
 FC_REFLECT( graphene::protocol::ico_balance_claim_operation::fee_parameters_type,  )
 FC_REFLECT( graphene::protocol::ico_balance_claim_operation,
-            (fee)(deposit_to_account)(balance_to_claim)(eth_pukey)(phrase) )
+            (fee)(deposit_to_account)(balance_to_claim)(eth_pub_key)(eth_sign) )
 
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::protocol::ico_balance_claim_operation )

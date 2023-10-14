@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -30,7 +31,6 @@
 #include <graphene/chain/get_config.hpp>
 #include <graphene/utilities/key_conversion.hpp>
 #include <graphene/protocol/fee_schedule.hpp>
-#include <graphene/chain/confidential_object.hpp>
 #include <graphene/chain/market_object.hpp>
 #include <graphene/chain/transaction_history_object.hpp>
 #include <graphene/chain/withdraw_permission_object.hpp>

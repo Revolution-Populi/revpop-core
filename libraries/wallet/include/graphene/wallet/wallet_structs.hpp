@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2017 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -65,7 +66,6 @@ typedef multi_index_container<
       ordered_unique< tag<by_key>, member< key_label, public_key_type, &key_label::key > >
    >
 > key_label_index_type;
-
 
 struct wallet_data
 {

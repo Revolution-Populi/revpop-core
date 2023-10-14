@@ -52,7 +52,7 @@ void balance_claim_operation::validate()const
 void ico_balance_claim_operation::validate()const
 {
    FC_ASSERT( fee == asset() );
-   FC_ASSERT( eth_pukey.size() == 40 );
+   FC_ASSERT( eth_pub_key.size() == 128 );
 }
 
 /**

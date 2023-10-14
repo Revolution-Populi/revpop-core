@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2017 Cryptonomex, Inc., and contributors.
- * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
+ * Copyright (c) 2018-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -936,6 +936,16 @@ void wallet_api::flood_network(string prefix, uint32_t number_of_transactions)
    my->flood_network(prefix, number_of_transactions);
 }
 
+signed_transaction wallet_api::propose_parameter_extension_change(
+   const string& proposing_account,
+   fc::time_point_sec expiration_time,
+   const variant_object& changed_extensions,
+   bool broadcast /* = false */
+   )
+{
+   return my->propose_parameter_extension_change( proposing_account, expiration_time, changed_extensions, broadcast );
+}
+
 signed_transaction wallet_api::propose_parameter_change(
    const string& proposing_account,
    fc::time_point_sec expiration_time,
@@ -987,20 +997,10 @@ signed_transaction wallet_api::create_personal_data(
       const string& operator_account,
       const string& url,
       const string& hash,
-      bool broadcast )
-{ 
-   return my->create_personal_data( subject_account, operator_account, url, hash, broadcast );
-}
-
-signed_transaction wallet_api::create_personal_data_v2(
-      const string& subject_account,
-      const string& operator_account,
-      const string& url,
-      const string& hash,
       const string& storage_data,
       bool broadcast )
 { 
-   return my->create_personal_data_v2( subject_account, operator_account, url, hash, storage_data, broadcast );
+   return my->create_personal_data( subject_account, operator_account, url, hash, storage_data, broadcast );
 }
 
 signed_transaction wallet_api::remove_personal_data(
@@ -1012,27 +1012,11 @@ signed_transaction wallet_api::remove_personal_data(
    return my->remove_personal_data(subject_account, operator_account, hash, broadcast );
 }
 
-signed_transaction wallet_api::remove_personal_data_v2(
-      const string& subject_account,
-      const string& operator_account,
-      const string& hash,
-      bool broadcast )
-{
-   return my->remove_personal_data_v2(subject_account, operator_account, hash, broadcast );
-}
-
 std::vector<personal_data_object> wallet_api::get_personal_data(
       const string& subject_account,
       const string& operator_account) const
 {
    return my->get_personal_data(subject_account, operator_account);
-}
-
-std::vector<personal_data_v2_object> wallet_api::get_personal_data_v2(
-      const string& subject_account,
-      const string& operator_account) const
-{
-   return my->get_personal_data_v2(subject_account, operator_account);
 }
 
 personal_data_object wallet_api::get_last_personal_data(
@@ -1042,26 +1026,7 @@ personal_data_object wallet_api::get_last_personal_data(
    return my->get_last_personal_data(subject_account, operator_account);
 }
 
-personal_data_v2_object wallet_api::get_last_personal_data_v2(
-      const string& subject_account,
-      const string& operator_account) const
-{
-   return my->get_last_personal_data_v2(subject_account, operator_account);
-}
-
 signed_transaction wallet_api::create_content_card(
-      const string& subject_account,
-      const string& hash,
-      const string& url,
-      const string& type,
-      const string& description,
-      const string& content_key,
-      bool broadcast ) const
-{
-   return my->create_content_card(subject_account, hash, url, type, description, content_key, broadcast);
-}
-
-signed_transaction wallet_api::create_content_card_v2(
       const string& subject_account,
       const string& hash,
       const string& url,
@@ -1071,7 +1036,7 @@ signed_transaction wallet_api::create_content_card_v2(
       const string& storage_data,
       bool broadcast ) const
 {
-   return my->create_content_card_v2(subject_account, hash, url, type, description, content_key, storage_data, broadcast);
+   return my->create_content_card(subject_account, hash, url, type, description, content_key, storage_data, broadcast);
 }
 
 signed_transaction wallet_api::update_content_card(
@@ -1081,22 +1046,10 @@ signed_transaction wallet_api::update_content_card(
       const string& type,
       const string& description,
       const string& content_key,
-      bool broadcast ) const
-{
-   return my->update_content_card(subject_account, hash, url, type, description, content_key, broadcast);
-}
-
-signed_transaction wallet_api::update_content_card_v2(
-      const string& subject_account,
-      const string& hash,
-      const string& url,
-      const string& type,
-      const string& description,
-      const string& content_key,
       const string& storage_data,
       bool broadcast ) const
 {
-   return my->update_content_card_v2(subject_account, hash, url, type, description, content_key, storage_data, broadcast);
+   return my->update_content_card(subject_account, hash, url, type, description, content_key, storage_data, broadcast);
 }
 
 signed_transaction wallet_api::remove_content_card( const string& subject_account,
@@ -1104,13 +1057,6 @@ signed_transaction wallet_api::remove_content_card( const string& subject_accoun
       bool broadcast ) const
 {
    return my->remove_content_card(subject_account, content_id, broadcast);
-}
-
-signed_transaction wallet_api::remove_content_card_v2( const string& subject_account,
-      uint64_t content_id,
-      bool broadcast ) const
-{
-   return my->remove_content_card_v2(subject_account, content_id, broadcast);
 }
 
 signed_transaction wallet_api::create_permission(
@@ -1136,25 +1082,12 @@ content_card_object wallet_api::get_content_card_by_id( uint64_t content_id ) co
    return my->get_content_card_by_id(content_id);
 }
 
-content_card_v2_object wallet_api::get_content_card_v2_by_id( uint64_t content_id ) const
-{
-   return my->get_content_card_v2_by_id(content_id);
-}
-
 std::vector<content_card_object> wallet_api::get_content_cards(
       const string& subject_account,
       uint64_t content_id,
       unsigned limit ) const
 {
    return my->get_content_cards(subject_account, content_id, limit);
-}
-
-std::vector<content_card_v2_object> wallet_api::get_content_cards_v2(
-      const string& subject_account,
-      uint64_t content_id,
-      unsigned limit ) const
-{
-   return my->get_content_cards_v2(subject_account, content_id, limit);
 }
 
 permission_object wallet_api::get_permission_by_id( uint64_t permission_id ) const
@@ -1327,11 +1260,11 @@ vector< signed_transaction > wallet_api::import_balance(
 
 vector< signed_transaction > wallet_api::ico_import_balance(
       string account_name_or_id,
-      string eth_pukey,
-      string phrase,
+      string eth_pub_key,
+      string eth_sign,
       bool broadcast )
 {
-   return my->ico_import_balance( account_name_or_id, eth_pukey, phrase, broadcast );
+   return my->ico_import_balance( account_name_or_id, eth_pub_key, eth_sign, broadcast );
 }
 
 map<public_key_type, string> wallet_api::dump_private_keys()

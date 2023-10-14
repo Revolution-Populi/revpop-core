@@ -23,18 +23,19 @@
  */
 #include <graphene/chain/ico_balance_evaluator.hpp>
 #include <graphene/protocol/pts_address.hpp>
+#include <graphene/tokendistribution/tokendistribution.hpp>
 
 namespace graphene { namespace chain {
-
-bool decrypt(string phrase, string eth_pukey);
 
 void_result ico_balance_claim_evaluator::do_evaluate(const ico_balance_claim_operation& op)
 {
    database& d = db();
 
    ico_balance = &op.balance_to_claim(d);
+   if( !ico_balance ) return {};
 
-   FC_ASSERT(decrypt(op.phrase, op.eth_pukey));
+   FC_ASSERT(tokendistribution::verifyMessage(op.eth_pub_key, op.eth_sign) == 1);
+   FC_ASSERT(ico_balance->eth_address == tokendistribution::getAddress(op.eth_pub_key));
 
    //FC_ASSERT(op.total_claimed.asset_id == ico_balance->asset_type());
 

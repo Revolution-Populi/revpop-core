@@ -1,5 +1,0 @@
-// REVPOP 40 (Custom Active Authorities) hardfork check
-#ifndef HARDFORK_REVPOP_40_TIME
-#define HARDFORK_REVPOP_40_TIME (fc::time_point_sec( 1596153600 )) // Friday, July 31, 2020 12:00:00 AM
-#define HARDFORK_REVPOP_40_PASSED(now) (now >= HARDFORK_REVPOP_40_TIME)
-#endif

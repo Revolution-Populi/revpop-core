@@ -34,7 +34,7 @@ namespace graphene { namespace chain {
 
 FC_REFLECT_DERIVED_NO_TYPENAME( graphene::chain::content_card_object,
                     (graphene::db::object),
-                    (subject_account)(hash)(url)(timestamp)(description)(content_key)(vote_counter)
+                    (subject_account)(hash)(url)(timestamp)(description)(content_key)(storage_data)
                     )
 
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::content_card_object )

@@ -265,12 +265,6 @@
           }
         ],
         [
-          35,
-          {
-            "name": "blind_transfer"
-          }
-        ],
-        [
           36,
           {
             "name": "transfer_from_blind",
@@ -408,13 +402,6 @@
           }
         ],
         [
-          56,
-          {
-            "name": "vote_counter_update",
-            "fee": 21717
-          }
-        ],
-        [
           57,
           {
             "name": "commit_create"
@@ -458,7 +445,6 @@
     "max_authority_depth": 2,
     "revpop_witnesses_top_max": 63,
     "revpop_witnesses_active_max": 21,
-    "revpop_vote_mixture": 3,
     "extensions": {
       "updatable_htlc_options": {
         "max_timeout_secs": 2592000,

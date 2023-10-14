@@ -1,6 +1,7 @@
 #pragma once
 /*
- * Copyright (c) 2019 Contributors
+ * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2018-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -64,28 +65,7 @@ struct hardfork_visitor {
    std::enable_if_t<TL::contains<BSIP_40_ops, Op>(), bool>
    visit() { return HARDFORK_BSIP_40_PASSED(now); }
    template<typename Op>
-   std::enable_if_t<TL::contains<hf2103_ops, Op>(), bool>
-   visit() { return true; }
-   template<typename Op>
-   std::enable_if_t<TL::contains<RevPop_40_ops, Op>(), bool>
-   visit() { return HARDFORK_REVPOP_40_PASSED(now); }
-   template<typename Op>
-   std::enable_if_t<TL::contains<RevPop_11_ops, Op>(), bool>
-   visit() { return HARDFORK_REVPOP_11_PASSED(now); }
-   template<typename Op>
-   std::enable_if_t<TL::contains<RevPop_12_ops, Op>(), bool>
-   visit() { return HARDFORK_REVPOP_12_PASSED(now); }
-   template<typename Op>
-   std::enable_if_t<TL::contains<RevPop_15_ops, Op>(), bool>
-   visit() { return HARDFORK_REVPOP_15_PASSED(now); }
-   template<typename Op>
-   std::enable_if_t<TL::contains<RevPop_workers_ops, Op>(), bool>
-   visit() { return HARDFORK_REVPOP_15_PASSED(now); }
-   template<typename Op>
-   std::enable_if_t<TL::contains<htlc_ops, Op>(), bool>
-   visit() { return true; }
-   template<typename Op>
-   std::enable_if_t<TL::contains<market_ops, Op>(), bool>
+   std::enable_if_t<TL::contains<ticket_ops, Op>(), bool>
    visit() { return true; }
    template<typename Op>
    std::enable_if_t<TL::contains<ico_ops, Op>(), bool>

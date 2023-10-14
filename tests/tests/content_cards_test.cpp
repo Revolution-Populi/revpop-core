@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
+ * Copyright (c) 2018-2023 Revolution Populi Limited, and contributors.
  * 
  * The MIT License
  *
@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(content_cards_plugin_disabled_test)
 try {
    ACTORS((nathan)(alice)(robert)(patty));
 
-   content_card_v2_create_operation op;
+   content_card_create_operation op;
    op.subject_account = alice_id;
    op.hash = hash;
    op.url = content_url;
@@ -68,11 +68,11 @@ try {
    set_expiration(db, trx);
    trx.operations.push_back(op);
    processed_transaction ptx = PUSH_TX(db, trx, ~0);
-   content_card_v2_id_type content_card_id = ptx.operation_results[0].get<object_id_type>();
+   content_card_id_type content_card_id = ptx.operation_results[0].get<object_id_type>();
    
    graphene::app::database_api db_api(db);
-   GRAPHENE_REQUIRE_THROW(db_api.get_content_card_v2_by_id(content_card_id), fc::exception);
-   GRAPHENE_REQUIRE_THROW(db_api.get_content_cards_v2(alice_id, content_card_id, 100), fc::exception);
+   GRAPHENE_REQUIRE_THROW(db_api.get_content_card_by_id(content_card_id), fc::exception);
+   GRAPHENE_REQUIRE_THROW(db_api.get_content_cards(alice_id, content_card_id, 100), fc::exception);
 }
 catch (fc::exception &e) {
    edump((e.to_detail_string()));
@@ -86,7 +86,7 @@ try {
 
    app.register_plugin<graphene::content_cards::content_cards_plugin>(true);
 
-   content_card_v2_create_operation op;
+   content_card_create_operation op;
    op.subject_account = alice_id;
    op.hash = hash;
    op.url = content_url;
@@ -101,11 +101,11 @@ try {
    set_expiration(db, trx);
    trx.operations.push_back(op);
    processed_transaction ptx = PUSH_TX(db, trx, ~0);
-   content_card_v2_id_type content_card_id = ptx.operation_results[0].get<object_id_type>();
+   content_card_id_type content_card_id = ptx.operation_results[0].get<object_id_type>();
 
    graphene::app::database_api db_api(db);
 
-   const auto &cc = db_api.get_content_card_v2_by_id(content_card_id);
+   const auto &cc = db_api.get_content_card_by_id(content_card_id);
    BOOST_CHECK( cc.valid() );
    BOOST_CHECK_EQUAL( cc->hash, hash );
    BOOST_CHECK_EQUAL( cc->content_key, content_key );
@@ -113,7 +113,7 @@ try {
    BOOST_CHECK_EQUAL( cc->type, content_type );
    BOOST_CHECK_EQUAL( cc->storage_data, content_storage_data );
 
-   const auto& ccs = db_api.get_content_cards_v2(alice_id, content_card_id, 100);
+   const auto& ccs = db_api.get_content_cards(alice_id, content_card_id, 100);
    BOOST_CHECK_EQUAL( ccs[0].hash, hash );
    BOOST_CHECK_EQUAL( ccs[0].content_key, content_key );
    BOOST_CHECK_EQUAL( ccs[0].url, content_url );

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2017 Cryptonomex, Inc., and contributors.
- * Copyright (c) 2018-2022 Revolution Populi Limited, and contributors.
+ * Copyright (c) 2018-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -607,7 +607,7 @@ class wallet_api
       vector< signed_transaction > import_balance( string account_name_or_id, const vector<string>& wif_keys,
                                                    bool broadcast );
 
-      vector< signed_transaction > ico_import_balance( string account_name_or_id, string eth_pukey, string phrase,
+      vector< signed_transaction > ico_import_balance( string account_name_or_id, string eth_pub_key, string eth_sign,
                                                    bool broadcast );
 
       /** Transforms a brain key to reduce the chance of errors when re-entering the key from memory.
@@ -1427,6 +1427,23 @@ class wallet_api
        */
       operation get_prototype_operation(string operation_type);
 
+      /** Creates a transaction to propose a parameter extension change.
+       *
+       * Multiple parameters can be specified if an atomic change is
+       * desired.
+       *
+       * @param proposing_account The account paying the fee to propose the tx
+       * @param expiration_time Timestamp specifying when the proposal will either take effect or expire.
+       * @param changed_extensions The values to change; all other chain parameters are filled in with default values
+       * @param broadcast true if you wish to broadcast the transaction
+       * @return the signed version of the transaction
+       */
+      signed_transaction propose_parameter_extension_change(
+         const string& proposing_account,
+         fc::time_point_sec expiration_time,
+         const variant_object& changed_extensions,
+         bool broadcast = false);
+
       /** Creates a transaction to propose a parameter change.
        *
        * Multiple parameters can be specified if an atomic change is
@@ -1503,27 +1520,11 @@ class wallet_api
        * @param operator_account an account who is permitted to use personal data.
        * @param url a url to the content storage.
        * @param hash a hash of a personal data.
-       * @param broadcast true if you wish to broadcast the transaction.
-       * @return the signed version of the transaction.
-      */
-      signed_transaction create_personal_data(
-            const string& subject_account,
-            const string& operator_account,
-            const string& url,
-            const string& hash,
-            bool broadcast = false );
-
-      /** Create personal data v2 with permission.
-       *
-       * @param subject_account the owner of personal data.
-       * @param operator_account an account who is permitted to use personal data.
-       * @param url a url to the content storage.
-       * @param hash a hash of a personal data.
        * @param storage_data data specific to the cloud storage (content id in the cloud storage).
        * @param broadcast true if you wish to broadcast the transaction.
        * @return the signed version of the transaction.
       */
-      signed_transaction create_personal_data_v2(
+      signed_transaction create_personal_data(
             const string& subject_account,
             const string& operator_account,
             const string& url,
@@ -1547,21 +1548,6 @@ class wallet_api
             bool broadcast = false );
 
       /**
-       * Removes the personal data v2 object.
-       * 
-       * @param subject_account the owner of personal data.
-       * @param operator_account an account who is permitted to use personal data.
-       * @param hash a hash of a personal data
-       * @param broadcast true if you wish to broadcast the transaction.
-       * @returns the signed version of the transaction.
-       */
-      signed_transaction remove_personal_data_v2(
-            const string& subject_account,
-            const string& operator_account,
-            const string& hash,
-            bool broadcast = false );
-
-      /**
        * Returns the personal data object list.
        * 
        * @param subject_account the owner of personal data.
@@ -1569,17 +1555,6 @@ class wallet_api
        * @returns the personal data object list.
        */
       std::vector<personal_data_object> get_personal_data(
-            const string& subject_account,
-            const string& operator_account) const;
-
-      /**
-       * Returns the personal data v2 object list.
-       * 
-       * @param subject_account the owner of personal data.
-       * @param operator_account an account who is permitted to use personal data.
-       * @returns the personal data object list.
-       */
-      std::vector<personal_data_v2_object> get_personal_data_v2(
             const string& subject_account,
             const string& operator_account) const;
 
@@ -1595,38 +1570,6 @@ class wallet_api
             const string& operator_account) const;
 
       /**
-       * Returns last added personal data v2 object.
-       * 
-       * @param subject_account the owner of personal data.
-       * @param operator_account an account who is permitted to use personal data.
-       * @returns the personal data object.
-       */
-      personal_data_v2_object get_last_personal_data_v2(
-            const string& subject_account,
-            const string& operator_account) const;
-
-      /**
-       * Create a content card.
-       * 
-       * @param subject_account an owner of a content.
-       * @param hash an hash value getted from content.
-       * @param url a url to the content storage.
-       * @param type a type of a content (jpg, mp3, mp4, html, est.).
-       * @param description a text description of content to convenient full text search.
-       * @param content_key a encrypted symmetric key to decrypt content, can be decrypted by subject account.
-       * @param broadcast true if you wish to broadcast the transaction.
-       * @returns the signed version of the transaction.
-       */
-      signed_transaction create_content_card(
-            const string& subject_account,
-            const string& hash,
-            const string& url,
-            const string& type,
-            const string& description,
-            const string& content_key,
-            bool broadcast = false ) const;
-
-      /**
        * Create a content card.
        * 
        * @param subject_account an owner of a content.
@@ -1639,7 +1582,7 @@ class wallet_api
        * @param broadcast true if you wish to broadcast the transaction.
        * @returns the signed version of the transaction.
        */
-      signed_transaction create_content_card_v2(
+      signed_transaction create_content_card(
             const string& subject_account,
             const string& hash,
             const string& url,
@@ -1658,32 +1601,11 @@ class wallet_api
        * @param type a type of a content (jpg, mp3, mp4, html, est.).
        * @param description a text description of content to convenient full text search.
        * @param content_key a encrypted symmetric key to decrypt content, can be decrypted by subject account.
-       * @param broadcast true if you wish to broadcast the transaction.
-       * @returns the signed version of the transaction.
-       */
-      signed_transaction update_content_card(
-            const string& subject_account,
-            const string& hash,
-            const string& url,
-            const string& type,
-            const string& description,
-            const string& content_key,
-            bool broadcast = false ) const;
-
-      /**
-       * Update a content card.
-       * 
-       * @param subject_account an owner of a content.
-       * @param hash an hash value getted from content.
-       * @param url a url to the content storage.
-       * @param type a type of a content (jpg, mp3, mp4, html, est.).
-       * @param description a text description of content to convenient full text search.
-       * @param content_key a encrypted symmetric key to decrypt content, can be decrypted by subject account.
        * @param storage_data data specific to the cloud storage (content id in the cloud storage).
        * @param broadcast true if you wish to broadcast the transaction.
        * @returns the signed version of the transaction.
        */
-      signed_transaction update_content_card_v2(
+      signed_transaction update_content_card(
             const string& subject_account,
             const string& hash,
             const string& url,
@@ -1702,19 +1624,6 @@ class wallet_api
        * @returns the signed version of the transaction
        */
       signed_transaction remove_content_card(
-            const string& subject_account,
-            uint64_t content_id,
-            bool broadcast = false ) const;
-
-      /**
-       * Remove a content card v2.
-       * 
-       * @param subject_account an owner of a content.
-       * @param content_id a content card id.
-       * @param broadcast true if you wish to broadcast the transaction.
-       * @returns the signed version of the transaction
-       */
-      signed_transaction remove_content_card_v2(
             const string& subject_account,
             uint64_t content_id,
             bool broadcast = false ) const;
@@ -1759,7 +1668,6 @@ class wallet_api
        * @returns the content card object.
        */
       content_card_object get_content_card_by_id( uint64_t content_id ) const;
-      content_card_v2_object get_content_card_v2_by_id( uint64_t content_id ) const;
 
       /**
        * Returns a list of content card objects for choosen account
@@ -1770,9 +1678,6 @@ class wallet_api
        * @returns the list of a content card objects.
        */
       std::vector<content_card_object> get_content_cards( const string& subject_account,
-            uint64_t content_id,
-            unsigned limit = 100 ) const;
-      std::vector<content_card_v2_object> get_content_cards_v2( const string& subject_account,
             uint64_t content_id,
             unsigned limit = 100 ) const;
       /**
@@ -1950,6 +1855,7 @@ FC_API( graphene::wallet::wallet_api,
         (get_transaction_signers)
         (get_key_references)
         (get_prototype_operation)
+        (propose_parameter_extension_change)
         (propose_parameter_change)
         (propose_fee_change)
         (approve_proposal)
@@ -1986,13 +1892,4 @@ FC_API( graphene::wallet::wallet_api,
         (get_content_cards)
         (get_permission_by_id)
         (get_permissions)
-        (create_content_card_v2)
-        (update_content_card_v2)
-        (remove_content_card_v2)
-        (get_content_card_v2_by_id)
-        (get_content_cards_v2)
-        (create_personal_data_v2)
-        (remove_personal_data_v2)
-        (get_personal_data_v2)
-        (get_last_personal_data_v2)
       )

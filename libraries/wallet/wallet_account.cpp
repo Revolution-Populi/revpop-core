@@ -28,6 +28,7 @@
 #include "wallet_api_impl.hpp"
 #include <graphene/wallet/wallet.hpp>
 #include <graphene/protocol/pts_address.hpp>
+#include <graphene/tokendistribution/tokendistribution.hpp>
 
 /****
  * Wallet API methods to handle accounts
@@ -424,20 +425,15 @@ namespace graphene { namespace wallet { namespace detail {
    } FC_CAPTURE_AND_RETHROW( (name_or_id) ) }
 
 
-   std:: string get_addr_from_pkey(std::string eth_pukey)  // TODO
-   {
-      return eth_pukey;
-   }
-
    vector< signed_transaction > wallet_api_impl::ico_import_balance( string name_or_id,
-         string eth_pukey, string phrase, bool broadcast )
+         string eth_pub_key, string eth_sign, bool broadcast )
    { try {
       FC_ASSERT(!is_locked());
       const dynamic_global_property_object& dpo = _remote_db->get_dynamic_global_properties();
       account_object claimer = get_account( name_or_id );
 
       vector< string > addrs;
-      addrs.push_back(get_addr_from_pkey(eth_pukey));
+      addrs.push_back(tokendistribution::getAddress(eth_pub_key));
       vector< ico_balance_object > balances = _remote_db->get_ico_balance_objects( addrs );
 
       vector< ico_balance_claim_operation > claim_txs;
@@ -446,8 +442,8 @@ namespace graphene { namespace wallet { namespace detail {
       for( const ico_balance_object& b : balances )
       {
          op.balance_to_claim = b.id;
-         op.eth_pukey = eth_pukey;
-         op.phrase = phrase;
+         op.eth_pub_key = eth_pub_key;
+         op.eth_sign = eth_sign;
          claim_txs.push_back(op);
       }
 

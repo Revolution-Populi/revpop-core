@@ -25,7 +25,6 @@
 #include <graphene/chain/personal_data_evaluator.hpp>
 #include <graphene/chain/buyback.hpp>
 #include <graphene/chain/database.hpp>
-#include <graphene/chain/hardfork.hpp>
 #include <graphene/chain/exceptions.hpp>
 #include <graphene/chain/special_authority_object.hpp>
 #include <graphene/chain/witness_object.hpp>
@@ -37,10 +36,9 @@ namespace graphene { namespace chain {
 void_result personal_data_create_evaluator::do_evaluate( const personal_data_create_operation& op )
 { try {
    database& d = db();
-   if (HARDFORK_REVPOP_15_PASSED(d.head_block_time()))
-      FC_THROW( "Please use create_personal_data_v2 instead" );
    FC_ASSERT(!op.url.empty(), "URL can not be empty.");
    FC_ASSERT(!op.hash.empty(), "Hash can not be empty.");
+   FC_ASSERT(!op.storage_data.empty(), "Storage data can not be empty.");
 
    // check personal data already exist
    const auto& pd_idx = d.get_index_type<personal_data_index>();
@@ -68,6 +66,7 @@ object_id_type personal_data_create_evaluator::do_apply( const personal_data_cre
          obj.operator_account = o.operator_account;
          obj.url              = o.url;
          obj.hash             = o.hash;
+         obj.storage_data     = o.storage_data;
 
    });
    return new_pd_object.id;

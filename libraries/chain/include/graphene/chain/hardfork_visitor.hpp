@@ -1,7 +1,7 @@
 #pragma once
 /*
  * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
- * Copyright (c) 2018-2023 Revolution Populi Limited, and contributors.
+ * Copyright (c) 2020-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2019 BitShares Blockchain Foundation, and contributors.
- * Copyright (c) 2019-2023 Revolution Populi Limited, and contributors.
+ * Copyright (c) 2020-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *

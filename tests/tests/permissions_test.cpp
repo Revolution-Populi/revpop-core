@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Revolution Populi Limited, and contributors.
+ * Copyright (c) 2020-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *

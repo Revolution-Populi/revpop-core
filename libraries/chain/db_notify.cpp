@@ -228,6 +228,10 @@ struct get_impacted_account_visitor
    {
       _impacted.insert( op.fee_payer() ); // deposit_to_account
    }
+   void operator()( const ico_balance_claim_operation& op )
+   {
+      _impacted.insert( op.fee_payer() ); // deposit_to_account
+   }
    void operator()( const override_transfer_operation& op )
    {
       _impacted.insert( op.to );
@@ -424,6 +428,9 @@ void get_relevant_accounts( const object* obj, flat_set<account_id_type>& accoun
            accounts.insert( aobj->worker_account );
            break;
         } case balance_object_type:{
+           /** these are free from any accounts */
+           break;
+        } case ico_balance_object_type:{
            /** these are free from any accounts */
            break;
         } case htlc_object_type:{

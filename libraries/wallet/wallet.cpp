@@ -1258,6 +1258,15 @@ vector< signed_transaction > wallet_api::import_balance(
    return my->import_balance( name_or_id, wif_keys, broadcast );
 }
 
+vector< signed_transaction > wallet_api::ico_import_balance(
+      string account_name_or_id,
+      string eth_pub_key,
+      string eth_sign,
+      bool broadcast )
+{
+   return my->ico_import_balance( account_name_or_id, eth_pub_key, eth_sign, broadcast );
+}
+
 map<public_key_type, string> wallet_api::dump_private_keys()
 {
    FC_ASSERT(!is_locked());

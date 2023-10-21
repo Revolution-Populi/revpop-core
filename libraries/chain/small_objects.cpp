@@ -26,6 +26,7 @@
 #include <graphene/protocol/fee_schedule.hpp>
 
 #include <graphene/chain/balance_object.hpp>
+#include <graphene/chain/ico_balance_object.hpp>
 #include <graphene/chain/block_summary_object.hpp>
 #include <graphene/chain/budget_record_object.hpp>
 #include <graphene/chain/buyback_object.hpp>
@@ -47,6 +48,9 @@
 
 FC_REFLECT_DERIVED_NO_TYPENAME( graphene::chain::balance_object, (graphene::db::object),
                     (owner)(balance)(vesting_policy)(last_claim_date) )
+
+FC_REFLECT_DERIVED_NO_TYPENAME( graphene::chain::ico_balance_object, (graphene::db::object),
+                    (eth_address)(balance) )
 
 FC_REFLECT_DERIVED_NO_TYPENAME( graphene::chain::block_summary_object, (graphene::db::object), (block_id) )
 
@@ -196,6 +200,7 @@ FC_REFLECT_DERIVED_NO_TYPENAME( graphene::chain::custom_authority_object, (graph
                                (auth)(restrictions)(restriction_counter) )
 
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::balance_object )
+GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::ico_balance_object )
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::block_summary_object )
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::budget_record )
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::budget_record_object )

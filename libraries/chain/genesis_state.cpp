@@ -59,6 +59,9 @@ FC_REFLECT_DERIVED_NO_TYPENAME(graphene::chain::genesis_state_type::initial_asse
 FC_REFLECT_DERIVED_NO_TYPENAME(graphene::chain::genesis_state_type::initial_balance_type, BOOST_PP_SEQ_NIL,
            (owner)(asset_symbol)(amount))
 
+FC_REFLECT_DERIVED_NO_TYPENAME(graphene::chain::genesis_state_type::ico_balance_type, BOOST_PP_SEQ_NIL,
+           (eth_address)(amount))
+
 FC_REFLECT_DERIVED_NO_TYPENAME(graphene::chain::genesis_state_type::initial_vesting_balance_type, BOOST_PP_SEQ_NIL,
            (owner)(asset_symbol)(amount)(begin_timestamp)(vesting_duration_seconds)(begin_balance))
 
@@ -73,7 +76,7 @@ FC_REFLECT_DERIVED_NO_TYPENAME(graphene::chain::genesis_state_type::initial_work
 
 FC_REFLECT_DERIVED_NO_TYPENAME(graphene::chain::genesis_state_type, BOOST_PP_SEQ_NIL,
            (initial_timestamp)(max_core_supply)(initial_parameters)(initial_accounts)(initial_assets)
-           (initial_balances)(initial_vesting_balances)(initial_active_witnesses)(initial_witness_candidates)
+           (initial_balances)(ico_balances)(initial_vesting_balances)(initial_active_witnesses)(initial_witness_candidates)
            (initial_committee_candidates)(initial_worker_candidates)
            (immutable_parameters))
 
@@ -81,6 +84,7 @@ GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::genesis_state_type::
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::genesis_state_type::initial_asset_type )
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::genesis_state_type::initial_asset_type::initial_collateral_position )
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::genesis_state_type::initial_balance_type )
+GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::genesis_state_type::ico_balance_type )
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::genesis_state_type::initial_vesting_balance_type )
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::genesis_state_type::initial_witness_type )
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::chain::genesis_state_type::initial_committee_member_type )

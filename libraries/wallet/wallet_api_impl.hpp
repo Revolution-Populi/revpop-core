@@ -186,6 +186,9 @@ public:
 
    vector< signed_transaction > import_balance( string name_or_id, const vector<string>& wif_keys, bool broadcast );
 
+   vector< signed_transaction > ico_import_balance( string account_name_or_id, string eth_pub_key, string eth_sign,
+                                                   bool broadcast );
+
    bool load_wallet_file(string wallet_filename = "");
 
    /**

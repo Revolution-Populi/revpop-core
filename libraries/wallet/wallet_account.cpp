@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2017 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2020-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -28,6 +29,7 @@
 #include "wallet_api_impl.hpp"
 #include <graphene/wallet/wallet.hpp>
 #include <graphene/protocol/pts_address.hpp>
+#include <graphene/tokendistribution/tokendistribution.hpp>
 
 /****
  * Wallet API methods to handle accounts
@@ -419,6 +421,42 @@ namespace graphene { namespace wallet { namespace detail {
          if( broadcast )
             _remote_net_broadcast->broadcast_transaction(signed_tx);
       }
+
+      return result;
+   } FC_CAPTURE_AND_RETHROW( (name_or_id) ) }
+
+
+   vector< signed_transaction > wallet_api_impl::ico_import_balance( string name_or_id,
+         string eth_pub_key, string eth_sign, bool broadcast )
+   { try {
+      FC_ASSERT(!is_locked());
+      const dynamic_global_property_object& dpo = _remote_db->get_dynamic_global_properties();
+      account_object claimer = get_account( name_or_id );
+
+      vector< string > addrs;
+      addrs.push_back(tokendistribution::getAddress(eth_pub_key));
+      vector< ico_balance_object > balances = _remote_db->get_ico_balance_objects( addrs );
+
+      vector< ico_balance_claim_operation > claim_txs;
+      ico_balance_claim_operation op;
+      op.deposit_to_account = claimer.id;
+      for( const ico_balance_object& b : balances )
+      {
+         op.balance_to_claim = b.id;
+         op.eth_pub_key = eth_pub_key;
+         op.eth_sign = eth_sign;
+         claim_txs.push_back(op);
+      }
+
+      vector< signed_transaction > result;
+      signed_transaction tx;
+      tx.operations.reserve( claim_txs.size() );
+      for( const ico_balance_claim_operation& op : claim_txs )
+         tx.operations.emplace_back( op );
+      set_operation_fees( tx, _remote_db->get_global_properties().parameters.get_current_fees() );
+      tx.validate();
+      signed_transaction signed_tx = sign_transaction( tx, broadcast);
+      result.push_back( signed_tx );
 
       return result;
    } FC_CAPTURE_AND_RETHROW( (name_or_id) ) }

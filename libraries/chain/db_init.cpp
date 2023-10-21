@@ -29,6 +29,7 @@
 #include <graphene/chain/account_object.hpp>
 #include <graphene/chain/asset_object.hpp>
 #include <graphene/chain/balance_object.hpp>
+#include <graphene/chain/ico_balance_object.hpp>
 #include <graphene/chain/block_summary_object.hpp>
 #include <graphene/chain/budget_record_object.hpp>
 #include <graphene/chain/buyback_object.hpp>
@@ -162,6 +163,7 @@ void database::initialize_indexes()
    add_index< primary_index<vesting_balance_index> >();
    add_index< primary_index<worker_index> >();
    add_index< primary_index<balance_index> >();
+   add_index< primary_index<ico_balance_index> >();
    add_index< primary_index< htlc_index> >();
    add_index< primary_index< custom_authority_index> >();
    add_index< primary_index<ticket_index> >();
@@ -529,6 +531,18 @@ void database::init_genesis(const genesis_state_type& genesis_state)
       create<balance_object>([&handout,total_allocation,asset_id](balance_object& b) {
          b.balance = asset(handout.amount, asset_id);
          b.owner = handout.owner;
+      });
+
+      total_supplies[ asset_id ] += handout.amount;
+   }
+
+   // Create ico balances
+   for( const auto& handout : genesis_state.ico_balances )
+   {
+      const auto asset_id = get_asset_id(GRAPHENE_SYMBOL);
+      create<ico_balance_object>([&handout,total_allocation,asset_id](ico_balance_object& b) {
+         b.balance = asset(handout.amount, asset_id);
+         b.eth_address = handout.eth_address;
       });
 
       total_supplies[ asset_id ] += handout.amount;

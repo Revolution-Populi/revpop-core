@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015 Cryptonomex, Inc., and contributors.
+ * Copyright (c) 2020-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -77,6 +78,10 @@ struct genesis_state_type {
       string asset_symbol;
       share_type amount;
    };
+   struct ico_balance_type {
+      string eth_address;
+      share_type amount;
+   };
    struct initial_vesting_balance_type {
       address owner;
       string asset_symbol;
@@ -107,6 +112,7 @@ struct genesis_state_type {
    vector<initial_account_type>             initial_accounts;
    vector<initial_asset_type>               initial_assets;
    vector<initial_balance_type>             initial_balances;
+   vector<ico_balance_type>                 ico_balances;
    vector<initial_vesting_balance_type>     initial_vesting_balances;
    uint64_t                                 initial_active_witnesses = GRAPHENE_DEFAULT_MIN_WITNESS_COUNT;
    vector<initial_witness_type>             initial_witness_candidates;
@@ -136,6 +142,7 @@ FC_REFLECT_TYPENAME( graphene::chain::genesis_state_type::initial_account_type )
 FC_REFLECT_TYPENAME( graphene::chain::genesis_state_type::initial_asset_type )
 FC_REFLECT_TYPENAME( graphene::chain::genesis_state_type::initial_asset_type::initial_collateral_position )
 FC_REFLECT_TYPENAME( graphene::chain::genesis_state_type::initial_balance_type )
+FC_REFLECT_TYPENAME( graphene::chain::genesis_state_type::ico_balance_type )
 FC_REFLECT_TYPENAME( graphene::chain::genesis_state_type::initial_vesting_balance_type )
 FC_REFLECT_TYPENAME( graphene::chain::genesis_state_type::initial_witness_type )
 FC_REFLECT_TYPENAME( graphene::chain::genesis_state_type::initial_committee_member_type )
@@ -146,6 +153,7 @@ GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::chain::genesis_state_type::in
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::chain::genesis_state_type::initial_asset_type )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::chain::genesis_state_type::initial_asset_type::initial_collateral_position )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::chain::genesis_state_type::initial_balance_type )
+GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::chain::genesis_state_type::ico_balance_type )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::chain::genesis_state_type::initial_vesting_balance_type )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::chain::genesis_state_type::initial_witness_type )
 GRAPHENE_DECLARE_EXTERNAL_SERIALIZATION( graphene::chain::genesis_state_type::initial_committee_member_type )

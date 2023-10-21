@@ -88,6 +88,7 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
                                           const flat_set<asset_id_type>& assets )const;
       vector<asset> get_named_account_balances(const std::string& name, const flat_set<asset_id_type>& assets)const;
       vector<balance_object> get_balance_objects( const vector<address>& addrs )const;
+      vector<ico_balance_object> get_ico_balance_objects( const vector<string>& addrs )const;
       vector<asset> get_vested_balances( const vector<balance_id_type>& objs )const;
       vector<vesting_balance_object> get_vesting_balances( const std::string account_id_or_name )const;
 

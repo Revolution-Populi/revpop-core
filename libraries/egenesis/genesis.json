@@ -1173,6 +1173,18 @@
       "amount": "1000000000"
     }
   ],
+  "ico_balances": [
+    {
+      "eth_address": "B8F1dB13B36dD64A7fcCD22222Bd9a4444Be2e66",
+      "amount": 250000
+    },{
+      "eth_address": "B8F1dB13B36dD64A7fcCD22223Bd9a4444Be2e66",
+      "amount": 240000
+    },{
+      "eth_address": "B8F1dB13B36dD64A7fcCD22224Bd9a4444Be2e66",
+      "amount": 350000
+    }
+  ],
   "initial_vesting_balances": [],
   "initial_active_witnesses": 1,
   "initial_witness_candidates": [

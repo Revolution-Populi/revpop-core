@@ -28,6 +28,7 @@
 #include <graphene/protocol/assert.hpp>
 #include <graphene/protocol/asset_ops.hpp>
 #include <graphene/protocol/balance.hpp>
+#include <graphene/protocol/ico_balance.hpp>
 #include <graphene/protocol/custom.hpp>
 #include <graphene/protocol/committee_member.hpp>
 #include <graphene/protocol/custom_authority.hpp>
@@ -116,7 +117,8 @@ namespace graphene { namespace protocol {
             /* 59 */ custom_authority_update_operation,
             /* 60 */ custom_authority_delete_operation,
             /* 61 */ ticket_create_operation,
-            /* 62 */ ticket_update_operation
+            /* 62 */ ticket_update_operation,
+            /* 63 */ ico_balance_claim_operation
          > operation;
 
    /// @} // operations group

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2019 BitShares Blockchain Foundation, and contributors.
+ * Copyright (c) 2020-2023 Revolution Populi Limited, and contributors.
  *
  * The MIT License
  *
@@ -23,6 +24,7 @@
  */
 
 #include <graphene/protocol/balance.hpp>
+#include <graphene/protocol/ico_balance.hpp>
 #include <graphene/protocol/buyback.hpp>
 #include <graphene/protocol/exceptions.hpp>
 #include <graphene/protocol/fba.hpp>
@@ -55,6 +57,7 @@ FC_IMPLEMENT_DERIVED_EXCEPTION( insufficient_fee,           transaction_exceptio
 
 
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::protocol::balance_claim_operation )
+GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::protocol::ico_balance_claim_operation )
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::protocol::buyback_account_options )
 GRAPHENE_IMPLEMENT_EXTERNAL_SERIALIZATION( graphene::protocol::fba_distribute_operation )
 

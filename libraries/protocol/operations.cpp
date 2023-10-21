@@ -50,6 +50,12 @@ void balance_claim_operation::validate()const
    FC_ASSERT( balance_owner_key != public_key_type() );
 }
 
+void ico_balance_claim_operation::validate()const
+{
+   FC_ASSERT( fee == asset() );
+   FC_ASSERT( eth_pub_key.size() == 128 );
+}
+
 /**
  * @brief Used to validate operations in a polymorphic manner
  */

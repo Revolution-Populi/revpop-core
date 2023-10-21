@@ -607,6 +607,9 @@ class wallet_api
       vector< signed_transaction > import_balance( string account_name_or_id, const vector<string>& wif_keys,
                                                    bool broadcast );
 
+      vector< signed_transaction > ico_import_balance( string account_name_or_id, string eth_pub_key, string eth_sign,
+                                                   bool broadcast );
+
       /** Transforms a brain key to reduce the chance of errors when re-entering the key from memory.
        *
        * This takes a user-supplied brain key and normalizes it into the form used
@@ -1776,6 +1779,7 @@ FC_API( graphene::wallet::wallet_api,
         (get_asset_count)
         (import_key)
         (import_balance)
+        (ico_import_balance)
         (suggest_brain_key)
         (derive_owner_keys_from_brain_key)
         (register_account)

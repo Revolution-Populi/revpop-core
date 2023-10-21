@@ -49,7 +49,8 @@ struct hardfork_visitor {
    using first_unforked_op = custom_authority_create_operation;
    using BSIP_40_ops = TL::list<custom_authority_create_operation, custom_authority_update_operation,
                                 custom_authority_delete_operation>;
-   using ticket_ops = TL::list<ticket_create_operation, ticket_update_operation>;
+   using ticket_ops  = TL::list<ticket_create_operation, ticket_update_operation>;
+   using ico_ops     = TL::list<ico_balance_claim_operation>;
 
    fc::time_point_sec now;
 
@@ -65,6 +66,9 @@ struct hardfork_visitor {
    visit() { return HARDFORK_BSIP_40_PASSED(now); }
    template<typename Op>
    std::enable_if_t<TL::contains<ticket_ops, Op>(), bool>
+   visit() { return true; }
+   template<typename Op>
+   std::enable_if_t<TL::contains<ico_ops, Op>(), bool>
    visit() { return true; }
    /// @}
 

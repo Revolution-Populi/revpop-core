@@ -1,0 +1,91 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "(gdb) Launch chain_test in debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/buildd/tests/chain_test",
+            "args": ["--log_level=all", "--report_level=detailed", "--run_test=block_tests/transaction_invalidated_in_cache"],
+            "stopAtEntry": false,
+           "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) Launch app_test in debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/buildd/tests/app_test",
+            "args": ["--log_level=all", "--report_level=detailed"],
+            "stopAtEntry": false,
+           "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) Launch witness_node in debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/buildd/programs/witness_node/witness_node",
+            "args": [
+                "--rpc-endpoint=127.0.0.1:8090"
+                ,"--force-validate"
+            ],
+            "stopAtEntry": false,
+           "cwd": "${workspaceFolder}/buildd",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) Launch cli_wallet in debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/buildd/programs/cli_wallet/cli_wallet",
+            "args": [
+                "-sws://127.0.0.1:8090"
+                , "-H127.0.0.1:8091"
+                ,"-d"
+            ],
+            "stopAtEntry": false,
+           "cwd": "${workspaceFolder}/buildd",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}
